@@ -1,0 +1,667 @@
+---
+import LayoutNavbar from "../layouts/LayoutNavbar.astro";
+import { politicaPrivacidadGuatemala } from "../content/politicaPrivacidadGuatemala";
+import "~/styles/index.css";
+
+const dataFooter = {
+  title: "¿Necesitas consultar, actualizar o rectificar tus datos?",
+  content:
+    "Nuestro equipo recibe consultas y reclamos relacionados con el tratamiento de datos personales a través del canal oficial de Campuslands Guatemala.",
+  buttonType: "contacto",
+  buttonIcon: "happyFace.svg",
+  buttonLink:
+    "mailto:contacto@campuslands.com?subject=Consulta sobre tratamiento de datos personales",
+};
+
+const chapters = [
+  { id: "introduccion", label: "Introducción", number: "00" },
+  { id: "alcance", label: "Alcance de la política", number: "01" },
+  { id: "finalidades", label: "Finalidades del tratamiento", number: "02" },
+  { id: "tratamiento", label: "Tratamiento de los datos", number: "03" },
+  { id: "autorizacion", label: "Autorización y seguridad", number: "04" },
+  { id: "deberes", label: "Deberes de las partes", number: "05" },
+  { id: "derechos", label: "Derechos de los titulares", number: "06" },
+  { id: "disposiciones", label: "Disposiciones finales", number: "07" },
+];
+---
+
+<LayoutNavbar
+  title="Política de privacidad y seguridad de datos | Campuslands Guatemala"
+  description="Política de tratamiento, privacidad y seguridad de datos personales de Campuslands Guatemala."
+  dataFooter={dataFooter}
+>
+  <main class="privacy-policy">
+    <section class="policy-hero sections" aria-labelledby="policy-title">
+      <div class="policy-orbit policy-orbit-one" aria-hidden="true"></div>
+      <div class="policy-orbit policy-orbit-two" aria-hidden="true"></div>
+      <div class="policy-hero-content">
+        <div class="policy-kicker">
+          <span class="policy-kicker-dot"></span>
+          Documento legal · Guatemala
+        </div>
+        <h1 id="policy-title">
+          Política de privacidad
+          <span>y seguridad de datos</span>
+        </h1>
+        <p>
+          Conoce cómo Campuslands Guatemala recopila, utiliza, protege y
+          administra los datos personales de su comunidad.
+        </p>
+        <div class="policy-meta" aria-label="Información del documento">
+          <div>
+            <span>Responsable</span>
+            <strong>Asociación Campuslands Guatemala</strong>
+          </div>
+          <div>
+            <span>Vigencia</span>
+            <strong>1 de noviembre de 2025</strong>
+          </div>
+          <div>
+            <span>Canal oficial</span>
+            <a href="mailto:contacto@campuslands.com">
+              contacto@campuslands.com
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="policy-layout sections">
+      <aside class="policy-index" aria-label="Contenido de la política">
+        <div class="policy-index-sticky">
+          <p class="policy-index-label">En este documento</p>
+          <nav>
+            {
+              chapters.map((chapter) => (
+                <a href={`#${chapter.id}`} data-policy-link={chapter.id}>
+                  <span>{chapter.number}</span>
+                  {chapter.label}
+                </a>
+              ))
+            }
+          </nav>
+          <a
+            class="policy-contact"
+            href="mailto:contacto@campuslands.com?subject=Consulta sobre tratamiento de datos personales"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path d="M4 5h16v14H4z"></path>
+              <path d="m4 7 8 6 8-6"></path>
+            </svg>
+            Consultar sobre mis datos
+          </a>
+        </div>
+      </aside>
+
+      <article class="policy-document" aria-label="Política completa">
+        <div class="policy-document-heading">
+          <div>
+            <span>Documento completo</span>
+            <h2>Tratamiento de datos personales</h2>
+          </div>
+          <div class="policy-shield" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+            >
+              <path d="M12 3 5 6v5c0 4.6 2.8 8.1 7 10 4.2-1.9 7-5.4 7-10V6z">
+              </path>
+              <path d="m9 12 2 2 4-5"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="policy-content" set:html={politicaPrivacidadGuatemala} />
+      </article>
+    </section>
+  </main>
+</LayoutNavbar>
+
+<script>
+  const sectionIds = new Map([
+    ["INTRODUCCIÓN", "introduccion"],
+    ["1. ALCANCE DE LA POLÍTICA", "alcance"],
+    [
+      "2. FINALIDADES DEL TRATAMIENTO DE LA INFORMACIÓN SEGÚN LAS BASES DE DATOS",
+      "finalidades",
+    ],
+    ["3. TRATAMIENTO DE LOS DATOS PERSONALES", "tratamiento"],
+    [
+      "4. AUTORIZACIÒN PARA EL TRATAMIENTO DE DATOS PERSONALES Y MEDIDAS DE SEGURIDAD",
+      "autorizacion",
+    ],
+    [
+      "5. DEBERES DE LAS PARTES INVOLUCRADAS EN EL TRATAMIENTO DE LA INFORMACIÓN 5.1. DEBERES DE LOS TITULARES DE LA INFORMACIÓN",
+      "deberes",
+    ],
+    [
+      "6. DERECHOS DE LOS TITULARES Y PROCEDIMIENTOS PARA EL EJERCICIO DEL DERECHO DE HÁBEAS DATA",
+      "derechos",
+    ],
+    [
+      "7. DISPOSICIONES FINALES PARA EL CUMPLIMIENTO DE LA POLÍTICA",
+      "disposiciones",
+    ],
+  ]);
+
+  const preparePolicyDocument = () => {
+    const paragraphs =
+      document.querySelectorAll<HTMLElement>(".policy-content > p");
+
+    paragraphs.forEach((paragraph) => {
+      const text = paragraph.textContent?.replace(/\s+/g, " ").trim() ?? "";
+      const sectionId = sectionIds.get(text);
+
+      if (sectionId) {
+        paragraph.id = sectionId;
+        paragraph.classList.add("policy-main-heading");
+      } else if (
+        paragraph.querySelector("strong") &&
+        /^\d+\.\d+(?:\.\d+)*\.?\s/.test(text) &&
+        text.length < 190
+      ) {
+        paragraph.classList.add("policy-subheading");
+      }
+    });
+
+    document
+      .querySelectorAll<HTMLImageElement>(".policy-content img")
+      .forEach((image) => {
+        image.alt =
+          "Tipos de datos sensibles y finalidades de tratamiento en Campuslands";
+        image.loading = "lazy";
+      });
+  };
+
+  preparePolicyDocument();
+  document.addEventListener("astro:page-load", preparePolicyDocument);
+</script>
+
+<style is:global>
+  .privacy-policy {
+    --policy-navy: #000029;
+    --policy-blue: #2ca2ff;
+    --policy-green: #02d9a4;
+    position: relative;
+    margin-top: -5.5rem;
+    overflow: clip;
+  }
+
+  .policy-hero {
+    position: relative;
+    min-height: 620px;
+    display: flex;
+    align-items: center;
+    padding-top: 10rem;
+    padding-bottom: 7rem;
+    background:
+      radial-gradient(circle at 78% 30%, rgba(44, 162, 255, 0.2), transparent 27rem),
+      radial-gradient(circle at 16% 80%, rgba(2, 217, 164, 0.12), transparent 25rem),
+      linear-gradient(145deg, #000019 8%, #080056 58%, #000048 100%);
+  }
+
+  .policy-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.25;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 52px 52px;
+    mask-image: linear-gradient(to bottom, black, transparent 90%);
+  }
+
+  .policy-hero-content {
+    position: relative;
+    z-index: 2;
+    width: min(1180px, 100%);
+    margin: 0 auto;
+  }
+
+  .policy-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgba(176, 247, 230, 0.25);
+    border-radius: 999px;
+    color: #b0f7e6;
+    background: rgba(0, 0, 41, 0.45);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    backdrop-filter: blur(12px);
+  }
+
+  .policy-kicker-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--policy-green);
+    box-shadow: 0 0 0.8rem var(--policy-green);
+  }
+
+  .policy-hero h1 {
+    max-width: 900px;
+    margin-top: 1.75rem;
+    color: #fff;
+    font-size: clamp(2.8rem, 7vw, 6.4rem);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+  }
+
+  .policy-hero h1 span {
+    display: block;
+    color: transparent;
+    background: linear-gradient(90deg, #19f5bf 5%, #2ca2ff 78%);
+    background-clip: text;
+    -webkit-background-clip: text;
+  }
+
+  .policy-hero-content > p {
+    max-width: 700px;
+    margin-top: 1.6rem;
+    color: #d8ddf5;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    line-height: 1.8;
+  }
+
+  .policy-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 980px;
+    margin-top: 3.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1.4rem;
+    background: rgba(0, 0, 30, 0.55);
+    backdrop-filter: blur(18px);
+  }
+
+  .policy-meta > div {
+    min-height: 108px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .policy-meta > div + div {
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .policy-meta span {
+    color: #92a0c8;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .policy-meta strong,
+  .policy-meta a {
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .policy-meta a:hover {
+    color: var(--policy-green);
+  }
+
+  .policy-orbit {
+    position: absolute;
+    z-index: 1;
+    border: 1px solid rgba(44, 162, 255, 0.2);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .policy-orbit::after {
+    content: "";
+    position: absolute;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    background: var(--policy-green);
+    box-shadow: 0 0 1.4rem var(--policy-green);
+  }
+
+  .policy-orbit-one {
+    width: 480px;
+    height: 480px;
+    top: 6rem;
+    right: -8rem;
+    transform: rotate(-20deg);
+  }
+
+  .policy-orbit-one::after {
+    top: 24%;
+    left: 3%;
+  }
+
+  .policy-orbit-two {
+    width: 240px;
+    height: 240px;
+    right: 11rem;
+    bottom: -7rem;
+    transform: rotate(35deg);
+  }
+
+  .policy-orbit-two::after {
+    right: 8%;
+    bottom: 18%;
+  }
+
+  .policy-layout {
+    width: min(1280px, 100%);
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    margin: 0 auto;
+    padding-top: 5.5rem;
+    padding-bottom: 7rem;
+  }
+
+  .policy-index-sticky {
+    position: sticky;
+    top: 7rem;
+  }
+
+  .policy-index-label {
+    margin-bottom: 1.1rem;
+    color: #8f9ac3;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .policy-index nav {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .policy-index nav a {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: 0.65rem;
+    margin-left: -1px;
+    padding: 0.72rem 0 0.72rem 1rem;
+    border-left: 2px solid transparent;
+    color: #abb3d1;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    transition: 180ms ease;
+  }
+
+  .policy-index nav a:hover {
+    border-left-color: var(--policy-green);
+    color: #fff;
+    transform: translateX(0.2rem);
+  }
+
+  .policy-index nav a span {
+    color: var(--policy-green);
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .policy-contact {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(2, 217, 164, 0.25);
+    border-radius: 0.9rem;
+    color: #dffbf4;
+    background: rgba(2, 217, 164, 0.07);
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: 180ms ease;
+  }
+
+  .policy-contact:hover {
+    border-color: var(--policy-green);
+    background: rgba(2, 217, 164, 0.13);
+  }
+
+  .policy-contact svg {
+    width: 1.25rem;
+    flex: 0 0 auto;
+    color: var(--policy-green);
+  }
+
+  .policy-document {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 2rem;
+    background:
+      linear-gradient(140deg, rgba(255, 255, 255, 0.055), transparent 30%),
+      rgba(0, 0, 40, 0.7);
+    box-shadow: 0 2.5rem 6rem rgba(0, 0, 20, 0.3);
+  }
+
+  .policy-document-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: clamp(1.5rem, 4vw, 2.8rem);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(44, 162, 255, 0.05);
+  }
+
+  .policy-document-heading span {
+    color: var(--policy-green);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .policy-document-heading h2 {
+    margin-top: 0.4rem;
+    color: #fff;
+    font-size: clamp(1.3rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  .policy-shield {
+    width: 3.4rem;
+    height: 3.4rem;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid rgba(2, 217, 164, 0.3);
+    border-radius: 50%;
+    color: var(--policy-green);
+    background: rgba(2, 217, 164, 0.08);
+  }
+
+  .policy-shield svg {
+    width: 1.75rem;
+  }
+
+  .policy-content {
+    padding: clamp(1.5rem, 5vw, 4.5rem);
+    color: #e7e9f5;
+  }
+
+  .policy-content p {
+    margin: 0.75rem 0;
+    color: #d9dcec !important;
+    font-size: 0.94rem;
+    line-height: 1.9;
+  }
+
+  .policy-content p:empty,
+  .policy-content p:has(> br:only-child) {
+    display: none;
+  }
+
+  .policy-content span,
+  .policy-content strong,
+  .policy-content em,
+  .policy-content u {
+    color: inherit !important;
+  }
+
+  .policy-content strong {
+    color: #fff !important;
+    font-weight: 700;
+  }
+
+  .policy-content u {
+    text-decoration-color: var(--policy-green);
+    text-underline-offset: 0.2rem;
+  }
+
+  .policy-content img {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 2rem auto;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 1rem;
+  }
+
+  .policy-content .ql-align-center {
+    text-align: center;
+  }
+
+  .policy-content .ql-align-right {
+    text-align: right;
+  }
+
+  .policy-content .ql-align-justify {
+    text-align: justify;
+  }
+
+  .policy-content .policy-main-heading {
+    scroll-margin-top: 7rem;
+    margin: 4.5rem -1rem 2rem;
+    padding: 1.4rem 1rem;
+    border-top: 1px solid rgba(2, 217, 164, 0.26);
+    border-bottom: 1px solid rgba(44, 162, 255, 0.18);
+    color: #fff !important;
+    background: linear-gradient(90deg, rgba(2, 217, 164, 0.08), transparent);
+    font-size: clamp(1.1rem, 2.5vw, 1.55rem);
+    font-weight: 700;
+    line-height: 1.45;
+    text-align: left;
+  }
+
+  .policy-content .policy-main-heading:first-child {
+    margin-top: 0;
+  }
+
+  .policy-content .policy-subheading {
+    margin-top: 2.8rem;
+    color: #fff !important;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.55;
+    text-align: left;
+  }
+
+  @media (max-width: 900px) {
+    .policy-hero {
+      min-height: auto;
+      padding-top: 9rem;
+      padding-bottom: 5rem;
+    }
+
+    .policy-meta {
+      grid-template-columns: 1fr;
+    }
+
+    .policy-meta > div {
+      min-height: auto;
+    }
+
+    .policy-meta > div + div {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-left: 0;
+    }
+
+    .policy-layout {
+      grid-template-columns: 1fr;
+      padding-top: 2.5rem;
+    }
+
+    .policy-index-sticky {
+      position: static;
+    }
+
+    .policy-index nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      border-left: 0;
+    }
+
+    .policy-index nav a {
+      margin-left: 0;
+      padding: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .policy-index nav a:hover {
+      border-color: var(--policy-green);
+      transform: none;
+    }
+
+    .policy-contact {
+      width: fit-content;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .privacy-policy {
+      margin-top: -5.5rem;
+    }
+
+    .policy-hero h1 {
+      font-size: clamp(2.5rem, 13vw, 4rem);
+    }
+
+    .policy-orbit {
+      opacity: 0.5;
+    }
+
+    .policy-index nav {
+      grid-template-columns: 1fr;
+    }
+
+    .policy-document {
+      border-radius: 1.25rem;
+    }
+
+    .policy-document-heading {
+      align-items: flex-start;
+    }
+
+    .policy-content .ql-align-justify {
+      text-align: left;
+    }
+  }
+</style>

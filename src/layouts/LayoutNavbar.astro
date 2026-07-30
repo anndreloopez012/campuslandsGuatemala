@@ -157,7 +157,7 @@ const curryear = new Date().getFullYear();
         </p>
         <ContactButton
           tipo={dataFooter ? dataFooter.buttonType : "contacto"}
-          linkPage="https://estudiante-guate.campuslands.com/login"
+          linkPage={dataFooter?.buttonLink ?? "https://estudiante-guate.campuslands.com/login"}
           iconName={dataFooter ? dataFooter.buttonIcon : "happyFace.svg"}
           StylesAnchor="self-center"
         />
@@ -210,12 +210,18 @@ const curryear = new Date().getFullYear();
         <div
           class="flex items-center flex-col-reverse md:flex-row justify-between px-6"
         >
-          <p
-            class="text-sm text-white text-center md:text-start justify-around"
-          >
-            © Campuslands Sociedad Anonima {curryear}. Todos los derechos
-            reservados
-          </p>
+          <div class="flex flex-col items-center gap-2 md:items-start">
+            <p class="text-sm text-white text-center md:text-start">
+              © Campuslands Sociedad Anonima {curryear}. Todos los derechos
+              reservados
+            </p>
+            <a
+              href="/politica-de-privacidad"
+              class="text-xs text-[#B0F7E6] underline decoration-[#02D9A4]/60 underline-offset-4 transition-colors hover:text-primary"
+            >
+              Política de privacidad y seguridad de datos
+            </a>
+          </div>
           <div
             class="flex items-center w-full md:w-fit justify-evenly md:gap-x-10"
           >
