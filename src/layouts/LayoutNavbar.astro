@@ -296,8 +296,8 @@ const curryear = new Date().getFullYear();
         font-weight: 600;
       }
       a.active {
-        color: #02d9a4;
-        border-bottom: 3px solid #02d9a4;
+        color: var(--color-brand-cyan);
+        border-bottom: 3px solid var(--color-brand-cyan);
       }
     }
   }
@@ -310,20 +310,19 @@ const curryear = new Date().getFullYear();
   }
 
   :root {
-    --accent: 136, 58, 234;
-    --accent-light: 224, 204, 250;
-    --accent-dark: 49, 10, 101;
+    --accent: 44, 170, 255;
+    --accent-light: 87, 187, 255;
+    --accent-dark: 7, 16, 43;
     --accent-gradient: linear-gradient(
       45deg,
       rgb(var(--accent)),
-      rgb(var(--accent-light)) 30%,
-      white 60%
+      var(--color-brand-aqua) 70%
     );
   }
   html {
     font-family: "Poppins", sans-serif;
     font-weight: 400;
-    background-color: red;
+    background-color: var(--color-brand-gradient-start);
   }
   code {
     font-family:

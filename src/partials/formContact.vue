@@ -4,7 +4,7 @@
 			<section class="flex flex-col mx-8 lg:mx-32 pt-4 h-full gap-y-8">
 				<img src="/img/logos/logoCampus_v1.svg" alt="" class="object-cover w-[156px] h-[48px]">
 				<div class="flex justify-center items-center h-full gap-x-[100px]">
-					<div class="!shadow-[0_0_32px_0_rgba(0,0,0,0.4)] bg-gradient-to-bl !from-[#FFFFFF1F] !to-[#8484841F] backdrop-blur-2xl rounded-[40px] px-10 py-8 w-full min-w-[328px] lg:max-w-[456px]">
+					<div class="!shadow-[0_0_32px_0_rgba(17,17,17,0.4)] bg-gradient-to-bl !from-[#FFFFFF1F] !to-[#1111111F] backdrop-blur-2xl rounded-[40px] px-10 py-8 w-full min-w-[328px] lg:max-w-[456px]">
 						<p class="gradient-text font-bold text-2xl">Contáctanos</p>
 						<p class="text-sm font-normal my-2">Llena el formulario y nuestro equipo se comunicará contigo en breve.</p>
 						<p class="font-semibold mt-5 pb-1">Tu nombre</p>

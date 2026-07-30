@@ -14,13 +14,13 @@
       <div class="flex items-center justify-center lg:hidden gap-x-6 mb-2">
         <div
           id="donateBtn"
-          class="flex items-center rounded-full transition-all duration-75 ease-linear w-fit font-semibold px-6 h-10 cursor-pointer text-[#DFFBF4] hover:bg-[#B0F7E6] hover:text-[#004232]"
+          class="flex items-center rounded-full transition-all duration-75 ease-linear w-fit font-semibold px-6 h-10 cursor-pointer text-[#57BBFF] hover:bg-[#2CAAFF] hover:text-[#07102B]"
         >
           <p>Hacer donación</p>
         </div>
         <div
           id="subscribeBtn"
-          class="flex items-center rounded-full transition-all duration-75 ease-linear w-fit font-semibold px-6 h-10 cursor-pointer text-[#DFFBF4] hover:bg-[#B0F7E6] hover:text-[#004232]"
+          class="flex items-center rounded-full transition-all duration-75 ease-linear w-fit font-semibold px-6 h-10 cursor-pointer text-[#57BBFF] hover:bg-[#2CAAFF] hover:text-[#07102B]"
         >
           <p>Suscribirme</p>
         </div>
@@ -32,7 +32,7 @@
         <!-- Donate Form -->
         <div
           id="donateForm"
-          class="border-4 border-[#2CA2FF] bg-gradient-to-bl from-[#FFFFFF1F] to-[#8484841F] backdrop-blur-2xl rounded-[40px] w-full px-10 py-8 min-w-[328px] lg:max-w-[456px] lg:hover:scale-110 transition-all duration-75 ease-linear"
+          class="border-4 border-[#2CAAFF] bg-gradient-to-bl from-[#FFFFFF1F] to-[#1111111F] backdrop-blur-2xl rounded-[40px] w-full px-10 py-8 min-w-[328px] lg:max-w-[456px] lg:hover:scale-110 transition-all duration-75 ease-linear"
         >
           <div class="donate-initial">
             <p class="gradient-text font-bold text-2xl">Haz una donación</p>
@@ -88,7 +88,7 @@
         <!-- Subscribe Form -->
         <div
           id="subscribeForm"
-          class="border-4 border-[#2CA2FF] bg-gradient-to-bl from-[#FFFFFF1F] to-[#8484841F] backdrop-blur-2xl rounded-[40px] w-full px-10 py-8 min-w-[328px] lg:max-w-[456px] lg:hover:scale-110 transition-all duration-75 ease-linear hidden lg:block"
+          class="border-4 border-[#2CAAFF] bg-gradient-to-bl from-[#FFFFFF1F] to-[#1111111F] backdrop-blur-2xl rounded-[40px] w-full px-10 py-8 min-w-[328px] lg:max-w-[456px] lg:hover:scale-110 transition-all duration-75 ease-linear hidden lg:block"
         >
           <div class="subscribe-initial">
             <p class="gradient-text font-bold text-2xl">
@@ -182,11 +182,11 @@
 
     function updateUI() {
       // Update button states
-      elements.donateBtn.classList.toggle("bg-[#02D9A4]", state.viewDonate);
-      elements.donateBtn.classList.toggle("text-[#004232]", state.viewDonate);
-      elements.subscribeBtn.classList.toggle("bg-[#02D9A4]", !state.viewDonate);
+      elements.donateBtn.classList.toggle("bg-[#00AA80]", state.viewDonate);
+      elements.donateBtn.classList.toggle("text-[#07102B]", state.viewDonate);
+      elements.subscribeBtn.classList.toggle("bg-[#00AA80]", !state.viewDonate);
       elements.subscribeBtn.classList.toggle(
-        "text-[#004232]",
+        "text-[#07102B]",
         !state.viewDonate
       );
 

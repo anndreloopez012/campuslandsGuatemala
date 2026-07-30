@@ -6,92 +6,92 @@ button {
 
 /* primary */
 button.primary {
-	background-color: #02D9A4;
-	color: #004232;
+	background-color: var(--color-brand-aqua);
+	color: var(--color-brand-petroleum);
 }
 
 button.primary:hover {
-	background-color: #00AA80;
-	color: #004232;
+	background-color: var(--color-brand-cyan);
+	color: var(--color-brand-petroleum);
 }
 
 button.primary:active {
-	background-color: #007558;
-	color: #FBFAFF;
+	background-color: var(--color-brand-blue);
+	color: #FFFFFF;
 }
 
 /* secondary */
 button.secondary {
-	border: 2px solid #02D9A4;
+	border: 2px solid var(--color-brand-cyan);
 	background-color: transparent;
-	color: #02D9A4;
+	color: var(--color-brand-sky);
 }
 
 button.secondary:hover {
-	border-color:#02D9A4;
-	background-color: #DFFBF4;
-	color: #02D9A4;
+	border-color: var(--color-brand-cyan);
+	background-color: rgb(44 170 255 / 16%);
+	color: #FFFFFF;
 }
 
 button.secondary:active {
-	border-color: #02D9A4;
-	background-color: #008F6C;
-	color: #7FF5D8;
+	border-color: var(--color-brand-blue);
+	background-color: var(--color-brand-blue);
+	color: #FFFFFF;
 }
 
 /* Disabled - Primary, Secondary */
 button.primary[disabled], button.secondary[disabled]{
-	border-color: #BCBAC4;
-	background-color: #BCBAC4;
-	color: #FBFAFF;
+	border-color: rgb(255 255 255 / 28%);
+	background-color: rgb(255 255 255 / 28%);
+	color: rgb(255 255 255 / 64%);
 }
 
 /* Tertiary */
 button.tertiary {
-	border: 2px solid #004232;
+	border: 2px solid var(--color-brand-sky);
 	background-color: transparent;
-	color: #004232;
+	color: var(--color-brand-sky);
 }
 
 button.tertiary:hover {
-	border-color:#004232;
-	background-color: #DFFBF4;
-	color: #004232;
+	border-color: var(--color-brand-cyan);
+	background-color: rgb(44 170 255 / 16%);
+	color: #FFFFFF;
 }
 
 button.tertiary:active {
-	border-color: #004232;
-	background-color: #02D9A4;
-	color: #004232;
+	border-color: var(--color-brand-aqua);
+	background-color: var(--color-brand-aqua);
+	color: var(--color-brand-petroleum);
 }
 
 /* Disabled - Tertiary */
 button.tertiary[disabled]{
-	border-color: #BCBAC4;
+	border-color: rgb(255 255 255 / 28%);
 	background-color: transparent;
-	color: #BCBAC4;
+	color: rgb(255 255 255 / 38%);
 }
 
 /* Ghost */
 button.ghost {
 	background-color: transparent;
-	color: #02D9A4;
+	color: var(--color-brand-sky);
 }
 
 button.ghost:hover {
-	background-color: #DFFBF4;
-	color: #02D9A4;
+	background-color: rgb(44 170 255 / 16%);
+	color: #FFFFFF;
 }
 
 button.ghost:active {
-	background-color: #02D9A4;
-	color: #004232 ;
+	background-color: var(--color-brand-aqua);
+	color: var(--color-brand-petroleum);
 }
 
 /* Disabled - Ghost */
 button.ghost[disabled]{
 	background-color: transparent;
-	color: #BCBAC4;
+	color: rgb(255 255 255 / 38%);
 }
 
 

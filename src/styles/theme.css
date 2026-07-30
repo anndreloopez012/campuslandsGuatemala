@@ -1,25 +1,25 @@
 [data-theme="light"] {
-	--color-primary: #02D9A4 !important;
-	--color-primary-action: #005C45 !important;
-	--color-secondary: theme("colors.indigo.500");
-	--color-text: theme("colors.gray.900");
-	--color-text-offset: theme("colors.gray.600");
-	--color-background: theme("colors.gray.50");
-	--color-background-offset: theme("colors.gray.100");
-	--color-border: theme("colors.gray.900" / 10%);
+	--color-primary: var(--color-brand-aqua);
+	--color-primary-action: var(--color-brand-cyan-dark);
+	--color-secondary: var(--color-brand-cyan);
+	--color-text: var(--color-brand-petroleum);
+	--color-text-offset: var(--color-brand-blue);
+	--color-background: #FFFFFF;
+	--color-background-offset: var(--color-brand-sky);
+	--color-border: rgb(7 16 43 / 14%);
 }
 
 /* Tailwind */
 
 [data-theme="dark"] {
-  --color-primary: #02D9A4;
-  --color-primary-action: #005C45 !important;
-  --color-secondary: theme("colors.indigo.400");
-  --color-text: theme("colors.gray.50");
-  --color-text-offset: theme("colors.gray.400");
-  --color-background: theme("colors.gray.900");
-  --color-background-offset: theme("colors.gray.800");
-  --color-border: theme("colors.gray.50" / 10%);
+  --color-primary: var(--color-brand-aqua);
+  --color-primary-action: var(--color-brand-cyan-dark);
+  --color-secondary: var(--color-brand-cyan);
+  --color-text: #FFFFFF;
+  --color-text-offset: var(--color-brand-sky);
+  --color-background: var(--color-brand-gradient-start);
+  --color-background-offset: var(--color-brand-petroleum);
+  --color-border: rgb(87 187 255 / 24%);
 }
 
 .sections {
@@ -28,11 +28,11 @@
 
 .gradient-text {
   @apply bg-clip-text text-transparent;
-  @apply bg-gradient-to-br from-[#19F5BF] from-10% to-[#2CA2FF] to-100%;
+  @apply bg-gradient-to-br from-brand-sky from-10% to-brand-aqua to-100%;
 }
 
 .btn-primary {
-  @apply rounded-full bg-primary text-[#004232]   hover:bg-[#00AA80] transition-all duration-300;
+  @apply rounded-full bg-primary text-brand-petroleum hover:bg-brand-cyan transition-all duration-300;
 }
 
 .btn-outline {

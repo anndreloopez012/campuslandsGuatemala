@@ -2,16 +2,16 @@ input {
 	background-color: transparent;
 	height: 44px;
 	border-radius: 8px;
-	border: 1px solid #D7D6DC;
+	border: 1px solid rgb(87 187 255 / 56%);
 	padding-left: 10px;
 	font-size: 16px;
 }
 
 input:focus, input:hover {
-	background-color: #00004D;
+	background-color: var(--color-brand-petroleum);
 }
 
 input:focus {
 	outline-width: 2px;
-	outline-color: #FFFFFF;
+	outline-color: var(--color-brand-cyan);
 }
