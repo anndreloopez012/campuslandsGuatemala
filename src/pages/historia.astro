@@ -1,0 +1,99 @@
+---
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import HistoriaPrologo from "~/components/historia/HistoriaPrologo.astro";
+import HistoriaActo from "~/components/historia/HistoriaActo.astro";
+import HistoriaCapitulo from "~/components/historia/HistoriaCapitulo.astro";
+import HistoriaEpilogo from "~/components/historia/HistoriaEpilogo.astro";
+import HistoriaEscenario from "~/components/historia/HistoriaEscenario.astro";
+import HistoriaHud from "~/components/historia/HistoriaHud.astro";
+import { HISTORIA_ACTS, HISTORIA_AUDIO, HISTORIA_CHAPTERS } from "~/content/historiaCampuslands";
+import { SITE_URL } from "~/config/seo.mjs";
+import "~/styles/index.css";
+import "~/styles/historia.css";
+
+const dataFooter = {
+  title: "El próximo capítulo de Campuslands se escribe con tu talento.",
+  content:
+    "Estudia, contrata o patrocina: cada persona que se une a Campuslands Guatemala amplía esta historia. Escríbenos y encontremos juntos tu lugar en la misión.",
+  buttonType: "chatear",
+  buttonIcon: "whatsapp-green-dark.svg",
+};
+
+const structuredData = {
+  "@type": "ItemList",
+  "@id": `${SITE_URL}/historia/#hitos`,
+  name: "Hitos de la historia de Campuslands",
+  numberOfItems: HISTORIA_CHAPTERS.length,
+  itemListElement: HISTORIA_CHAPTERS.map((chapter, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    name: `${chapter.year} · ${chapter.title}`,
+    description: chapter.text,
+    url: `${SITE_URL}/historia/#${chapter.id}`,
+  })),
+};
+
+const actsWithChapters = HISTORIA_ACTS.map((act) => ({
+  act,
+  chapters: HISTORIA_CHAPTERS.filter((chapter) => chapter.act === act.number),
+}));
+const chapterNumber = (id: string) =>
+  HISTORIA_CHAPTERS.findIndex((chapter) => chapter.id === id) + 1;
+---
+
+<LayoutNavbar dataFooter={dataFooter} pageType="AboutPage" structuredData={structuredData}>
+  <div
+    class="historia"
+    data-historia
+    data-motion-skip
+    data-audio-src={HISTORIA_AUDIO.src}
+    data-audio-loop-start={HISTORIA_AUDIO.loopStart}
+    data-audio-loop-end={HISTORIA_AUDIO.loopEnd}
+  >
+    <HistoriaEscenario />
+    <HistoriaHud />
+    <HistoriaPrologo />
+    {
+      actsWithChapters.map(({ act, chapters }) => (
+        <>
+          <HistoriaActo act={act} />
+          {chapters.map((chapter) => (
+            <HistoriaCapitulo
+              chapter={chapter}
+              act={act}
+              index={chapterNumber(chapter.id)}
+              total={HISTORIA_CHAPTERS.length}
+            />
+          ))}
+        </>
+      ))
+    }
+    <HistoriaEpilogo />
+  </div>
+</LayoutNavbar>
+
+<script>
+  import { mountHistoria } from "~/scripts/historia/experiencia";
+  import { protegerContenido } from "~/scripts/historia/proteccion";
+
+  let cleanup: (() => void) | null = null;
+  let unprotect: (() => void) | null = null;
+
+  const teardown = () => {
+    cleanup?.();
+    unprotect?.();
+    cleanup = null;
+    unprotect = null;
+  };
+
+  const boot = () => {
+    teardown();
+    const root = document.querySelector<HTMLElement>("[data-historia]");
+    if (!root) return;
+    unprotect = protegerContenido();
+    cleanup = mountHistoria(root);
+  };
+
+  document.addEventListener("astro:page-load", boot);
+  document.addEventListener("astro:before-swap", teardown);
+</script>

@@ -1,0 +1,1797 @@
+/* Historia de Campuslands: base documental legible sin JavaScript. */
+
+body.historia-route {
+  /* overflow-x: hidden convierte al body en contenedor de scroll y rompe sticky. */
+  overflow-x: clip;
+}
+
+body.historia-route #contenido-principal {
+  gap: 0;
+}
+
+/* Contenido protegido: sin selección, sin menú de pulsación larga ni arrastre. */
+body.historia-route {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.historia-route input,
+body.historia-route textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body.historia-route img,
+body.historia-route video {
+  -webkit-user-drag: none;
+}
+
+.historia {
+  --h-space: #02031a;
+  --h-navy: #000051;
+  --h-petroleum: #07102b;
+  --h-cyan: #2caaff;
+  --h-sky: #57bbff;
+  --h-aqua: #00ddb1;
+  --h-aqua-deep: #00aa80;
+  --h-gold: #ffc56b;
+  --h-text: #eef7ff;
+  --h-muted: rgb(214 232 255 / 74%);
+  --h-line: rgb(87 187 255 / 22%);
+  --h-mono: Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --h-gutter: clamp(1rem, 6vw, 7rem);
+
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  color: var(--h-text);
+  background:
+    radial-gradient(120% 60% at 80% 0%, rgb(44 170 255 / 14%), transparent 60%),
+    radial-gradient(90% 50% at 10% 40%, rgb(0 221 177 / 8%), transparent 60%),
+    linear-gradient(180deg, var(--h-space) 0%, var(--h-navy) 45%, var(--h-petroleum) 100%);
+}
+
+.historia [hidden] {
+  display: none !important;
+}
+
+.historia-scene {
+  position: relative;
+}
+
+.historia-eyebrow {
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: clamp(0.68rem, 1.1vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--h-sky);
+}
+
+.historia-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms ease,
+    background-color 260ms ease,
+    border-color 260ms ease;
+}
+
+.historia-btn--primary {
+  color: #03132a;
+  background: linear-gradient(120deg, var(--h-aqua) 0%, var(--h-sky) 100%);
+  box-shadow: 0 0.8rem 2.4rem rgb(0 221 177 / 26%);
+}
+
+.historia-btn--ghost {
+  color: var(--h-text);
+  border: 1px solid rgb(214 232 255 / 36%);
+  background: rgb(7 16 43 / 42%);
+  backdrop-filter: blur(10px);
+}
+
+.historia-btn:hover {
+  transform: translateY(-3px);
+}
+
+.historia-btn--ghost:hover {
+  border-color: var(--h-sky);
+  background: rgb(44 170 255 / 16%);
+}
+
+.historia-btn:focus-visible,
+.historia-replay:focus-visible {
+  outline: 3px solid var(--h-sky);
+  outline-offset: 4px;
+}
+
+.historia-btn__icon {
+  font-size: 0.8em;
+}
+
+.historia-orbit-quote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.7rem;
+  margin: 0;
+  font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+  font-style: italic;
+  color: var(--h-muted);
+}
+
+.historia-orbit-quote__name {
+  font-family: var(--h-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--h-aqua);
+}
+
+.historia-orbit-quote__name::before {
+  content: "◉ ";
+}
+
+/* Prólogo */
+.historia-prologo {
+  display: grid;
+  align-items: end;
+  min-height: 100svh;
+  padding: clamp(6rem, 14vh, 9rem) var(--h-gutter) clamp(5rem, 12vh, 8rem);
+}
+
+.historia-prologo__content {
+  display: grid;
+  gap: clamp(1rem, 2.4vh, 1.6rem);
+  max-width: 62rem;
+}
+
+.historia-prologo__title {
+  margin: 0;
+  font-size: clamp(2.8rem, 8.6vw, 7.6rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.historia-prologo__title span {
+  display: inline-block;
+  background: linear-gradient(110deg, var(--h-sky) 0%, var(--h-aqua) 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.historia-prologo__subtitle {
+  margin: 0;
+  max-width: 38rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  line-height: 1.45;
+  color: var(--h-muted);
+}
+
+.historia-prologo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.historia-scroll-cue {
+  position: absolute;
+  right: var(--h-gutter);
+  bottom: clamp(1.5rem, 5vh, 3rem);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--h-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--h-muted);
+}
+
+.historia-scroll-cue__track {
+  position: relative;
+  width: 1.5rem;
+  height: 2.4rem;
+  border: 1.5px solid rgb(214 232 255 / 55%);
+  border-radius: 999px;
+}
+
+.historia-scroll-cue__track span {
+  position: absolute;
+  top: 0.45rem;
+  left: 50%;
+  width: 3px;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--h-aqua);
+  translate: -50% 0;
+  animation: historia-cue 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes historia-cue {
+  0% { opacity: 0; translate: -50% 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; translate: -50% 1rem; }
+}
+
+/* Actos */
+.historia-acto {
+  display: grid;
+  place-items: center;
+  min-height: 90svh;
+  padding: 6rem var(--h-gutter);
+  text-align: center;
+}
+
+.historia-acto__inner {
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  max-width: 52rem;
+}
+
+.historia-acto__label {
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: var(--h-aqua);
+}
+
+.historia-acto__name {
+  margin: 0;
+  font-size: clamp(3.2rem, 11vw, 9.5rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.historia-acto__span {
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: clamp(0.9rem, 1.6vw, 1.15rem);
+  letter-spacing: 0.3em;
+  color: var(--h-sky);
+}
+
+.historia-acto__tagline {
+  margin: 0.4rem 0 0;
+  max-width: 34rem;
+  font-size: clamp(1rem, 1.7vw, 1.3rem);
+  line-height: 1.5;
+  color: var(--h-muted);
+}
+
+/* Capítulos */
+.historia-capitulo {
+  padding: clamp(4rem, 10vh, 7rem) var(--h-gutter);
+}
+
+.historia-capitulo__panel {
+  position: relative;
+  display: grid;
+  gap: clamp(0.8rem, 1.8vh, 1.2rem);
+  max-width: 42rem;
+}
+
+.historia-capitulo__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--h-muted);
+}
+
+.historia-capitulo__count {
+  color: var(--h-aqua);
+}
+
+.historia-capitulo__act::before {
+  content: "";
+  display: inline-block;
+  width: 2.2rem;
+  height: 1px;
+  margin-right: 1rem;
+  vertical-align: middle;
+  background: var(--h-line);
+}
+
+.historia-capitulo__year {
+  margin: 0 0 -0.12em;
+  font-size: clamp(5rem, 15vw, 13rem);
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgb(87 187 255 / 70%);
+  user-select: none;
+}
+
+.historia-capitulo__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.2vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.historia-capitulo__place {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--h-text);
+}
+
+.historia-capitulo__place svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--h-aqua);
+}
+
+.historia-capitulo__coords {
+  font-family: var(--h-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--h-muted);
+}
+
+.historia-capitulo__text {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.55vw, 1.32rem);
+  line-height: 1.62;
+  color: var(--h-text);
+}
+
+.historia-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1rem, 3vw, 2.6rem);
+  margin: 0.4rem 0 0;
+}
+
+.historia-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 5.5rem;
+}
+
+.historia-stat dd {
+  order: -1;
+  margin: 0;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(120deg, #fff 0%, var(--h-sky) 60%, var(--h-aqua) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.historia-stat dt {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--h-muted);
+}
+
+.historia-pillars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historia-pillars li {
+  padding: 0.45rem 1rem;
+  border: 1px solid rgb(0 221 177 / 45%);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c9fff1;
+  background: rgb(0 221 177 / 10%);
+}
+
+.historia-capitulo__orbit {
+  margin-top: 0.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--h-line);
+}
+
+/* Epílogo */
+.historia-epilogo {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: clamp(6rem, 14vh, 9rem) var(--h-gutter);
+  text-align: center;
+}
+
+.historia-epilogo__content {
+  display: grid;
+  justify-items: center;
+  gap: clamp(1rem, 2.4vh, 1.6rem);
+  max-width: 58rem;
+}
+
+.historia-epilogo__title {
+  margin: 0;
+  font-size: clamp(2.6rem, 7.4vw, 6.4rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.historia-epilogo__text {
+  margin: 0;
+  max-width: 36rem;
+  font-size: clamp(1.05rem, 1.8vw, 1.4rem);
+  line-height: 1.5;
+  color: var(--h-muted);
+}
+
+.historia-stats--summary {
+  justify-content: center;
+}
+
+.historia-stats--summary .historia-stat {
+  align-items: center;
+}
+
+.historia-epilogo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+}
+
+.historia-epilogo .historia-orbit-quote {
+  justify-content: center;
+}
+
+.historia-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--h-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--h-sky);
+  background: transparent;
+  cursor: pointer;
+}
+
+.historia-replay:hover {
+  color: #fff;
+  background: rgb(87 187 255 / 12%);
+}
+
+@media (max-width: 767px) {
+  .historia-scroll-cue {
+    left: var(--h-gutter);
+    right: auto;
+  }
+
+  .historia-capitulo__act::before {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Modo cine: escenario fijo de video, coreografía por scroll y HUD.
+   Se activa con .historia--cinema cuando el motor de JavaScript arranca.
+   ========================================================================== */
+
+.historia-stage,
+.historia-hud {
+  display: none;
+}
+
+html.historia-cinema-active .code-console-shell,
+html.historia-cinema-active .experience-rail,
+html.historia-cinema-active #go-up {
+  display: none !important;
+}
+
+html.historia-cinema-active nav.navbar {
+  transition:
+    translate 520ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 420ms ease;
+}
+
+html.historia-immersive nav.navbar {
+  translate: 0 -110%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+html.historia-kiosco nav.navbar,
+html.historia-kiosco footer,
+html.historia-kiosco .experience-progress {
+  display: none !important;
+}
+
+html.historia-cursor-hidden,
+html.historia-cursor-hidden * {
+  cursor: none !important;
+}
+
+.historia--cinema {
+  background: #01020f;
+}
+
+.historia--cinema .historia-scene {
+  z-index: 2;
+}
+
+/* Escenario */
+.historia--cinema .historia-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  background: #01020f;
+  transition:
+    opacity 700ms ease,
+    visibility 700ms;
+}
+
+.historia--cinema .historia-stage[data-state="ended"] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.historia-stage__layer {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform-origin: 50% 46%;
+  will-change: opacity, transform, filter;
+}
+
+.historia-stage__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #01020f;
+  animation: historia-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes historia-drift {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.045) translate3d(-1.2%, -0.8%, 0); }
+}
+
+.historia-stage__stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: var(--stars, 0.4);
+  mix-blend-mode: screen;
+  transition: opacity 500ms ease;
+}
+
+.historia-stage__scrim,
+.historia-stage__vignette,
+.historia-stage__grain,
+.historia-stage__flash {
+  position: absolute;
+  inset: 0;
+}
+
+.historia-stage__scrim {
+  background:
+    linear-gradient(90deg, rgb(1 3 22 / 88%) 0%, rgb(1 3 22 / 62%) 30%, rgb(1 3 22 / 12%) 58%, transparent 72%),
+    linear-gradient(0deg, rgb(1 3 22 / 72%) 0%, transparent 32%);
+  transition: opacity 600ms ease;
+}
+
+.historia[data-active-kind="prologo"] .historia-stage__scrim {
+  background:
+    linear-gradient(0deg, rgb(1 3 22 / 94%) 0%, rgb(1 3 22 / 52%) 36%, transparent 64%),
+    linear-gradient(90deg, rgb(1 3 22 / 58%) 0%, transparent 52%);
+}
+
+.historia[data-active-kind="acto"] .historia-stage__scrim {
+  background: radial-gradient(ellipse at 50% 50%, rgb(1 3 22 / 22%), rgb(1 3 22 / 70%) 80%);
+}
+
+.historia[data-active-kind="epilogo"] .historia-stage__scrim {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 52%, rgb(1 3 22 / 78%), rgb(1 3 22 / 34%) 70%, rgb(1 3 22 / 60%) 100%);
+}
+
+.historia-stage__vignette {
+  background: radial-gradient(ellipse 120% 90% at 50% 46%, transparent 55%, rgb(0 0 12 / 72%) 100%);
+}
+
+.historia-stage__grain {
+  inset: -20%;
+  opacity: 0.075;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: historia-grain 900ms steps(6) infinite;
+}
+
+@keyframes historia-grain {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-4%, 3%, 0); }
+  40% { transform: translate3d(3%, -5%, 0); }
+  60% { transform: translate3d(-6%, -2%, 0); }
+  80% { transform: translate3d(5%, 4%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.historia-stage__letterbox {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #000;
+  transition: height 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.historia-stage__letterbox--top {
+  top: 0;
+}
+
+.historia-stage__letterbox--bottom {
+  bottom: 0;
+}
+
+.historia[data-active-kind="capitulo"] .historia-stage__letterbox {
+  height: clamp(1rem, 5.5vh, 4.2rem);
+}
+
+.historia-stage__flash {
+  opacity: 0;
+  background: radial-gradient(circle at 50% 46%, rgb(255 255 255 / 92%), rgb(87 187 255 / 55%) 26%, rgb(0 221 177 / 18%) 52%, transparent 74%);
+  mix-blend-mode: screen;
+}
+
+.historia-stage__flash.is-flashing {
+  animation: historia-flash 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes historia-flash {
+  0% { opacity: 0; transform: scale(0.6); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+/* Texto sobre video */
+.historia--cinema .historia-scene {
+  text-shadow: 0 2px 28px rgb(0 0 24 / 55%);
+}
+
+/* Prólogo */
+.historia--cinema .historia-prologo {
+  --exit: clamp(0, calc((0.88 - var(--c, 0)) / 0.3), 1);
+  background: transparent;
+}
+
+.historia--cinema .historia-prologo__content {
+  opacity: var(--exit);
+  translate: 0 calc((1 - var(--exit)) * -5rem);
+  filter: blur(calc((1 - var(--exit)) * 8px));
+}
+
+.historia--cinema .historia-prologo__content > * {
+  animation: historia-rise 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.historia--cinema .historia-prologo__content > :nth-child(1) { animation-delay: 250ms; }
+.historia--cinema .historia-prologo__content > :nth-child(2) { animation-delay: 420ms; }
+.historia--cinema .historia-prologo__content > :nth-child(3) { animation-delay: 620ms; }
+.historia--cinema .historia-prologo__content > :nth-child(4) { animation-delay: 800ms; }
+.historia--cinema .historia-prologo__content > :nth-child(5) { animation-delay: 1000ms; }
+
+@keyframes historia-rise {
+  from { opacity: 0; transform: translate3d(0, 2.4rem, 0); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+
+.historia--cinema .historia-prologo__title {
+  text-shadow:
+    0 0 2.4rem rgb(44 170 255 / 30%),
+    0 4px 30px rgb(0 0 24 / 60%);
+}
+
+.historia--cinema .historia-scroll-cue {
+  opacity: var(--exit);
+}
+
+/* Actos */
+.historia--cinema .historia-acto {
+  display: block;
+  min-height: 0;
+  height: 150vh;
+  padding: 0;
+}
+
+.historia--cinema .historia-acto__inner {
+  --in: clamp(0, calc((var(--c, 0) - 0.24) / 0.14), 1);
+  --out: clamp(0, calc((0.8 - var(--c, 0)) / 0.14), 1);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  max-width: none;
+  margin: 0 auto;
+  padding: 0 var(--h-gutter);
+  align-content: center;
+  opacity: var(--out);
+  scale: calc(0.9 + var(--out) * 0.1);
+}
+
+.historia--cinema .historia-acto__inner::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: min(46rem, 80vw);
+  aspect-ratio: 1;
+  border: 1px solid rgb(87 187 255 / 14%);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3.5rem rgb(87 187 255 / 3%),
+    inset 0 0 6rem rgb(44 170 255 / 8%);
+  opacity: var(--in);
+  translate: -50% -50%;
+  scale: calc(0.7 + var(--in) * 0.3 + var(--c, 0) * 0.12);
+}
+
+.historia--cinema .historia-acto__label {
+  opacity: var(--in);
+  letter-spacing: calc(0.5em + (1 - var(--in)) * 1em);
+}
+
+.historia--cinema .historia-acto__name {
+  --r: clamp(0, calc((var(--c, 0) - 0.27) / 0.14), 1);
+  opacity: var(--r);
+  scale: calc(1.3 - var(--r) * 0.3);
+  filter: blur(calc((1 - var(--r)) * 14px));
+  text-shadow:
+    0 0 3rem rgb(44 170 255 / 35%),
+    0 6px 40px rgb(0 0 24 / 70%);
+}
+
+.historia--cinema .historia-acto__span,
+.historia--cinema .historia-acto__tagline {
+  --r: clamp(0, calc((var(--c, 0) - 0.34) / 0.12), 1);
+  opacity: var(--r);
+  translate: 0 calc((1 - var(--r)) * 1.5rem);
+}
+
+.historia-acto[data-act="4"] .historia-acto__label {
+  color: #7cc4ff;
+}
+
+.historia-acto[data-act="4"] .historia-acto__name::after {
+  content: "";
+  display: block;
+  width: min(10rem, 40vw);
+  height: 0.4rem;
+  margin: 1.4rem auto 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4997d0 0 33.3%, #fff 33.3% 66.6%, #4997d0 66.6% 100%);
+  box-shadow: 0 0 1.4rem rgb(73 151 208 / 60%);
+}
+
+/* Capítulos */
+.historia--cinema .historia-capitulo {
+  height: 250vh;
+  padding: 0;
+}
+
+.historia--cinema .historia-capitulo__sticky {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  height: 100vh;
+  height: 100svh;
+  padding: clamp(4.5rem, 10vh, 6.5rem) var(--h-gutter) clamp(5.5rem, 11vh, 7rem);
+}
+
+@media (min-width: 768px) {
+  .historia--cinema .historia-capitulo__year {
+    font-size: min(15vw, 21vh, 13rem);
+  }
+
+  .historia--cinema .historia-capitulo__title {
+    font-size: max(1.9rem, min(4.2vw, 6.4vh, 3.6rem));
+  }
+
+  .historia--cinema .historia-capitulo--extenso .historia-capitulo__year {
+    font-size: min(12vw, 16vh, 10rem);
+  }
+
+  .historia--cinema .historia-capitulo--extenso .historia-capitulo__title {
+    font-size: max(1.7rem, min(3.4vw, 5.2vh, 2.9rem));
+  }
+
+  .historia--cinema .historia-capitulo--extenso .historia-capitulo__text {
+    font-size: min(1.2rem, max(0.95rem, 2.1vh));
+    line-height: 1.55;
+  }
+
+  .historia--cinema .historia-capitulo--extenso .historia-capitulo__panel {
+    gap: min(1rem, 1.4vh);
+  }
+}
+
+@media (max-height: 820px) and (min-width: 768px) {
+  .historia--cinema .historia-capitulo__panel {
+    gap: 0.6rem;
+  }
+
+  .historia--cinema .historia-capitulo__text {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .historia--cinema .historia-stat dd {
+    font-size: 2.2rem;
+  }
+
+  .historia--cinema .historia-capitulo--orbit .historia-capitulo__orbit {
+    padding: 0.6rem 0.9rem;
+  }
+}
+
+.historia--cinema .historia-capitulo__panel {
+  --exit: clamp(0, calc((0.93 - var(--c, 0)) / 0.1), 1);
+  max-width: min(44rem, 52vw);
+  opacity: var(--exit);
+  translate: 0 calc((1 - var(--exit)) * -4rem);
+  filter: blur(calc((1 - var(--exit)) * 6px));
+}
+
+.historia--cinema .historia-capitulo__meta {
+  --r: clamp(0, calc((var(--c, 0) - 0.11) / 0.1), 1);
+  opacity: var(--r);
+  translate: calc((1 - var(--r)) * -1.5rem) 0;
+}
+
+.historia--cinema .historia-capitulo__year {
+  --r: clamp(0, calc((var(--c, 0) - 0.12) / 0.14), 1);
+  opacity: var(--r);
+  translate: calc(var(--c, 0) * -2.5rem) calc((1 - var(--r)) * 3.5rem);
+  -webkit-text-stroke: 1.5px rgb(87 187 255 / 80%);
+  text-shadow: 0 0 2.6rem rgb(44 170 255 / 28%);
+}
+
+.historia--cinema .historia-capitulo__title {
+  --r: clamp(0, calc((var(--c, 0) - 0.16) / 0.13), 1);
+  clip-path: inset(-0.2em calc((1 - var(--r)) * 100%) -0.2em -0.2em);
+  opacity: calc(0.2 + var(--r) * 0.8);
+}
+
+.historia--cinema .historia-capitulo__place {
+  --r: clamp(0, calc((var(--c, 0) - 0.21) / 0.1), 1);
+  opacity: var(--r);
+  translate: 0 calc((1 - var(--r)) * 1rem);
+}
+
+.historia--cinema .historia-capitulo__text {
+  font-size: clamp(1.05rem, 1.45vw, 1.28rem);
+}
+
+.historia--cinema .historia-word {
+  opacity: clamp(0.14, calc((var(--c, 0) - 0.25) / 0.22 * var(--n, 20) - var(--i, 0) + 1), 1);
+}
+
+.historia--cinema .historia-stats {
+  --r: clamp(0, calc((var(--c, 0) - 0.31) / 0.08), 1);
+  opacity: var(--r);
+  translate: 0 calc((1 - var(--r)) * 1.5rem);
+}
+
+.historia--cinema .historia-pillars li {
+  --r: clamp(0, calc((var(--c, 0) - 0.36 - var(--d, 0)) / 0.07), 1);
+  opacity: var(--r);
+  scale: calc(0.85 + var(--r) * 0.15);
+}
+
+.historia--cinema .historia-pillars li:nth-child(2) { --d: 0.03; }
+.historia--cinema .historia-pillars li:nth-child(3) { --d: 0.06; }
+
+.historia--cinema .historia-capitulo__orbit {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.historia--cinema .historia-capitulo--orbit .historia-capitulo__orbit {
+  --r: clamp(0, calc((var(--c, 0) - 0.4) / 0.08), 1);
+  position: relative;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgb(0 221 177 / 40%);
+  border-radius: 1rem;
+  background: linear-gradient(120deg, rgb(0 221 177 / 14%), rgb(44 170 255 / 8%));
+  opacity: var(--r);
+  translate: 0 calc((1 - var(--r)) * 1rem);
+}
+
+.historia-capitulo--orbit .historia-capitulo__meta::after {
+  content: "● Orbit en escena";
+  color: var(--h-aqua);
+  animation: historia-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes historia-blink {
+  50% { opacity: 0.35; }
+}
+
+/* Epílogo */
+.historia--cinema .historia-epilogo {
+  display: block;
+  min-height: 0;
+  height: 165vh;
+  padding: 0;
+}
+
+.historia--cinema .historia-epilogo__content {
+  --r: clamp(0, calc((var(--c, 0) - 0.2) / 0.16), 1);
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: clamp(5rem, 12vh, 7rem) var(--h-gutter) clamp(3rem, 8vh, 5rem);
+  align-content: center;
+}
+
+.historia--cinema .historia-epilogo__content > * {
+  opacity: var(--r);
+  translate: 0 calc((1 - var(--r)) * 2rem);
+}
+
+.historia--cinema .historia-epilogo__title {
+  text-shadow:
+    0 0 3rem rgb(0 221 177 / 30%),
+    0 6px 40px rgb(0 0 24 / 70%);
+}
+
+/* HUD */
+.historia--cinema .historia-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: block;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 600ms ease,
+    visibility 600ms;
+}
+
+.historia--cinema .historia-hud[data-state="active"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+.historia-hud__telemetry {
+  position: absolute;
+  top: calc(6.2rem + 0.8rem);
+  right: clamp(1rem, 2.4vw, 2.2rem);
+  display: grid;
+  justify-items: end;
+  gap: 0.15rem;
+  font-family: var(--h-mono);
+  text-align: right;
+  text-transform: uppercase;
+  transition: top 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.historia-immersive .historia-hud__telemetry,
+html.historia-kiosco .historia-hud__telemetry {
+  top: clamp(1.4rem, 7vh, 4.8rem);
+}
+
+.historia-hud__telemetry p {
+  margin: 0;
+}
+
+.historia-hud__count {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: var(--h-aqua);
+}
+
+.historia-hud__signal {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.7rem;
+}
+
+.historia-hud__signal i {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--h-aqua);
+  animation: historia-signal 1.4s ease-in-out infinite;
+}
+
+.historia-hud__signal i:nth-child(1) { height: 40%; }
+.historia-hud__signal i:nth-child(2) { height: 70%; animation-delay: 160ms; }
+.historia-hud__signal i:nth-child(3) { height: 100%; animation-delay: 320ms; }
+
+@keyframes historia-signal {
+  50% { opacity: 0.3; }
+}
+
+.historia-hud__year {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #fff;
+}
+
+.historia-hud__title {
+  display: none;
+}
+
+.historia-hud__coords {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  color: var(--h-muted);
+}
+
+/* Riel de años */
+.historia-rail {
+  position: absolute;
+  top: 50%;
+  right: clamp(1rem, 2.4vw, 2.2rem);
+  pointer-events: auto;
+  translate: 0 -50%;
+}
+
+.historia-rail__track {
+  position: absolute;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  right: 0.42rem;
+  width: 2px;
+  border-radius: 999px;
+  background: rgb(214 232 255 / 16%);
+}
+
+.historia-rail__track span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--h-aqua), var(--h-cyan));
+  box-shadow: 0 0 0.8rem rgb(0 221 177 / 70%);
+  transform: scaleY(0);
+  transform-origin: top center;
+}
+
+.historia-rail__list {
+  display: grid;
+  gap: clamp(0.35rem, 1.6vh, 0.9rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historia-rail__item {
+  position: relative;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.2rem 0;
+  border: 0;
+  font-family: var(--h-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: rgb(214 232 255 / 55%);
+  background: transparent;
+  cursor: pointer;
+  transition: color 300ms ease;
+}
+
+.historia-rail__dot {
+  position: relative;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid rgb(214 232 255 / 45%);
+  border-radius: 50%;
+  background: #01020f;
+  transition:
+    transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 300ms ease,
+    background 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.historia-rail__item.is-past .historia-rail__dot {
+  border-color: var(--h-aqua);
+  background: var(--h-aqua);
+}
+
+.historia-rail__item[aria-current="step"] {
+  color: #fff;
+}
+
+.historia-rail__item[aria-current="step"] .historia-rail__dot {
+  border-color: #fff;
+  background: var(--h-cyan);
+  box-shadow:
+    0 0 0 5px rgb(44 170 255 / 22%),
+    0 0 1.2rem rgb(44 170 255 / 80%);
+  transform: scale(1.25);
+}
+
+.historia-rail__label {
+  position: absolute;
+  right: calc(100% + 0.8rem);
+  width: max-content;
+  max-width: 16rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--h-line);
+  border-radius: 0.6rem;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-align: right;
+  white-space: normal;
+  color: #fff;
+  background: rgb(4 8 36 / 88%);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  translate: 0.5rem 0;
+  pointer-events: none;
+  transition:
+    opacity 260ms ease,
+    translate 260ms ease;
+}
+
+.historia-rail__item:hover,
+.historia-rail__item:focus-visible {
+  color: #fff;
+}
+
+.historia-rail__item:hover .historia-rail__label,
+.historia-rail__item:focus-visible .historia-rail__label {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.historia-rail__item:focus-visible {
+  outline: 2px solid var(--h-sky);
+  outline-offset: 4px;
+  border-radius: 0.4rem;
+}
+
+/* Controles */
+.historia-controls {
+  position: absolute;
+  left: var(--h-gutter);
+  bottom: clamp(1rem, 3.5vh, 2rem);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.historia-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 3rem;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 1px solid rgb(214 232 255 / 24%);
+  border-radius: 999px;
+  font-family: var(--h-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgb(4 8 36 / 58%);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition:
+    border-color 260ms ease,
+    background 260ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.historia-control:hover {
+  border-color: var(--h-sky);
+  background: rgb(44 170 255 / 18%);
+  transform: translateY(-2px);
+}
+
+.historia-control:focus-visible {
+  outline: 2px solid var(--h-sky);
+  outline-offset: 3px;
+}
+
+.historia-control.is-playing {
+  border-color: var(--h-aqua);
+  background: rgb(0 221 177 / 18%);
+}
+
+.historia-control__icon--play {
+  width: 0;
+  height: 0;
+  border-top: 0.38rem solid transparent;
+  border-bottom: 0.38rem solid transparent;
+  border-left: 0.6rem solid currentColor;
+}
+
+.is-playing .historia-control__icon--play {
+  width: 0.62rem;
+  height: 0.72rem;
+  border: 0;
+  border-left: 0.2rem solid currentColor;
+  border-right: 0.2rem solid currentColor;
+}
+
+.historia-control__icon--expand {
+  position: relative;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  clip-path: polygon(0 0, 35% 0, 35% 12%, 65% 12%, 65% 0, 100% 0, 100% 35%, 88% 35%, 88% 65%, 100% 65%, 100% 100%, 65% 100%, 65% 88%, 35% 88%, 35% 100%, 0 100%, 0 65%, 12% 65%, 12% 35%, 0 35%);
+}
+
+/* Banda sonora */
+.historia-audio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding-right: 0.2rem;
+  border-radius: 999px;
+  transition: background 260ms ease;
+}
+
+.historia-audio:hover,
+.historia-audio:focus-within {
+  background: rgb(4 8 36 / 58%);
+}
+
+.historia-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 1.05rem;
+  height: 0.9rem;
+}
+
+.historia-eq i {
+  flex: 1;
+  height: 22%;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.55;
+  transition:
+    height 400ms ease,
+    opacity 400ms ease;
+}
+
+.is-on .historia-eq i {
+  opacity: 1;
+  animation: historia-eq 1.3s ease-in-out infinite alternate;
+}
+
+.is-on .historia-eq i:nth-child(1) { animation-delay: -0.2s; }
+.is-on .historia-eq i:nth-child(2) { animation-delay: -0.7s; }
+.is-on .historia-eq i:nth-child(3) { animation-delay: -0.4s; }
+.is-on .historia-eq i:nth-child(4) { animation-delay: -1s; }
+
+@keyframes historia-eq {
+  0% { height: 25%; }
+  50% { height: 95%; }
+  100% { height: 45%; }
+}
+
+.historia-control--audio.is-on {
+  border-color: var(--h-aqua);
+  color: #c9fff1;
+  background: rgb(0 221 177 / 16%);
+}
+
+.historia-btn--audio.is-on {
+  border-color: var(--h-aqua);
+  color: #c9fff1;
+}
+
+.historia-volume {
+  display: inline-flex;
+  align-items: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width 380ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 300ms ease;
+}
+
+.historia-audio:hover .historia-volume,
+.historia-audio:focus-within .historia-volume,
+html.historia-kiosco .historia-volume {
+  width: 7.5rem;
+  opacity: 1;
+}
+
+.historia-volume input {
+  width: 6.8rem;
+  height: 1.6rem;
+  margin: 0 0.35rem;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.historia-volume input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--h-aqua) 0 var(--vol, 70%), rgb(214 232 255 / 22%) var(--vol, 70%) 100%);
+}
+
+.historia-volume input::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(214 232 255 / 22%);
+}
+
+.historia-volume input::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--h-aqua);
+}
+
+.historia-volume input::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--h-aqua);
+  box-shadow: 0 0 0.6rem rgb(0 221 177 / 70%);
+  -webkit-appearance: none;
+}
+
+.historia-volume input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--h-aqua);
+}
+
+.historia-volume input:focus-visible {
+  outline: 2px solid var(--h-sky);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+/* Orbit guía holográfico */
+.historia-guide {
+  position: absolute;
+  right: clamp(1rem, 2.4vw, 2.2rem);
+  bottom: clamp(1rem, 3.5vh, 2rem);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.9rem;
+  opacity: 0;
+  translate: 0 1.5rem;
+  transition:
+    opacity 600ms ease,
+    translate 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.historia-guide.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.historia-guide__bubble {
+  position: relative;
+  max-width: min(21rem, 34vw);
+  margin-bottom: 1.4rem;
+  padding: 0.85rem 1.05rem;
+  border: 1px solid rgb(0 221 177 / 38%);
+  border-radius: 1rem 1rem 0.2rem 1rem;
+  background: linear-gradient(135deg, rgb(4 10 40 / 88%), rgb(3 22 48 / 80%));
+  box-shadow:
+    0 0 0 1px rgb(44 170 255 / 8%),
+    0 1rem 2.6rem rgb(0 0 20 / 45%),
+    inset 0 0 1.6rem rgb(0 221 177 / 8%);
+  backdrop-filter: blur(12px);
+}
+
+.historia-guide__from {
+  margin: 0 0 0.3rem;
+  font-family: var(--h-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--h-aqua);
+}
+
+.historia-guide__text {
+  min-height: 2.6em;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #f2fbff;
+}
+
+.historia-guide__text::after {
+  content: "▍";
+  margin-left: 0.1rem;
+  color: var(--h-aqua);
+  animation: historia-blink 900ms steps(1) infinite;
+}
+
+.historia-guide__porthole {
+  position: relative;
+  flex: none;
+  width: clamp(5.5rem, 9vw, 8rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgb(20 60 120 / 55%), rgb(2 5 30 / 92%) 70%);
+  box-shadow:
+    0 0 0 2px rgb(87 187 255 / 35%),
+    0 0 2.2rem rgb(44 170 255 / 40%),
+    inset 0 0 1.4rem rgb(0 221 177 / 30%);
+}
+
+.historia-guide__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: screen;
+  filter: saturate(1.1) brightness(1.08) drop-shadow(0 0 0.6rem rgb(87 187 255 / 60%));
+  animation: historia-hologram 3.2s ease-in-out infinite;
+}
+
+@keyframes historia-hologram {
+  0%, 100% { opacity: 0.96; }
+  47% { opacity: 0.96; }
+  48% { opacity: 0.7; }
+  50% { opacity: 0.96; }
+}
+
+.historia-guide__scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgb(87 187 255 / 10%) 0 1px, transparent 1px 4px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.historia-guide__ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 70%, var(--h-aqua) 85%, transparent 100%);
+  -webkit-mask: radial-gradient(circle, transparent 64%, #000 66%);
+  mask: radial-gradient(circle, transparent 64%, #000 66%);
+  animation: historia-spin 4s linear infinite;
+}
+
+@keyframes historia-spin {
+  to { rotate: 360deg; }
+}
+
+/* Estado del modo cine */
+.historia-cine-status {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 3.5vh, 2rem);
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  font-family: var(--h-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--h-muted);
+  background: rgb(4 8 36 / 55%);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  translate: -50% 1rem;
+  transition:
+    opacity 400ms ease,
+    translate 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.historia-cine-status[data-visible="true"] {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+.historia-cine-status__bar {
+  display: block;
+  width: 9rem;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(214 232 255 / 18%);
+}
+
+.historia-cine-status__bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--h-aqua), var(--h-sky));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.historia-mobile-progress {
+  display: none;
+}
+
+/* Kiosco: controles más grandes para pantallas táctiles */
+html.historia-kiosco .historia-control {
+  min-width: 4rem;
+  min-height: 4rem;
+  font-size: 0.85rem;
+}
+
+html.historia-kiosco .historia-rail__item {
+  padding: 0.45rem 0;
+  font-size: 0.85rem;
+}
+
+/* Tablet y móvil */
+@media (max-width: 1023px) {
+  .historia-rail {
+    display: none;
+  }
+
+  .historia--cinema .historia-capitulo__panel {
+    max-width: min(40rem, 88vw);
+  }
+}
+
+@media (max-width: 767px) {
+  .historia-stage__scrim,
+  .historia[data-active-kind="prologo"] .historia-stage__scrim {
+    background: linear-gradient(0deg, rgb(1 3 22 / 95%) 0%, rgb(1 3 22 / 80%) 42%, rgb(1 3 22 / 18%) 70%, transparent 82%);
+  }
+
+  .historia--cinema .historia-capitulo {
+    height: 230vh;
+  }
+
+  .historia--cinema .historia-capitulo__sticky {
+    align-items: flex-end;
+    padding: 5rem 1.2rem 8.5rem;
+  }
+
+  .historia--cinema .historia-capitulo__panel {
+    max-width: 100%;
+    gap: 0.6rem;
+  }
+
+  .historia--cinema .historia-capitulo__year {
+    font-size: clamp(3.6rem, 22vw, 6rem);
+    translate: 0 calc((1 - var(--r)) * 2.5rem);
+  }
+
+  .historia--cinema .historia-capitulo__title {
+    font-size: clamp(1.6rem, 7.2vw, 2.2rem);
+  }
+
+  .historia--cinema .historia-capitulo__text {
+    font-size: 0.98rem;
+    line-height: 1.55;
+  }
+
+  .historia-stat dd {
+    font-size: 2rem;
+  }
+
+  .historia-hud__telemetry {
+    top: 5.6rem;
+    right: 1rem;
+  }
+
+  .historia-hud__year {
+    font-size: 0.85rem;
+  }
+
+  .historia-hud__coords {
+    display: none;
+  }
+
+  .historia-controls {
+    left: 1rem;
+    bottom: 3.2rem;
+    gap: 0.35rem;
+  }
+
+  .historia-control {
+    min-width: 2.6rem;
+    min-height: 2.6rem;
+    padding: 0 0.75rem;
+  }
+
+  .historia-control__label {
+    display: none;
+  }
+
+  .historia-controls [data-historia-prev],
+  .historia-controls [data-historia-next],
+  .historia-volume {
+    display: none;
+  }
+
+  .historia-guide {
+    right: 1rem;
+    bottom: 3.2rem;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .historia-guide__bubble {
+    max-width: min(16rem, 62vw);
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .historia-guide__text {
+    font-size: 0.8rem;
+  }
+
+  .historia-guide__porthole {
+    width: 4.2rem;
+  }
+
+  .historia[data-active-kind="capitulo"] .historia-guide__bubble {
+    display: none;
+  }
+
+  .historia-cine-status {
+    bottom: 6.6rem;
+  }
+
+  .historia-mobile-progress {
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-family: var(--h-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #fff;
+  }
+
+  .historia-mobile-progress__bar {
+    flex: 1;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(214 232 255 / 18%);
+  }
+
+  .historia-mobile-progress__bar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--h-aqua), var(--h-sky));
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .historia[data-active-kind="capitulo"] .historia-stage__letterbox {
+    height: 0;
+  }
+}
+
+/* Movimiento reducido: sin scrub, sin warp; textos completos */
+.historia--calm .historia-stage__video,
+.historia--calm .historia-stage__grain,
+.historia--calm .historia-guide__ring,
+.historia--calm .historia-guide__video {
+  animation: none;
+}
+
+.historia--calm .historia-word {
+  opacity: 1;
+}
+
+.historia--calm .is-on .historia-eq i {
+  height: 70%;
+  animation: none;
+}
+
+.historia--calm .historia-capitulo__title {
+  clip-path: none;
+}
+
+.historia--calm .historia-capitulo__panel,
+.historia--calm .historia-capitulo__meta,
+.historia--calm .historia-capitulo__year,
+.historia--calm .historia-capitulo__place,
+.historia--calm .historia-stats,
+.historia--calm .historia-acto__inner,
+.historia--calm .historia-acto__name,
+.historia--calm .historia-epilogo__content > *,
+.historia--calm .historia-prologo__content {
+  translate: none;
+  scale: none;
+  filter: none;
+}

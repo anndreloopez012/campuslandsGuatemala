@@ -1,0 +1,125 @@
+---
+import {
+  HISTORIA_CHAPTERS,
+  HISTORIA_GUIDE_VIDEO,
+  HISTORIA_VIDEO_BASE,
+} from "~/content/historiaCampuslands";
+
+const guide = (variant: string) => `${HISTORIA_VIDEO_BASE}/${HISTORIA_GUIDE_VIDEO}-${variant}`;
+---
+
+<div class="historia-hud" data-historia-hud hidden>
+  <div class="historia-hud__telemetry" aria-hidden="true">
+    <p class="historia-hud__count">
+      <span data-hud-count>00 / 10</span>
+      <span class="historia-hud__signal"><i></i><i></i><i></i></span>
+    </p>
+    <p class="historia-hud__year" data-hud-year>2017</p>
+    <p class="historia-hud__title" data-hud-title></p>
+    <p class="historia-hud__coords" data-hud-coords></p>
+  </div>
+
+  <nav class="historia-rail" aria-label="Capítulos de la historia">
+    <span class="historia-rail__track" aria-hidden="true"><span data-rail-fill></span></span>
+    <ol class="historia-rail__list">
+      {
+        HISTORIA_CHAPTERS.map((chapter) => (
+          <li>
+            <button
+              type="button"
+              class="historia-rail__item"
+              data-rail-target={chapter.id}
+              aria-label={`Ir a ${chapter.year}: ${chapter.title}`}
+            >
+              <span class="historia-rail__dot" aria-hidden="true"></span>
+              <span class="historia-rail__year">{chapter.year}</span>
+              <span class="historia-rail__label" aria-hidden="true">{chapter.title}</span>
+            </button>
+          </li>
+        ))
+      }
+    </ol>
+  </nav>
+
+  <div class="historia-controls" role="group" aria-label="Controles de la experiencia">
+    <button type="button" class="historia-control" data-historia-cine aria-pressed="false">
+      <span class="historia-control__icon historia-control__icon--play" aria-hidden="true"></span>
+      <span class="historia-control__label" data-cine-label>Modo cine</span>
+    </button>
+    <button type="button" class="historia-control" data-historia-prev aria-label="Hito anterior">
+      <span aria-hidden="true">←</span>
+    </button>
+    <button type="button" class="historia-control" data-historia-next aria-label="Hito siguiente">
+      <span aria-hidden="true">→</span>
+    </button>
+    <button
+      type="button"
+      class="historia-control"
+      data-historia-fullscreen
+      aria-label="Pantalla completa"
+      hidden
+    >
+      <span class="historia-control__icon historia-control__icon--expand" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="historia-control" data-historia-restart aria-label="Volver al inicio">
+      <span aria-hidden="true">↺</span>
+    </button>
+    <div class="historia-audio" data-historia-audio-group>
+      <button
+        type="button"
+        class="historia-control historia-control--audio"
+        data-historia-audio
+        aria-pressed="false"
+        aria-label="Activar banda sonora"
+      >
+        <span class="historia-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="historia-control__label" data-audio-label>Sonido</span>
+      </button>
+      <label class="historia-volume">
+        <span class="sr-only">Volumen de la banda sonora</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value="70"
+          data-historia-volume
+          aria-valuetext="70 %"
+        />
+      </label>
+    </div>
+  </div>
+
+  <div class="historia-guide" data-historia-guide aria-hidden="true">
+    <div class="historia-guide__bubble" data-guide-bubble>
+      <p class="historia-guide__from">Orbit · transmisión</p>
+      <p class="historia-guide__text" data-guide-text></p>
+    </div>
+    <div class="historia-guide__porthole">
+      <video
+        class="historia-guide__video"
+        muted
+        playsinline
+        loop
+        preload="none"
+        disablepictureinpicture
+        disableremoteplayback
+        data-src-hd={guide("720.mp4")}
+        data-src-sd={guide("720.mp4")}
+        data-poster={guide("poster.webp")}
+        tabindex="-1"></video>
+      <span class="historia-guide__scan"></span>
+      <span class="historia-guide__ring"></span>
+    </div>
+  </div>
+
+  <div class="historia-cine-status" data-cine-status aria-live="polite">
+    <span class="historia-cine-status__bar"><span data-cine-progress></span></span>
+    <span data-cine-message></span>
+  </div>
+
+  <div class="historia-mobile-progress" aria-hidden="true">
+    <span data-mobile-year>2017</span>
+    <span class="historia-mobile-progress__bar"><span data-mobile-fill></span></span>
+  </div>
+</div>

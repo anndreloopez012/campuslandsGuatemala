@@ -27,6 +27,7 @@ const {
 const currentPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
 const isAiAcademy = currentPath === "/ai-academy";
 const isBlog = currentPath === "/blog" || currentPath.startsWith("/blog/");
+const isHistoria = currentPath === "/historia";
 const curryear = new Date().getFullYear();
 ---
 
@@ -216,7 +217,7 @@ const curryear = new Date().getFullYear();
   <body
     class:list={[
       "relative flex flex-col overflow-x-hidden",
-      { "ai-academy-route": isAiAcademy },
+      { "ai-academy-route": isAiAcademy, "historia-route": isHistoria },
     ]}
   >
     <a class="skip-link" href="#contenido-principal">Saltar al contenido principal</a>
@@ -309,6 +310,13 @@ const curryear = new Date().getFullYear();
             : "text-white hover:text-gray-200"}>Nosotros</a
         >
         <a
+          href="/historia/"
+          aria-label="Historia de Campuslands"
+          aria-current={isHistoria ? "page" : undefined}
+          class={isHistoria ? "active" : "text-white hover:text-gray-200"}
+          >Historia</a
+        >
+        <a
           href="/blog/"
           data-section="blog"
           aria-label="Blog de Campuslands Guatemala"
@@ -331,6 +339,7 @@ const curryear = new Date().getFullYear();
           >
           <a href="/nosotros/" class="mobile-menu-link">Nosotros</a
           >
+          <a href="/historia/" class="mobile-menu-link">Historia</a>
           <a href="/blog/" data-section="blog" class="mobile-menu-link">Orbita</a>
         </div>
       </div>
@@ -414,6 +423,12 @@ const curryear = new Date().getFullYear();
             >
             <a href="/nosotros/" class="text-white hover:text-gray-200 !mx-4"
               >Nosotros</a
+            >
+            <a
+              href="/historia/"
+              aria-label="Historia de Campuslands"
+              class="text-white hover:text-gray-200 !mx-4"
+              >Historia</a
             >
             <a
               href="/blog/"
@@ -898,12 +913,13 @@ const curryear = new Date().getFullYear();
     const cleanupMeteorTrail =
       !reduceMotion && finePointer ? initializeMeteorCursorTrail() : () => {};
     const root = document.documentElement;
+    const ownsMotion = (element: Element) => !element.closest("[data-motion-skip]");
     const sections = Array.from(
       document.querySelectorAll<HTMLElement>("#contenido-principal > :not(style):not(script)"),
-    );
+    ).filter(ownsMotion);
     const headings = Array.from(
       document.querySelectorAll<HTMLElement>("#contenido-principal h1, #contenido-principal h2"),
-    );
+    ).filter(ownsMotion);
 
     headings.forEach((heading, index) => {
       heading.dataset.motionHeading = "true";
@@ -912,11 +928,14 @@ const curryear = new Date().getFullYear();
 
     document
       .querySelectorAll<HTMLElement>("#contenido-principal .btn-primary, #contenido-principal .btn-outline")
-      .forEach((action) => action.dataset.motionAction = "true");
+      .forEach((action) => {
+        if (ownsMotion(action)) action.dataset.motionAction = "true";
+      });
 
     document.querySelectorAll<HTMLImageElement>("#contenido-principal img").forEach((image) => {
       const imageBox = image.getBoundingClientRect();
       if (
+        ownsMotion(image) &&
         !image.closest(".page-hero") &&
         imageBox.width >= 240 &&
         imageBox.height >= 140

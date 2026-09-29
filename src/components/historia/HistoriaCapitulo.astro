@@ -1,0 +1,91 @@
+---
+import type { HistoriaAct, HistoriaChapter } from "~/content/historiaCampuslands";
+
+interface Props {
+  chapter: HistoriaChapter;
+  act: HistoriaAct;
+  index: number;
+  total: number;
+}
+
+const { chapter, act, index, total } = Astro.props;
+const headingId = `${chapter.id}-titulo`;
+const pad = (value: number) => String(value).padStart(2, "0");
+---
+
+<section
+  class:list={[
+    "historia-capitulo historia-scene",
+    {
+      "historia-capitulo--orbit": chapter.orbitScene,
+      "historia-capitulo--extenso": chapter.text.length > 205 || chapter.title.length > 44,
+    },
+  ]}
+  id={chapter.id}
+  data-scene={chapter.id}
+  data-video={chapter.video}
+  data-year={chapter.year}
+  data-index={index}
+  data-title={chapter.title}
+  data-orbit-line={chapter.orbitLine}
+  aria-labelledby={headingId}
+>
+  <div class="historia-capitulo__sticky">
+    <article class="historia-capitulo__panel">
+      <p class="historia-capitulo__meta">
+        <span class="historia-capitulo__count">{pad(index)} / {pad(total)}</span>
+        <span class="historia-capitulo__act">Acto {act.roman} · {act.name}</span>
+      </p>
+      <p class="historia-capitulo__year" aria-hidden="true">{chapter.year}</p>
+      <h3 id={headingId} class="historia-capitulo__title">
+        <span class="sr-only">{chapter.year}: </span>{chapter.title}
+      </h3>
+      <p class="historia-capitulo__place">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"></path>
+          <circle cx="12" cy="10" r="2.6" fill="currentColor"></circle>
+        </svg>
+        <span>{chapter.place}</span>
+        <span class="historia-capitulo__coords">{chapter.coordinates}</span>
+      </p>
+      <p class="historia-capitulo__text" data-words>{chapter.text}</p>
+      {
+        chapter.stats && (
+          <dl class="historia-stats">
+            {chapter.stats.map((stat) => (
+              <div class="historia-stat">
+                <dt>{stat.label}</dt>
+                <dd
+                  data-count={stat.value}
+                  data-prefix={stat.prefix ?? ""}
+                  data-suffix={stat.suffix ?? ""}
+                >
+                  {stat.prefix}
+                  {stat.value}
+                  {stat.suffix}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )
+      }
+      {
+        chapter.pillars && (
+          <ul class="historia-pillars" aria-label="Pilares de formación">
+            {chapter.pillars.map((pillar) => (
+              <li>{pillar}</li>
+            ))}
+          </ul>
+        )
+      }
+      <p class="historia-orbit-quote historia-capitulo__orbit">
+        <span class="historia-orbit-quote__name">Orbit</span>
+        {chapter.orbitLine}
+      </p>
+    </article>
+  </div>
+</section>

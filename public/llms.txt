@@ -11,6 +11,7 @@
 - [Emplea](https://www.campuslands.pro/emplea/): conexión de empresas con talento tecnológico formado.
 - [Patrocina](https://www.campuslands.pro/patrocina/): opciones para impulsar la formación tecnológica de jóvenes.
 - [Nosotros](https://www.campuslands.pro/nosotros/): propósito, modelo y comunidad de Campuslands Guatemala.
+- [Historia](https://www.campuslands.pro/historia/): experiencia inmersiva que recorre la historia de Campuslands de 2017 a 2026, desde Bangalore hasta las primeras cohortes en Guatemala, guiada por Orbit.
 
 ## Información legal
 

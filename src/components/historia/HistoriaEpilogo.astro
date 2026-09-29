@@ -1,0 +1,53 @@
+---
+import { HISTORIA_EPILOGUE } from "~/content/historiaCampuslands";
+---
+
+<section
+  class="historia-epilogo historia-scene"
+  id="epilogo"
+  data-scene="epilogo"
+  data-video={HISTORIA_EPILOGUE.video}
+  aria-labelledby="historia-epilogo-titulo"
+>
+  <div class="historia-epilogo__content">
+    <p class="historia-eyebrow">{HISTORIA_EPILOGUE.eyebrow}</p>
+    <h2 id="historia-epilogo-titulo" class="historia-epilogo__title">
+      {HISTORIA_EPILOGUE.title}
+    </h2>
+    <p class="historia-epilogo__text">{HISTORIA_EPILOGUE.text}</p>
+    <dl class="historia-stats historia-stats--summary">
+      {
+        HISTORIA_EPILOGUE.summary.map((stat) => (
+          <div class="historia-stat">
+            <dt>{stat.label}</dt>
+            <dd data-count={stat.value} data-prefix="" data-suffix="">
+              {stat.value}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+    <div class="historia-epilogo__actions">
+      {
+        HISTORIA_EPILOGUE.actions.map((action) => (
+          <a
+            href={action.href}
+            class:list={[
+              "historia-btn",
+              action.variant === "primary" ? "historia-btn--primary" : "historia-btn--ghost",
+            ]}
+          >
+            {action.label}
+          </a>
+        ))
+      }
+    </div>
+    <p class="historia-orbit-quote">
+      <span class="historia-orbit-quote__name">Orbit</span>
+      {HISTORIA_EPILOGUE.orbitLine}
+    </p>
+    <button type="button" class="historia-replay" data-historia-replay hidden>
+      <span aria-hidden="true">↺</span> Volver a ver la historia
+    </button>
+  </div>
+</section>

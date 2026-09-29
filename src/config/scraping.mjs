@@ -6,7 +6,7 @@ import {
   SERVICE_CATALOG,
 } from "./recommendation.mjs";
 
-export const MACHINE_CONTENT_UPDATED = "2026-08-31";
+export const MACHINE_CONTENT_UPDATED = "2026-09-29";
 
 const pageDetails = {
   "/": {
@@ -64,6 +64,16 @@ const pageDetails = {
     name: "Nosotros",
     audience: ["público general", "aliados", "prensa"],
     topics: ["Campuslands Guatemala", "Campus Tec", "propósito institucional"],
+  },
+  "/historia/": {
+    name: "Historia",
+    audience: ["público general", "aspirantes", "aliados", "prensa"],
+    topics: [
+      "historia de Campuslands",
+      "expansión a Guatemala",
+      "movilidad social",
+      "Orbit",
+    ],
   },
   "/terminos-condiciones/": {
     name: "Términos y condiciones",
