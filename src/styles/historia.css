@@ -9,6 +9,24 @@ body.historia-route #contenido-principal {
   gap: 0;
 }
 
+/* Contenido protegido: sin selección, sin menú de pulsación larga ni arrastre. */
+body.historia-route {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.historia-route input,
+body.historia-route textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body.historia-route img,
+body.historia-route video {
+  -webkit-user-drag: none;
+}
+
 .historia {
   --h-space: #02031a;
   --h-navy: #000051;

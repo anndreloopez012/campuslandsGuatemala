@@ -74,18 +74,24 @@ const chapterNumber = (id: string) =>
 
 <script>
   import { mountHistoria } from "~/scripts/historia/experiencia";
+  import { protegerContenido } from "~/scripts/historia/proteccion";
 
   let cleanup: (() => void) | null = null;
+  let unprotect: (() => void) | null = null;
 
   const teardown = () => {
     cleanup?.();
+    unprotect?.();
     cleanup = null;
+    unprotect = null;
   };
 
   const boot = () => {
     teardown();
     const root = document.querySelector<HTMLElement>("[data-historia]");
-    if (root) cleanup = mountHistoria(root);
+    if (!root) return;
+    unprotect = protegerContenido();
+    cleanup = mountHistoria(root);
   };
 
   document.addEventListener("astro:page-load", boot);
