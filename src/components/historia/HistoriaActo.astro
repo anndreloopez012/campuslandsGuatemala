@@ -16,7 +16,7 @@ const headingId = `acto-${act.number}-titulo`;
   data-act={act.number}
   aria-labelledby={headingId}
 >
-  <div class="historia-acto__inner">
+  <div class="historia-acto__inner" data-roman={act.roman}>
     <p class="historia-acto__label">Acto {act.roman}</p>
     <h2 id={headingId} class="historia-acto__name">{act.name}</h2>
     <p class="historia-acto__span">{act.span}</p>

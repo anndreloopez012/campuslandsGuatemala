@@ -61,6 +61,15 @@
       ]
     },
     {
+      "source": "/video/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000"
+        }
+      ]
+    },
+    {
       "source": "/(llms.txt|llms-full.txt|robots.txt|informacion-campuslands.md|informacion-campuslands.json|sitemap-(.*).xml|sitemap-urls.txt|blog/feed.xml)",
       "headers": [
         {

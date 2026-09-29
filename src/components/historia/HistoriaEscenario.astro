@@ -1,0 +1,49 @@
+---
+import {
+  HISTORIA_CHAPTERS,
+  HISTORIA_EPILOGUE,
+  HISTORIA_PROLOGUE,
+  HISTORIA_VIDEO_BASE,
+} from "~/content/historiaCampuslands";
+
+const layers = [
+  { scene: "prologo", video: HISTORIA_PROLOGUE.video, mode: "loop" },
+  ...HISTORIA_CHAPTERS.map((chapter) => ({
+    scene: chapter.id,
+    video: chapter.video,
+    mode: "scrub",
+  })),
+  { scene: "epilogo", video: HISTORIA_EPILOGUE.video, mode: "loop" },
+];
+
+const source = (video: string, variant: string) => `${HISTORIA_VIDEO_BASE}/${video}-${variant}`;
+---
+
+<div class="historia-stage" data-historia-stage aria-hidden="true">
+  {
+    layers.map((layer) => (
+      <figure class="historia-stage__layer" data-layer={layer.scene} data-mode={layer.mode}>
+        <video
+          class="historia-stage__video"
+          muted
+          playsinline
+          disablepictureinpicture
+          disableremoteplayback
+          preload="none"
+          loop={layer.mode === "loop"}
+          data-src-hd={source(layer.video, "1080.mp4")}
+          data-src-sd={source(layer.video, "720.mp4")}
+          data-poster={source(layer.video, "poster.webp")}
+          tabindex="-1"
+        />
+      </figure>
+    ))
+  }
+  <canvas class="historia-stage__stars" data-historia-stars></canvas>
+  <div class="historia-stage__scrim"></div>
+  <div class="historia-stage__vignette"></div>
+  <div class="historia-stage__grain"></div>
+  <div class="historia-stage__letterbox historia-stage__letterbox--top"></div>
+  <div class="historia-stage__letterbox historia-stage__letterbox--bottom"></div>
+  <div class="historia-stage__flash" data-historia-flash></div>
+</div>

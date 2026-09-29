@@ -14,7 +14,13 @@ const pad = (value: number) => String(value).padStart(2, "0");
 ---
 
 <section
-  class:list={["historia-capitulo historia-scene", { "historia-capitulo--orbit": chapter.orbitScene }]}
+  class:list={[
+    "historia-capitulo historia-scene",
+    {
+      "historia-capitulo--orbit": chapter.orbitScene,
+      "historia-capitulo--extenso": chapter.text.length > 205 || chapter.title.length > 44,
+    },
+  ]}
   id={chapter.id}
   data-scene={chapter.id}
   data-video={chapter.video}
