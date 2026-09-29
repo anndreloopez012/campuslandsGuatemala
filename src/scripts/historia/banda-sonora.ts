@@ -4,6 +4,7 @@ interface SoundtrackOptions {
   src: string;
   loopStart: number;
   loopEnd: number;
+  data?: ArrayBuffer | null;
 }
 
 export interface Soundtrack {
@@ -47,7 +48,7 @@ const SCENE_MIX: Record<SceneKind, { cutoff: number; level: number }> = {
   epilogo: { cutoff: 17000, level: 1 },
 };
 
-export function createSoundtrack({ src, loopStart, loopEnd }: SoundtrackOptions): Soundtrack {
+export function createSoundtrack({ src, loopStart, loopEnd, data }: SoundtrackOptions): Soundtrack {
   const AudioContextClass =
     window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
@@ -86,12 +87,14 @@ export function createSoundtrack({ src, loopStart, loopEnd }: SoundtrackOptions)
     if (bufferPromise) return bufferPromise;
     const audioContext = ensureGraph();
     if (!audioContext) return Promise.reject(new Error("Web Audio no disponible"));
-    bufferPromise = fetch(src)
-      .then((response) => {
-        if (!response.ok) throw new Error(`Audio ${response.status}`);
-        return response.arrayBuffer();
-      })
-      .then((data) => audioContext.decodeAudioData(data));
+    // decodeAudioData desprende el buffer; se entrega una copia para poder reintentar.
+    const bytes = data
+      ? Promise.resolve(data.slice(0))
+      : fetch(src).then((response) => {
+          if (!response.ok) throw new Error(`Audio ${response.status}`);
+          return response.arrayBuffer();
+        });
+    bufferPromise = bytes.then((buffer) => audioContext.decodeAudioData(buffer));
     bufferPromise.catch(() => {
       bufferPromise = null;
     });

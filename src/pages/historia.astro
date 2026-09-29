@@ -6,6 +6,7 @@ import HistoriaCapitulo from "~/components/historia/HistoriaCapitulo.astro";
 import HistoriaEpilogo from "~/components/historia/HistoriaEpilogo.astro";
 import HistoriaEscenario from "~/components/historia/HistoriaEscenario.astro";
 import HistoriaHud from "~/components/historia/HistoriaHud.astro";
+import HistoriaPrecarga from "~/components/historia/HistoriaPrecarga.astro";
 import { HISTORIA_ACTS, HISTORIA_AUDIO, HISTORIA_CHAPTERS } from "~/content/historiaCampuslands";
 import { SITE_URL } from "~/config/seo.mjs";
 import "~/styles/index.css";
@@ -50,6 +51,7 @@ const chapterNumber = (id: string) =>
     data-audio-loop-start={HISTORIA_AUDIO.loopStart}
     data-audio-loop-end={HISTORIA_AUDIO.loopEnd}
   >
+    <HistoriaPrecarga />
     <HistoriaEscenario />
     <HistoriaHud />
     <HistoriaPrologo />
@@ -73,25 +75,47 @@ const chapterNumber = (id: string) =>
 </LayoutNavbar>
 
 <script>
-  import { mountHistoria } from "~/scripts/historia/experiencia";
+  import { mountHistoria, type ControlHistoria } from "~/scripts/historia/experiencia";
+  import { crearPrecarga, type Precarga } from "~/scripts/historia/precarga";
   import { protegerContenido } from "~/scripts/historia/proteccion";
 
-  let cleanup: (() => void) | null = null;
+  let control: ControlHistoria | null = null;
+  let precarga: Precarga | null = null;
   let unprotect: (() => void) | null = null;
+  let arranque = 0;
 
   const teardown = () => {
-    cleanup?.();
+    arranque += 1;
+    control?.destruir();
+    precarga?.destruir();
     unprotect?.();
-    cleanup = null;
+    control = null;
+    precarga = null;
     unprotect = null;
   };
 
-  const boot = () => {
+  const boot = async () => {
     teardown();
+    const actual = arranque;
     const root = document.querySelector<HTMLElement>("[data-historia]");
     if (!root) return;
     unprotect = protegerContenido();
-    cleanup = mountHistoria(root);
+
+    const params = new URLSearchParams(window.location.search);
+    precarga = crearPrecarga(root, { kiosco: params.has("kiosco") || params.has("kiosk") });
+    if (!precarga) {
+      control = mountHistoria(root);
+      return;
+    }
+
+    const medios = await precarga.listo;
+    if (actual !== arranque) return;
+    control = mountHistoria(root, medios);
+
+    const { sonido } = await precarga.entrada;
+    if (actual !== arranque) return;
+    if (sonido !== null) control.activarSonido(sonido);
+    await precarga.revelar();
   };
 
   document.addEventListener("astro:page-load", boot);

@@ -1,6 +1,18 @@
 import { createSoundtrack, soundPreference } from "./banda-sonora";
+import { perfilDispositivo } from "./dispositivo";
 
 type SceneKind = "prologo" | "acto" | "capitulo" | "epilogo";
+
+export interface OpcionesHistoria {
+  calidad?: "hd" | "sd";
+  resolver?: (url: string) => string;
+  audio?: ArrayBuffer | null;
+}
+
+export interface ControlHistoria {
+  destruir: () => void;
+  activarSonido: (activar: boolean) => void;
+}
 
 interface StageLayer {
   root: HTMLElement;
@@ -24,6 +36,7 @@ interface Scene {
   top: number;
   height: number;
   progress: number;
+  lastC: string;
   counted: boolean;
   orbitScene: boolean;
   line: string;
@@ -48,11 +61,25 @@ const CINE_SPEED: Record<SceneKind, number> = {
   epilogo: 0.22,
 };
 
+const PALETA_ESTRELLAS = ["255 255 255", "173 229 255", "87 187 255", "0 221 177"];
+const BANDAS_PROFUNDIDAD = 4;
+
+// Las estrellas se agrupan por color y profundidad: 16 trazos por cuadro en lugar de uno por estrella.
+const ESTILOS_ESTRELLAS = PALETA_ESTRELLAS.flatMap((tinte) =>
+  Array.from({ length: BANDAS_PROFUNDIDAD }, (_, banda) => {
+    const profundidad = (banda + 0.5) / BANDAS_PROFUNDIDAD;
+    return {
+      color: `rgb(${tinte} / ${Math.min(0.95, Math.max(0.05, profundidad * 1.15)).toFixed(2)})`,
+      ancho: 0.4 + profundidad * 1.9,
+    };
+  }),
+);
+
 class Starfield {
   private readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D | null;
   private stars = new Float32Array(0);
-  private tints: string[] = [];
+  private tints = new Uint8Array(0);
   private width = 0;
   private height = 0;
   private ratio = 1;
@@ -73,13 +100,12 @@ class Starfield {
     this.context?.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
     const count = Math.round(clamp((this.width * this.height) / (this.lowPower ? 5200 : 2400), 70, this.lowPower ? 160 : 560));
     this.stars = new Float32Array(count * 3);
-    this.tints = [];
-    const palette = ["255 255 255", "173 229 255", "87 187 255", "0 221 177"];
+    this.tints = new Uint8Array(count);
     for (let index = 0; index < count; index += 1) {
       this.stars[index * 3] = Math.random() * 2 - 1;
       this.stars[index * 3 + 1] = Math.random() * 2 - 1;
       this.stars[index * 3 + 2] = Math.random();
-      this.tints.push(palette[index % 7 === 0 ? 3 : index % 5 === 0 ? 2 : index % 3 === 0 ? 1 : 0]);
+      this.tints[index] = index % 7 === 0 ? 3 : index % 5 === 0 ? 2 : index % 3 === 0 ? 1 : 0;
     }
   }
 
@@ -95,6 +121,7 @@ class Starfield {
     context.clearRect(0, 0, width, height);
     context.globalCompositeOperation = "lighter";
     context.lineCap = "round";
+    const trazos = ESTILOS_ESTRELLAS.map(() => new Path2D());
 
     for (let index = 0; index < this.stars.length; index += 3) {
       let z = this.stars[index + 2] - advance;
@@ -110,46 +137,37 @@ class Starfield {
       const screenY = centerY + (y / z) * focal * 0.5;
       if (screenX < -40 || screenX > width + 40 || screenY < -40 || screenY > height + 40) continue;
       const tailZ = Math.min(1, z + streak);
-      const tailX = centerX + (x / tailZ) * focal * 0.5;
-      const tailY = centerY + (y / tailZ) * focal * 0.5;
-      const depth = 1 - z;
-      const alpha = clamp(depth * 1.15, 0.05, 0.95);
-      context.strokeStyle = `rgb(${this.tints[index / 3]} / ${alpha})`;
-      context.lineWidth = 0.4 + depth * 1.9;
-      context.beginPath();
-      context.moveTo(tailX, tailY);
-      context.lineTo(screenX + 0.01, screenY + 0.01);
-      context.stroke();
+      const banda = Math.min(BANDAS_PROFUNDIDAD - 1, Math.floor((1 - z) * BANDAS_PROFUNDIDAD));
+      const trazo = trazos[this.tints[index / 3] * BANDAS_PROFUNDIDAD + banda];
+      trazo.moveTo(centerX + (x / tailZ) * focal * 0.5, centerY + (y / tailZ) * focal * 0.5);
+      trazo.lineTo(screenX + 0.01, screenY + 0.01);
     }
+
+    ESTILOS_ESTRELLAS.forEach((estilo, indice) => {
+      context.strokeStyle = estilo.color;
+      context.lineWidth = estilo.ancho;
+      context.stroke(trazos[indice]);
+    });
   }
 }
 
-export function mountHistoria(root: HTMLElement): () => void {
+export function mountHistoria(root: HTMLElement, opciones: OpcionesHistoria = {}): ControlHistoria {
   const doc = document.documentElement;
   const stage = root.querySelector<HTMLElement>("[data-historia-stage]");
   const hud = root.querySelector<HTMLElement>("[data-historia-hud]");
-  if (!stage || !hud) return () => {};
+  if (!stage || !hud) return { destruir: () => {}, activarSonido: () => {} };
 
   const params = new URLSearchParams(window.location.search);
   const kiosk = params.has("kiosco") || params.has("kiosk");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const nav = navigator as Navigator & {
-    deviceMemory?: number;
-    hardwareConcurrency?: number;
-    connection?: { saveData?: boolean };
-  };
-  const isConstrainedDevice =
-    Boolean(nav.deviceMemory && nav.deviceMemory <= 4) ||
-    Boolean(nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) ||
-    Boolean(nav.connection?.saveData) ||
-    window.innerWidth < 1440;
-  const useHd =
-    !isConstrainedDevice &&
-    window.innerWidth >= 1600 &&
-    Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) >= 2200;
+  const perfil = perfilDispositivo();
+  const isConstrainedDevice = perfil.restringido;
+  const useHd = opciones.calidad ? opciones.calidad === "hd" : perfil.admiteHd;
+  const resolve = (url: string | undefined) => (url ? (opciones.resolver?.(url) ?? url) : "");
 
   root.classList.add("historia--cinema");
   if (reduceMotion) root.classList.add("historia--calm");
+  if (isConstrainedDevice) root.classList.add("historia--ligero");
   doc.classList.add("historia-cinema-active");
   if (kiosk) doc.classList.add("historia-kiosco");
   hud.hidden = false;
@@ -193,6 +211,7 @@ export function mountHistoria(root: HTMLElement): () => void {
         top: 0,
         height: 1,
         progress: 0,
+        lastC: "",
         counted: false,
         orbitScene: el.classList.contains("historia-capitulo--orbit"),
         line: el.dataset.orbitLine ?? (kind === "acto" ? tagline : quote),
@@ -253,6 +272,7 @@ export function mountHistoria(root: HTMLElement): () => void {
         src: root.dataset.audioSrc,
         loopStart: Number(root.dataset.audioLoopStart ?? 0),
         loopEnd: Number(root.dataset.audioLoopEnd ?? 0),
+        data: opciones.audio,
       })
     : null;
   const audioButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-historia-audio]"));
@@ -297,6 +317,8 @@ export function mountHistoria(root: HTMLElement): () => void {
   let kioskLoopTimer = 0;
   let immersive = false;
   let destroyed = false;
+  let lastStory = "";
+  let lastStarsOpacity = "";
   const counterFrames = new Set<number>();
 
   const cine = {
@@ -309,8 +331,8 @@ export function mountHistoria(root: HTMLElement): () => void {
     if (!layer || layer.requested) return;
     layer.requested = true;
     const video = layer.video;
-    if (video.dataset.poster) video.poster = video.dataset.poster;
-    video.src = (useHd ? video.dataset.srcHd : video.dataset.srcSd) ?? "";
+    if (video.dataset.poster) video.poster = resolve(video.dataset.poster);
+    video.src = resolve(useHd ? video.dataset.srcHd : video.dataset.srcSd);
     video.preload = "auto";
     video.addEventListener(
       "loadedmetadata",
@@ -327,7 +349,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     video.addEventListener(
       "error",
       () => {
-        const fallback = video.dataset.srcSd;
+        const fallback = resolve(video.dataset.srcSd);
         if (!fallback || video.getAttribute("src") === fallback) return;
         video.src = fallback;
         video.load();
@@ -364,9 +386,16 @@ export function mountHistoria(root: HTMLElement): () => void {
   const requestGuide = () => {
     if (!guideVideo) return;
     if (!guideVideo.getAttribute("src")) {
-      if (guideVideo.dataset.poster) guideVideo.poster = guideVideo.dataset.poster;
-      guideVideo.src = guideVideo.dataset.srcSd ?? "";
+      if (guideVideo.dataset.poster) guideVideo.poster = resolve(guideVideo.dataset.poster);
+      guideVideo.src = resolve(guideVideo.dataset.srcSd);
       guideVideo.preload = "auto";
+    }
+    // En modo cine el escenario ya reproduce su propio video; un segundo video
+    // en paralelo hace que el navegador baje la animación a 30 fps, así que el
+    // holograma queda en su fotograma (con el parpadeo CSS) hasta salir del cine.
+    if (cine.active) {
+      guideVideo.pause();
+      return;
     }
     if (!reduceMotion && guideVideo.paused) guideVideo.play().catch(() => {});
   };
@@ -541,7 +570,8 @@ export function mountHistoria(root: HTMLElement): () => void {
         layer.visible = false;
         layer.root.style.visibility = "hidden";
         layer.root.style.opacity = "0";
-        if (layer.mode === "loop") layer.video.pause();
+        layer.root.style.willChange = "auto";
+        if (!layer.video.paused) layer.video.pause();
       }
       return 0;
     }
@@ -550,6 +580,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     if (!layer.visible) {
       layer.visible = true;
       layer.root.style.visibility = "visible";
+      layer.root.style.willChange = "opacity, transform";
     }
 
     let scale = 1 + scene.progress * 0.07;
@@ -595,8 +626,36 @@ export function mountHistoria(root: HTMLElement): () => void {
     }
 
     if (reduceMotion || !layer.ready || !layer.duration) return weight;
-    const target = clamp((scene.progress - 0.03) / 0.94) * Math.max(0, layer.duration - 0.06);
-    layer.shown += (target - layer.shown) * (cine.active ? 0.35 : 0.2);
+    const span = Math.max(0, layer.duration - 0.06);
+    const target = clamp((scene.progress - 0.03) / 0.94) * span;
+
+    // En modo cine el video se reproduce de forma nativa a la velocidad del avance:
+    // buscar cuadro a cuadro obliga a decodificar desde el keyframe y produce tirones.
+    if (cine.active && target < span - 0.08) {
+      const rate = clamp((CINE_SPEED.capitulo * viewport * span) / (0.94 * scene.height), 0.15, 2.5);
+      if (video.paused) {
+        if (Math.abs(video.currentTime - target) > 0.05) video.currentTime = target;
+        video.playbackRate = rate;
+        video.play().catch(() => {});
+      } else {
+        const drift = target - video.currentTime;
+        if (Math.abs(drift) > 0.5) {
+          video.currentTime = target;
+        } else {
+          const corrected = clamp(rate * (1 + drift * 0.9), 0.1, 3);
+          if (Math.abs(corrected - video.playbackRate) > 0.02) video.playbackRate = corrected;
+        }
+      }
+      layer.shown = video.currentTime;
+      return weight;
+    }
+
+    if (!video.paused) {
+      video.pause();
+      video.playbackRate = 1;
+      layer.shown = video.currentTime;
+    }
+    layer.shown += (target - layer.shown) * 0.2;
     const seekThreshold = isConstrainedDevice ? 0.045 : 0.016;
     if (!video.seeking && Math.abs(video.currentTime - layer.shown) > seekThreshold) {
       video.currentTime = layer.shown;
@@ -626,9 +685,17 @@ export function mountHistoria(root: HTMLElement): () => void {
     let actPresence = 0;
     let unsettled = false;
 
+    const margen = viewport * 1.2;
     for (const scene of scenes) {
       scene.progress = clamp((center - scene.top) / scene.height);
-      scene.el.style.setProperty("--c", scene.progress.toFixed(4));
+      // Cada escritura de --c recalcula el estilo de toda la escena: solo las cercanas y si cambió.
+      if (center > scene.top - margen && center < scene.top + scene.height + margen) {
+        const c = scene.progress.toFixed(4);
+        if (c !== scene.lastC) {
+          scene.lastC = c;
+          scene.el.style.setProperty("--c", c);
+        }
+      }
       if (center >= scene.top && center < scene.top + scene.height) active = scene;
       if (scene.kind === "acto") {
         const presence =
@@ -652,15 +719,19 @@ export function mountHistoria(root: HTMLElement): () => void {
 
     const storyStart = scenes[1]?.top ?? 0;
     const storyEnd = epilogue.top;
-    const story = clamp((center - storyStart) / Math.max(1, storyEnd - storyStart));
-    root.style.setProperty("--story", story.toFixed(4));
-    if (railFill) railFill.style.transform = `scaleY(${story.toFixed(4)})`;
-    if (mobileFill) mobileFill.style.transform = `scaleX(${story.toFixed(4)})`;
+    const story = clamp((center - storyStart) / Math.max(1, storyEnd - storyStart)).toFixed(4);
+    if (story !== lastStory) {
+      lastStory = story;
+      if (railFill) railFill.style.transform = `scaleY(${story})`;
+      if (mobileFill) mobileFill.style.transform = `scaleX(${story})`;
+    }
 
     const ended = center > epilogue.top + epilogue.height + fade;
     const started = prologue.progress > 0.62 || prologue.kind !== "prologo";
-    stage.dataset.state = ended ? "ended" : "playing";
-    hud.dataset.state = ended || !started ? "idle" : "active";
+    const stageState = ended ? "ended" : "playing";
+    const hudState = ended || !started ? "idle" : "active";
+    if (stage.dataset.state !== stageState) stage.dataset.state = stageState;
+    if (hud.dataset.state !== hudState) hud.dataset.state = hudState;
 
     const pastIntro = scrollY > viewport * 0.55;
     if (!pastIntro || ended) setImmersive(false);
@@ -669,7 +740,11 @@ export function mountHistoria(root: HTMLElement): () => void {
 
     if (starfield && !reduceMotion) {
       const speed = 0.9 + Math.min(Math.abs(velocity), 90) * 0.34 + actPresence * 4.2 + (1 - coverage) * 1.6;
-      stage.style.setProperty("--stars", clamp(0.28 + actPresence * 0.72 + (1 - coverage) * 0.5, 0.28, 1).toFixed(3));
+      const starsOpacity = clamp(0.28 + actPresence * 0.72 + (1 - coverage) * 0.5, 0.28, 1).toFixed(2);
+      if (starsCanvas && starsOpacity !== lastStarsOpacity) {
+        lastStarsOpacity = starsOpacity;
+        starsCanvas.style.opacity = starsOpacity;
+      }
       starfield.draw(speed, delta);
     }
 
@@ -715,6 +790,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     if (!cine.active) return;
     cine.active = false;
     setCineUi(false, message);
+    if (guide?.classList.contains("is-visible")) requestGuide();
     if (message) window.setTimeout(() => cineStatus && (cineStatus.dataset.visible = "false"), 2600);
   }
 
@@ -848,8 +924,17 @@ export function mountHistoria(root: HTMLElement): () => void {
     schedule();
   };
 
+  // El router de ViewTransitions guarda la posición en el historial en cada
+  // `scrollend`, y eso fuerza un layout completo. Con scroll programático
+  // (modo cine y tweens) se dispara en cada frame, así que lo retenemos y
+  // solo dejamos pasar el `scrollend` que llega cuando el movimiento termina.
+  const onScrollEnd = (event: Event) => {
+    if (cine.active || tweenId) event.stopImmediatePropagation();
+  };
+
   const listeners: Array<[EventTarget, string, EventListenerOrEventListenerObject, AddEventListenerOptions?]> = [
     [window, "scroll", schedule, { passive: true }],
+    [window, "scrollend", onScrollEnd, { capture: true }],
     [window, "resize", measure, { passive: true }],
     [window, "load", measure],
     [window, "wheel", onUserIntent, { passive: true }],
@@ -906,7 +991,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     }, 6000);
   }
 
-  return () => {
+  const destruir = () => {
     destroyed = true;
     if (rafId) cancelAnimationFrame(rafId);
     cancelTween();
@@ -915,7 +1000,11 @@ export function mountHistoria(root: HTMLElement): () => void {
     [flashTimer, idleTimer, cursorTimer, kioskLoopTimer].forEach((id) => window.clearTimeout(id));
     listeners.forEach(([target, type, handler, options]) => target.removeEventListener(type, handler, options));
     resizeObserver.disconnect();
-    layers.forEach((layer) => layer.video.pause());
+    layers.forEach((layer) => {
+      layer.video.pause();
+      layer.video.removeAttribute("src");
+      layer.video.load();
+    });
     guideVideo?.pause();
     soundtrack?.destroy();
     doc.classList.remove(
@@ -926,4 +1015,12 @@ export function mountHistoria(root: HTMLElement): () => void {
       "historia-fullscreen",
     );
   };
+
+  const activarSonido = (activar: boolean) => {
+    if (!soundtrack) return;
+    if (activar) void soundtrack.enable();
+    else soundtrack.disable();
+  };
+
+  return { destruir, activarSonido };
 }

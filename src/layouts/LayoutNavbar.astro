@@ -310,13 +310,6 @@ const curryear = new Date().getFullYear();
             : "text-white hover:text-gray-200"}>Nosotros</a
         >
         <a
-          href="/historia/"
-          aria-label="Historia de Campuslands"
-          aria-current={isHistoria ? "page" : undefined}
-          class={isHistoria ? "active" : "text-white hover:text-gray-200"}
-          >Historia</a
-        >
-        <a
           href="/blog/"
           data-section="blog"
           aria-label="Blog de Campuslands Guatemala"
@@ -339,7 +332,6 @@ const curryear = new Date().getFullYear();
           >
           <a href="/nosotros/" class="mobile-menu-link">Nosotros</a
           >
-          <a href="/historia/" class="mobile-menu-link">Historia</a>
           <a href="/blog/" data-section="blog" class="mobile-menu-link">Orbita</a>
         </div>
       </div>
@@ -1029,18 +1021,25 @@ const curryear = new Date().getFullYear();
       window.requestAnimationFrame(() => hero?.setAttribute("data-hero-ready", "true"));
     });
 
+    // Variables en :root recalculan el estilo de todo el documento en cada cuadro;
+    // en rutas cinematográficas la barra de progreso se actualiza directamente.
+    const cinematicRoute = Boolean(document.querySelector("[data-motion-skip]"));
+    const progressBar = document.querySelector<HTMLElement>(".experience-progress span");
+
     const updateScrollDetails = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
-        root.style.setProperty("--code-scroll", `${window.scrollY}px`);
         const scrollableHeight = Math.max(
           document.documentElement.scrollHeight - window.innerHeight,
           1,
         );
-        root.style.setProperty(
-          "--scroll-progress",
-          String(Math.min(window.scrollY / scrollableHeight, 1)),
-        );
+        const progress = String(Math.min(window.scrollY / scrollableHeight, 1));
+        if (cinematicRoute) {
+          if (progressBar) progressBar.style.transform = `scaleX(${progress})`;
+        } else {
+          root.style.setProperty("--code-scroll", `${window.scrollY}px`);
+          root.style.setProperty("--scroll-progress", progress);
+        }
         frame = 0;
       });
     };
@@ -1057,7 +1056,7 @@ const curryear = new Date().getFullYear();
     };
 
     window.addEventListener("scroll", updateScrollDetails, { passive: true });
-    if (finePointer) {
+    if (finePointer && !cinematicRoute) {
       window.addEventListener("pointermove", updatePointerDetails, { passive: true });
     }
     updateScrollDetails();
