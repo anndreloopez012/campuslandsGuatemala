@@ -132,6 +132,7 @@ export function mountHistoria(root: HTMLElement): () => void {
 
   const params = new URLSearchParams(window.location.search);
   const kiosk = params.has("kiosco") || params.has("kiosk");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const nav = navigator as Navigator & {
     deviceMemory?: number;
     hardwareConcurrency?: number;
