@@ -1,0 +1,36 @@
+---
+import { HISTORIA_PROLOGUE } from "~/content/historiaCampuslands";
+---
+
+<section
+  class="historia-prologo historia-scene"
+  id="prologo"
+  data-scene="prologo"
+  data-video={HISTORIA_PROLOGUE.video}
+  aria-labelledby="historia-titulo"
+>
+  <div class="historia-prologo__content">
+    <p class="historia-eyebrow">{HISTORIA_PROLOGUE.eyebrow}</p>
+    <h1 id="historia-titulo" class="historia-prologo__title">
+      La historia de <span>Campuslands</span>
+    </h1>
+    <p class="historia-prologo__subtitle">{HISTORIA_PROLOGUE.subtitle}</p>
+    <div class="historia-prologo__actions">
+      <a href="#acto-1" class="historia-btn historia-btn--primary" data-historia-start>
+        Comenzar el viaje
+      </a>
+      <button type="button" class="historia-btn historia-btn--ghost" data-historia-cine hidden>
+        <span class="historia-btn__icon" aria-hidden="true">▶</span>
+        Modo cine
+      </button>
+    </div>
+    <p class="historia-orbit-quote">
+      <span class="historia-orbit-quote__name">Orbit</span>
+      {HISTORIA_PROLOGUE.orbitLine}
+    </p>
+  </div>
+  <div class="historia-scroll-cue" aria-hidden="true">
+    <span class="historia-scroll-cue__track"><span></span></span>
+    Desliza para despegar
+  </div>
+</section>

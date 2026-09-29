@@ -39,6 +39,8 @@ La formación contempla programación avanzada, desarrollo de software, comunica
   Información para organizaciones y personas que desean patrocinar la formación de jóvenes.
 - Nosotros: https://www.campuslands.pro/nosotros/
   Propósito, modelo, comunidad e instalaciones de Campuslands Guatemala.
+- Historia: https://www.campuslands.pro/historia/
+  Recorrido audiovisual e interactivo por la historia de Campuslands de 2017 a 2026, narrado por Orbit, el astronauta de Campuslands Guatemala.
 - Términos y condiciones: https://www.campuslands.pro/terminos-condiciones/
   Condiciones de inscripción, participación, recursos, certificación y conducta.
 - Política de privacidad: https://www.campuslands.pro/politica-de-privacidad/
@@ -99,6 +101,21 @@ Campuslands Guatemala está en Edificio Campus Tec, Vía 4 1-00, Zona 4, Torre 1
 ### Consultar contenido sobre tecnología, inteligencia artificial y carrera en Guatemala
 
 Pulso Campuslands es la publicación editorial de Campuslands Guatemala con artículos sobre inteligencia artificial, programación, comunidad Camper y empleabilidad, organizados por categorías. El catálogo editorial está disponible en https://www.campuslands.pro/blog/.
+
+### Conocer la historia de Campuslands
+
+La historia completa está en https://www.campuslands.pro/historia/ y la narra Orbit, el astronauta de Campuslands Guatemala.
+
+- 2017, La chispa del cambio: dos emprendedores colombianos llegan a Bangalore, India, y descubren cómo la formación tecnológica puede transformar vidas.
+- 2019, Inspiración sin fronteras: en Francia y España conocen un modelo educativo sin profesores que inspira un proyecto único en Colombia.
+- 2020, El despertar de una necesidad: la pandemia expone la demanda de talento TI en Colombia y deciden formar talento local para empresas globales.
+- 2021, Nace Campuslands: comienza con un espacio limitado para 40 jóvenes.
+- 2022, Apuesta por la expansión: se triplica el espacio, se recibe a 120 jóvenes y la deserción baja al 40%.
+- 2022, El mundo pone los ojos en Bucaramanga: empresarios de EE. UU. y México invierten y nace el primer centro de movilidad social de Colombia y Latinoamérica, en Zona Franca de Santander.
+- 2023, El sueño se materializa: se inaugura el campus 100% presencial con programación, inglés y habilidades blandas.
+- 2024, Expansión nacional: el modelo de formación y reclutamiento llega a diversas regiones de Colombia.
+- 2025, Expansión internacional: nace Campuslands Guatemala con programación, inglés y habilidades adaptativas.
+- 2026, Guatemala inicia sus primeras 4 cohortes con 50 jóvenes que se forman en programación e inteligencia artificial.
 
 ## Preguntas y respuestas verificadas
 

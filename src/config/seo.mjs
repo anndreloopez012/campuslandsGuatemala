@@ -3,7 +3,7 @@ import { SERVICE_CATALOG } from "./recommendation.mjs";
 export const SITE_URL = "https://www.campuslands.pro";
 export const COLOMBIA_URL = "https://campuslands.com";
 export const DEFAULT_IMAGE = `${SITE_URL}/img/og-campuslands-guatemala.jpg`;
-export const LAST_CONTENT_UPDATE = "2026-08-31";
+export const LAST_CONTENT_UPDATE = "2026-09-29";
 
 // Solo se publican alternos regionales cuando existe una página equivalente
 // comprobada en Colombia. Un hreflang hacia una URL inexistente o no equivalente
@@ -101,6 +101,17 @@ export const PAGE_SEO = {
     description:
       "Conoce el modelo, la comunidad y el propósito de Campuslands Guatemala: formar talento joven para la industria tecnológica.",
     keywords: ["Campuslands Guatemala", "Campus Tec", "educación tecnológica"],
+  },
+  "/historia/": {
+    title: "Historia de Campuslands | De Bangalore a Guatemala",
+    description:
+      "Vive la historia de Campuslands de 2017 a 2026: de una chispa en Bangalore al campus en Colombia y las primeras cohortes en Guatemala, guiada por Orbit.",
+    keywords: [
+      "historia de Campuslands",
+      "Campuslands Guatemala",
+      "Orbit Campuslands",
+      "formación tecnológica en Latinoamérica",
+    ],
   },
   "/terminos-condiciones/": {
     title: "Términos y condiciones | Campuslands Guatemala",

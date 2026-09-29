@@ -1,0 +1,25 @@
+---
+import type { HistoriaAct } from "~/content/historiaCampuslands";
+
+interface Props {
+  act: HistoriaAct;
+}
+
+const { act } = Astro.props;
+const headingId = `acto-${act.number}-titulo`;
+---
+
+<section
+  class="historia-acto historia-scene"
+  id={`acto-${act.number}`}
+  data-scene={`acto-${act.number}`}
+  data-act={act.number}
+  aria-labelledby={headingId}
+>
+  <div class="historia-acto__inner">
+    <p class="historia-acto__label">Acto {act.roman}</p>
+    <h2 id={headingId} class="historia-acto__name">{act.name}</h2>
+    <p class="historia-acto__span">{act.span}</p>
+    <p class="historia-acto__tagline">{act.tagline}</p>
+  </div>
+</section>

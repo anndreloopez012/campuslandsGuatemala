@@ -1,0 +1,502 @@
+/* Historia de Campuslands: base documental legible sin JavaScript. */
+
+body.historia-route {
+  /* overflow-x: hidden convierte al body en contenedor de scroll y rompe sticky. */
+  overflow-x: clip;
+}
+
+body.historia-route #contenido-principal {
+  gap: 0;
+}
+
+.historia {
+  --h-space: #02031a;
+  --h-navy: #000051;
+  --h-petroleum: #07102b;
+  --h-cyan: #2caaff;
+  --h-sky: #57bbff;
+  --h-aqua: #00ddb1;
+  --h-aqua-deep: #00aa80;
+  --h-gold: #ffc56b;
+  --h-text: #eef7ff;
+  --h-muted: rgb(214 232 255 / 74%);
+  --h-line: rgb(87 187 255 / 22%);
+  --h-mono: Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --h-gutter: clamp(1rem, 6vw, 7rem);
+
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  color: var(--h-text);
+  background:
+    radial-gradient(120% 60% at 80% 0%, rgb(44 170 255 / 14%), transparent 60%),
+    radial-gradient(90% 50% at 10% 40%, rgb(0 221 177 / 8%), transparent 60%),
+    linear-gradient(180deg, var(--h-space) 0%, var(--h-navy) 45%, var(--h-petroleum) 100%);
+}
+
+.historia [hidden] {
+  display: none !important;
+}
+
+.historia-scene {
+  position: relative;
+}
+
+.historia-eyebrow {
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: clamp(0.68rem, 1.1vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--h-sky);
+}
+
+.historia-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms ease,
+    background-color 260ms ease,
+    border-color 260ms ease;
+}
+
+.historia-btn--primary {
+  color: #03132a;
+  background: linear-gradient(120deg, var(--h-aqua) 0%, var(--h-sky) 100%);
+  box-shadow: 0 0.8rem 2.4rem rgb(0 221 177 / 26%);
+}
+
+.historia-btn--ghost {
+  color: var(--h-text);
+  border: 1px solid rgb(214 232 255 / 36%);
+  background: rgb(7 16 43 / 42%);
+  backdrop-filter: blur(10px);
+}
+
+.historia-btn:hover {
+  transform: translateY(-3px);
+}
+
+.historia-btn--ghost:hover {
+  border-color: var(--h-sky);
+  background: rgb(44 170 255 / 16%);
+}
+
+.historia-btn:focus-visible,
+.historia-replay:focus-visible {
+  outline: 3px solid var(--h-sky);
+  outline-offset: 4px;
+}
+
+.historia-btn__icon {
+  font-size: 0.8em;
+}
+
+.historia-orbit-quote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.7rem;
+  margin: 0;
+  font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+  font-style: italic;
+  color: var(--h-muted);
+}
+
+.historia-orbit-quote__name {
+  font-family: var(--h-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--h-aqua);
+}
+
+.historia-orbit-quote__name::before {
+  content: "◉ ";
+}
+
+/* Prólogo */
+.historia-prologo {
+  display: grid;
+  align-items: end;
+  min-height: 100svh;
+  padding: clamp(6rem, 14vh, 9rem) var(--h-gutter) clamp(5rem, 12vh, 8rem);
+}
+
+.historia-prologo__content {
+  display: grid;
+  gap: clamp(1rem, 2.4vh, 1.6rem);
+  max-width: 62rem;
+}
+
+.historia-prologo__title {
+  margin: 0;
+  font-size: clamp(2.8rem, 8.6vw, 7.6rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.historia-prologo__title span {
+  display: inline-block;
+  background: linear-gradient(110deg, var(--h-sky) 0%, var(--h-aqua) 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.historia-prologo__subtitle {
+  margin: 0;
+  max-width: 38rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  line-height: 1.45;
+  color: var(--h-muted);
+}
+
+.historia-prologo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.historia-scroll-cue {
+  position: absolute;
+  right: var(--h-gutter);
+  bottom: clamp(1.5rem, 5vh, 3rem);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--h-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--h-muted);
+}
+
+.historia-scroll-cue__track {
+  position: relative;
+  width: 1.5rem;
+  height: 2.4rem;
+  border: 1.5px solid rgb(214 232 255 / 55%);
+  border-radius: 999px;
+}
+
+.historia-scroll-cue__track span {
+  position: absolute;
+  top: 0.45rem;
+  left: 50%;
+  width: 3px;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--h-aqua);
+  translate: -50% 0;
+  animation: historia-cue 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes historia-cue {
+  0% { opacity: 0; translate: -50% 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; translate: -50% 1rem; }
+}
+
+/* Actos */
+.historia-acto {
+  display: grid;
+  place-items: center;
+  min-height: 90svh;
+  padding: 6rem var(--h-gutter);
+  text-align: center;
+}
+
+.historia-acto__inner {
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  max-width: 52rem;
+}
+
+.historia-acto__label {
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: var(--h-aqua);
+}
+
+.historia-acto__name {
+  margin: 0;
+  font-size: clamp(3.2rem, 11vw, 9.5rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.historia-acto__span {
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: clamp(0.9rem, 1.6vw, 1.15rem);
+  letter-spacing: 0.3em;
+  color: var(--h-sky);
+}
+
+.historia-acto__tagline {
+  margin: 0.4rem 0 0;
+  max-width: 34rem;
+  font-size: clamp(1rem, 1.7vw, 1.3rem);
+  line-height: 1.5;
+  color: var(--h-muted);
+}
+
+/* Capítulos */
+.historia-capitulo {
+  padding: clamp(4rem, 10vh, 7rem) var(--h-gutter);
+}
+
+.historia-capitulo__panel {
+  position: relative;
+  display: grid;
+  gap: clamp(0.8rem, 1.8vh, 1.2rem);
+  max-width: 42rem;
+}
+
+.historia-capitulo__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0;
+  font-family: var(--h-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--h-muted);
+}
+
+.historia-capitulo__count {
+  color: var(--h-aqua);
+}
+
+.historia-capitulo__act::before {
+  content: "";
+  display: inline-block;
+  width: 2.2rem;
+  height: 1px;
+  margin-right: 1rem;
+  vertical-align: middle;
+  background: var(--h-line);
+}
+
+.historia-capitulo__year {
+  margin: 0 0 -0.12em;
+  font-size: clamp(5rem, 15vw, 13rem);
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgb(87 187 255 / 70%);
+  user-select: none;
+}
+
+.historia-capitulo__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.2vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.historia-capitulo__place {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--h-text);
+}
+
+.historia-capitulo__place svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--h-aqua);
+}
+
+.historia-capitulo__coords {
+  font-family: var(--h-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--h-muted);
+}
+
+.historia-capitulo__text {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.55vw, 1.32rem);
+  line-height: 1.62;
+  color: var(--h-text);
+}
+
+.historia-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1rem, 3vw, 2.6rem);
+  margin: 0.4rem 0 0;
+}
+
+.historia-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 5.5rem;
+}
+
+.historia-stat dd {
+  order: -1;
+  margin: 0;
+  font-size: clamp(2.2rem, 4.6vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(120deg, #fff 0%, var(--h-sky) 60%, var(--h-aqua) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.historia-stat dt {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--h-muted);
+}
+
+.historia-pillars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historia-pillars li {
+  padding: 0.45rem 1rem;
+  border: 1px solid rgb(0 221 177 / 45%);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c9fff1;
+  background: rgb(0 221 177 / 10%);
+}
+
+.historia-capitulo__orbit {
+  margin-top: 0.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--h-line);
+}
+
+/* Epílogo */
+.historia-epilogo {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: clamp(6rem, 14vh, 9rem) var(--h-gutter);
+  text-align: center;
+}
+
+.historia-epilogo__content {
+  display: grid;
+  justify-items: center;
+  gap: clamp(1rem, 2.4vh, 1.6rem);
+  max-width: 58rem;
+}
+
+.historia-epilogo__title {
+  margin: 0;
+  font-size: clamp(2.6rem, 7.4vw, 6.4rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.historia-epilogo__text {
+  margin: 0;
+  max-width: 36rem;
+  font-size: clamp(1.05rem, 1.8vw, 1.4rem);
+  line-height: 1.5;
+  color: var(--h-muted);
+}
+
+.historia-stats--summary {
+  justify-content: center;
+}
+
+.historia-stats--summary .historia-stat {
+  align-items: center;
+}
+
+.historia-epilogo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+}
+
+.historia-epilogo .historia-orbit-quote {
+  justify-content: center;
+}
+
+.historia-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--h-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--h-sky);
+  background: transparent;
+  cursor: pointer;
+}
+
+.historia-replay:hover {
+  color: #fff;
+  background: rgb(87 187 255 / 12%);
+}
+
+@media (max-width: 767px) {
+  .historia-scroll-cue {
+    left: var(--h-gutter);
+    right: auto;
+  }
+
+  .historia-capitulo__act::before {
+    display: none;
+  }
+}
