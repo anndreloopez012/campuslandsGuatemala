@@ -228,3 +228,11 @@ export const HISTORIA_EPILOGUE = {
 };
 
 export const HISTORIA_GUIDE_VIDEO = "orbit-guia";
+
+// La pista reproduce la intro una vez y luego repite 40–104 s; la unión
+// trae un fundido de 8 s integrado, por eso estos puntos no deben moverse.
+export const HISTORIA_AUDIO = {
+  src: "/audio/historia/banda-sonora-interestelar.mp3",
+  loopStart: 40,
+  loopEnd: 104,
+};

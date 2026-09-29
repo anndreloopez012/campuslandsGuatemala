@@ -6,7 +6,7 @@ import HistoriaCapitulo from "~/components/historia/HistoriaCapitulo.astro";
 import HistoriaEpilogo from "~/components/historia/HistoriaEpilogo.astro";
 import HistoriaEscenario from "~/components/historia/HistoriaEscenario.astro";
 import HistoriaHud from "~/components/historia/HistoriaHud.astro";
-import { HISTORIA_ACTS, HISTORIA_CHAPTERS } from "~/content/historiaCampuslands";
+import { HISTORIA_ACTS, HISTORIA_AUDIO, HISTORIA_CHAPTERS } from "~/content/historiaCampuslands";
 import { SITE_URL } from "~/config/seo.mjs";
 import "~/styles/index.css";
 import "~/styles/historia.css";
@@ -42,7 +42,14 @@ const chapterNumber = (id: string) =>
 ---
 
 <LayoutNavbar dataFooter={dataFooter} pageType="AboutPage" structuredData={structuredData}>
-  <div class="historia" data-historia data-motion-skip>
+  <div
+    class="historia"
+    data-historia
+    data-motion-skip
+    data-audio-src={HISTORIA_AUDIO.src}
+    data-audio-loop-start={HISTORIA_AUDIO.loopStart}
+    data-audio-loop-end={HISTORIA_AUDIO.loopEnd}
+  >
     <HistoriaEscenario />
     <HistoriaHud />
     <HistoriaPrologo />

@@ -1,3 +1,5 @@
+import { createSoundtrack, soundPreference } from "./banda-sonora";
+
 type SceneKind = "prologo" | "acto" | "capitulo" | "epilogo";
 
 interface StageLayer {
@@ -237,6 +239,41 @@ export function mountHistoria(root: HTMLElement): () => void {
   const starsCanvas = stage.querySelector<HTMLCanvasElement>("[data-historia-stars]");
   const starfield = starsCanvas ? new Starfield(starsCanvas) : null;
 
+  const soundtrack = root.dataset.audioSrc
+    ? createSoundtrack({
+        src: root.dataset.audioSrc,
+        loopStart: Number(root.dataset.audioLoopStart ?? 0),
+        loopEnd: Number(root.dataset.audioLoopEnd ?? 0),
+      })
+    : null;
+  const audioButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-historia-audio]"));
+  const volumeInput = hud.querySelector<HTMLInputElement>("[data-historia-volume]");
+
+  const syncAudioUi = () => {
+    const on = Boolean(soundtrack?.enabled);
+    root.classList.toggle("historia--audio", on);
+    audioButtons.forEach((button) => {
+      button.setAttribute("aria-pressed", String(on));
+      button.setAttribute("aria-label", on ? "Silenciar banda sonora" : "Activar banda sonora");
+      button.classList.toggle("is-on", on);
+      const label = button.querySelector("[data-audio-label]");
+      if (label && button.classList.contains("historia-btn--audio")) {
+        label.textContent = on ? "Sonido activado" : "Activar sonido";
+      }
+    });
+    if (volumeInput) {
+      const percent = Math.round((soundtrack?.volume ?? 0.7) * 100);
+      volumeInput.value = String(percent);
+      volumeInput.setAttribute("aria-valuetext", `${percent} %`);
+      volumeInput.style.setProperty("--vol", `${percent}%`);
+    }
+  };
+
+  const autoSound = () => {
+    if (!soundtrack || soundtrack.enabled || soundPreference() === "off") return;
+    void soundtrack.enable();
+  };
+
   let viewport = window.innerHeight;
   let rafId = 0;
   let lastTime = performance.now();
@@ -429,6 +466,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     requestNearby(scene.order);
     root.dataset.activeScene = scene.id;
     root.dataset.activeKind = scene.kind;
+    soundtrack?.setScene(scene.kind);
 
     if (scene.kind === "acto" && previous && previous.kind !== "acto") triggerFlash();
 
@@ -661,7 +699,13 @@ export function mountHistoria(root: HTMLElement): () => void {
 
   const onUserIntent = (event: Event) => {
     const target = event.target;
-    if (target instanceof Element && target.closest("[data-historia-cine], .historia-controls, .historia-rail")) return;
+    if (
+      target instanceof Element &&
+      target.closest("[data-historia-cine], [data-historia-audio], .historia-controls, .historia-rail")
+    ) {
+      return;
+    }
+    if (kiosk && event.type !== "wheel") autoSound();
     if (cine.active) stopCine("Modo cine en pausa · pulsa Modo cine para continuar");
     cancelTween();
     window.clearTimeout(kioskLoopTimer);
@@ -694,6 +738,8 @@ export function mountHistoria(root: HTMLElement): () => void {
       cine.active ? stopCine("Modo cine en pausa") : startCine();
     } else if (key === "f" || key === "F") {
       toggleFullscreen();
+    } else if ((key === "m" || key === "M") && soundtrack) {
+      void soundtrack.toggle();
     } else {
       onUserIntent(event);
     }
@@ -713,7 +759,24 @@ export function mountHistoria(root: HTMLElement): () => void {
 
   const onCineClick = (event: Event) => {
     event.preventDefault();
-    cine.active ? stopCine("Modo cine en pausa") : startCine();
+    if (cine.active) {
+      stopCine("Modo cine en pausa");
+    } else {
+      autoSound();
+      startCine();
+    }
+  };
+
+  const onAudioClick = (event: Event) => {
+    event.preventDefault();
+    void soundtrack?.toggle();
+  };
+
+  const onVolumeInput = () => {
+    if (!soundtrack || !volumeInput) return;
+    const value = Number(volumeInput.value) / 100;
+    soundtrack.setVolume(value);
+    if (value > 0 && !soundtrack.enabled) void soundtrack.enable();
   };
 
   const onRailClick = (event: Event) => {
@@ -723,6 +786,7 @@ export function mountHistoria(root: HTMLElement): () => void {
 
   const onStartClick = (event: Event) => {
     event.preventDefault();
+    autoSound();
     goToScene(scenes[1]);
   };
 
@@ -732,6 +796,7 @@ export function mountHistoria(root: HTMLElement): () => void {
   };
 
   const onVisibility = () => {
+    soundtrack?.onVisibility(document.hidden);
     if (document.hidden) {
       guideVideo?.pause();
       return;
@@ -772,6 +837,17 @@ export function mountHistoria(root: HTMLElement): () => void {
     fullscreenButton.hidden = false;
     listeners.push([fullscreenButton, "click", toggleFullscreen]);
   }
+  if (soundtrack) {
+    audioButtons.forEach((button) => {
+      button.hidden = false;
+      listeners.push([button, "click", onAudioClick]);
+    });
+    if (volumeInput) listeners.push([volumeInput, "input", onVolumeInput]);
+    soundtrack.subscribe(syncAudioUi);
+    syncAudioUi();
+  } else {
+    hud.querySelector<HTMLElement>("[data-historia-audio-group]")?.setAttribute("hidden", "");
+  }
 
   listeners.forEach(([target, type, handler, options]) => target.addEventListener(type, handler, options));
 
@@ -799,6 +875,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     resizeObserver.disconnect();
     layers.forEach((layer) => layer.video.pause());
     guideVideo?.pause();
+    soundtrack?.destroy();
     doc.classList.remove(
       "historia-cinema-active",
       "historia-immersive",

@@ -61,7 +61,7 @@
       ]
     },
     {
-      "source": "/video/(.*)",
+      "source": "/(video|audio)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

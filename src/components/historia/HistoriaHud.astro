@@ -64,6 +64,30 @@ const guide = (variant: string) => `${HISTORIA_VIDEO_BASE}/${HISTORIA_GUIDE_VIDE
     <button type="button" class="historia-control" data-historia-restart aria-label="Volver al inicio">
       <span aria-hidden="true">↺</span>
     </button>
+    <div class="historia-audio" data-historia-audio-group>
+      <button
+        type="button"
+        class="historia-control historia-control--audio"
+        data-historia-audio
+        aria-pressed="false"
+        aria-label="Activar banda sonora"
+      >
+        <span class="historia-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="historia-control__label" data-audio-label>Sonido</span>
+      </button>
+      <label class="historia-volume">
+        <span class="sr-only">Volumen de la banda sonora</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value="70"
+          data-historia-volume
+          aria-valuetext="70 %"
+        />
+      </label>
+    </div>
   </div>
 
   <div class="historia-guide" data-historia-guide aria-hidden="true">
