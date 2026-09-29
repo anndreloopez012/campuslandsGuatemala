@@ -30,6 +30,9 @@ export interface HistoriaAct {
 
 export const HISTORIA_VIDEO_BASE = "/video/historia";
 
+// Subir este valor fuerza a los navegadores a volver a descargar los medios en caché.
+export const HISTORIA_MEDIA_VERSION = "2026-09-29";
+
 export const HISTORIA_PROLOGUE = {
   eyebrow: "Historia Campuslands · 2017 — 2026",
   title: "La historia de Campuslands",

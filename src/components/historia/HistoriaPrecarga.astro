@@ -1,0 +1,138 @@
+---
+import { createHash } from "node:crypto";
+import { statSync } from "node:fs";
+import { join } from "node:path";
+import {
+  HISTORIA_AUDIO,
+  HISTORIA_CHAPTERS,
+  HISTORIA_EPILOGUE,
+  HISTORIA_GUIDE_VIDEO,
+  HISTORIA_MEDIA_VERSION,
+  HISTORIA_PROLOGUE,
+  HISTORIA_VIDEO_BASE,
+} from "~/content/historiaCampuslands";
+
+const size = (path: string) => {
+  try {
+    return statSync(join(process.cwd(), "public", path)).size;
+  } catch {
+    return 0;
+  }
+};
+const recurso = (url: string) => ({ url, size: size(url) });
+const archivo = (clave: string, variante: string) => `${HISTORIA_VIDEO_BASE}/${clave}-${variante}`;
+
+const escenas = [
+  { clave: HISTORIA_PROLOGUE.video, etiqueta: "el prólogo de Orbit" },
+  ...HISTORIA_CHAPTERS.map((chapter) => ({
+    clave: chapter.video,
+    etiqueta: `${chapter.year} · ${chapter.place}`,
+  })),
+  { clave: HISTORIA_EPILOGUE.video, etiqueta: "el epílogo" },
+];
+
+const contenido = {
+  posters: [...escenas.map((escena) => escena.clave), HISTORIA_GUIDE_VIDEO].map((clave) =>
+    recurso(archivo(clave, "poster.webp")),
+  ),
+  escenas: escenas.map((escena) => ({
+    etiqueta: escena.etiqueta,
+    hd: recurso(archivo(escena.clave, "1080.mp4")),
+    sd: recurso(archivo(escena.clave, "720.mp4")),
+  })),
+  guia: recurso(archivo(HISTORIA_GUIDE_VIDEO, "720.mp4")),
+  audio: recurso(HISTORIA_AUDIO.src),
+};
+
+const version = createHash("sha1")
+  .update(HISTORIA_MEDIA_VERSION + JSON.stringify(contenido))
+  .digest("hex")
+  .slice(0, 12);
+
+const manifiesto = JSON.stringify({ version, ...contenido });
+const guiaPoster = archivo(HISTORIA_GUIDE_VIDEO, "poster.webp");
+const radio = 96;
+const longitud = 2 * Math.PI * radio;
+---
+
+<script is:inline>
+  document.documentElement.classList.add("historia-precargando");
+  window.__historiaPrecargaViva = false;
+  window.setTimeout(function () {
+    if (window.__historiaPrecargaViva) return;
+    document.documentElement.classList.remove("historia-precargando");
+    var capa = document.querySelector("[data-historia-precarga]");
+    if (capa) capa.setAttribute("data-state", "done");
+  }, 12000);
+</script>
+<noscript>
+  <style>
+    .historia-precarga {
+      display: none !important;
+    }
+  </style>
+</noscript>
+
+<div
+  class="historia-precarga"
+  data-historia-precarga
+  data-manifiesto={manifiesto}
+  data-state="loading"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="historia-precarga-titulo"
+  aria-busy="true"
+>
+  <div class="historia-precarga__cielo" aria-hidden="true"></div>
+  <div class="historia-precarga__centro">
+    <div class="historia-precarga__portilla" aria-hidden="true">
+      <svg class="historia-precarga__anillo" viewBox="0 0 200 200">
+        <circle class="historia-precarga__pista" cx="100" cy="100" r={radio}></circle>
+        <circle
+          class="historia-precarga__progreso"
+          cx="100"
+          cy="100"
+          r={radio}
+          data-precarga-anillo
+          data-longitud={longitud}
+          style={`stroke-dasharray:${longitud};stroke-dashoffset:${longitud}`}></circle>
+      </svg>
+      <img
+        class="historia-precarga__orbit"
+        src={guiaPoster}
+        alt=""
+        width="320"
+        height="320"
+        decoding="async"
+        fetchpriority="high"
+      />
+      <span class="historia-precarga__escaneo"></span>
+    </div>
+
+    <p class="historia-precarga__sobretitulo">Historia Campuslands · 2017 — 2026</p>
+    <p class="historia-precarga__titulo" id="historia-precarga-titulo" data-precarga-titulo>
+      Preparando el despegue
+    </p>
+    <p class="historia-precarga__porcentaje" aria-hidden="true">
+      <span data-precarga-porcentaje>0</span><small>%</small>
+    </p>
+    <p class="historia-precarga__estado" role="status" aria-live="polite" data-precarga-estado>
+      Calibrando la conexión…
+    </p>
+    <p class="historia-precarga__detalle" data-precarga-detalle></p>
+    <p class="historia-precarga__calidad" data-precarga-calidad></p>
+
+    <div class="historia-precarga__acciones" data-precarga-acciones hidden>
+      <button type="button" class="historia-btn historia-btn--primary" data-precarga-entrar="sonido">
+        <span class="historia-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        Entrar con sonido
+      </button>
+      <button type="button" class="historia-btn historia-btn--ghost" data-precarga-entrar="silencio">
+        Entrar sin sonido
+      </button>
+    </div>
+    <button type="button" class="historia-precarga__saltar" data-precarga-saltar hidden>
+      Entrar ahora · lo que falta seguirá cargando mientras avanzas
+    </button>
+  </div>
+</div>

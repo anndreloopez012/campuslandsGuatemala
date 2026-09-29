@@ -1,6 +1,18 @@
 import { createSoundtrack, soundPreference } from "./banda-sonora";
+import { perfilDispositivo } from "./dispositivo";
 
 type SceneKind = "prologo" | "acto" | "capitulo" | "epilogo";
+
+export interface OpcionesHistoria {
+  calidad?: "hd" | "sd";
+  resolver?: (url: string) => string;
+  audio?: ArrayBuffer | null;
+}
+
+export interface ControlHistoria {
+  destruir: () => void;
+  activarSonido: (activar: boolean) => void;
+}
 
 interface StageLayer {
   root: HTMLElement;
@@ -124,29 +136,19 @@ class Starfield {
   }
 }
 
-export function mountHistoria(root: HTMLElement): () => void {
+export function mountHistoria(root: HTMLElement, opciones: OpcionesHistoria = {}): ControlHistoria {
   const doc = document.documentElement;
   const stage = root.querySelector<HTMLElement>("[data-historia-stage]");
   const hud = root.querySelector<HTMLElement>("[data-historia-hud]");
-  if (!stage || !hud) return () => {};
+  if (!stage || !hud) return { destruir: () => {}, activarSonido: () => {} };
 
   const params = new URLSearchParams(window.location.search);
   const kiosk = params.has("kiosco") || params.has("kiosk");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const nav = navigator as Navigator & {
-    deviceMemory?: number;
-    hardwareConcurrency?: number;
-    connection?: { saveData?: boolean };
-  };
-  const isConstrainedDevice =
-    Boolean(nav.deviceMemory && nav.deviceMemory <= 4) ||
-    Boolean(nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) ||
-    Boolean(nav.connection?.saveData) ||
-    window.innerWidth < 1440;
-  const useHd =
-    !isConstrainedDevice &&
-    window.innerWidth >= 1600 &&
-    Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) >= 2200;
+  const perfil = perfilDispositivo();
+  const isConstrainedDevice = perfil.restringido;
+  const useHd = opciones.calidad ? opciones.calidad === "hd" : perfil.admiteHd;
+  const resolve = (url: string | undefined) => (url ? (opciones.resolver?.(url) ?? url) : "");
 
   root.classList.add("historia--cinema");
   if (reduceMotion) root.classList.add("historia--calm");
@@ -253,6 +255,7 @@ export function mountHistoria(root: HTMLElement): () => void {
         src: root.dataset.audioSrc,
         loopStart: Number(root.dataset.audioLoopStart ?? 0),
         loopEnd: Number(root.dataset.audioLoopEnd ?? 0),
+        data: opciones.audio,
       })
     : null;
   const audioButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-historia-audio]"));
@@ -309,8 +312,8 @@ export function mountHistoria(root: HTMLElement): () => void {
     if (!layer || layer.requested) return;
     layer.requested = true;
     const video = layer.video;
-    if (video.dataset.poster) video.poster = video.dataset.poster;
-    video.src = (useHd ? video.dataset.srcHd : video.dataset.srcSd) ?? "";
+    if (video.dataset.poster) video.poster = resolve(video.dataset.poster);
+    video.src = resolve(useHd ? video.dataset.srcHd : video.dataset.srcSd);
     video.preload = "auto";
     video.addEventListener(
       "loadedmetadata",
@@ -327,7 +330,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     video.addEventListener(
       "error",
       () => {
-        const fallback = video.dataset.srcSd;
+        const fallback = resolve(video.dataset.srcSd);
         if (!fallback || video.getAttribute("src") === fallback) return;
         video.src = fallback;
         video.load();
@@ -364,8 +367,8 @@ export function mountHistoria(root: HTMLElement): () => void {
   const requestGuide = () => {
     if (!guideVideo) return;
     if (!guideVideo.getAttribute("src")) {
-      if (guideVideo.dataset.poster) guideVideo.poster = guideVideo.dataset.poster;
-      guideVideo.src = guideVideo.dataset.srcSd ?? "";
+      if (guideVideo.dataset.poster) guideVideo.poster = resolve(guideVideo.dataset.poster);
+      guideVideo.src = resolve(guideVideo.dataset.srcSd);
       guideVideo.preload = "auto";
     }
     if (!reduceMotion && guideVideo.paused) guideVideo.play().catch(() => {});
@@ -906,7 +909,7 @@ export function mountHistoria(root: HTMLElement): () => void {
     }, 6000);
   }
 
-  return () => {
+  const destruir = () => {
     destroyed = true;
     if (rafId) cancelAnimationFrame(rafId);
     cancelTween();
@@ -915,7 +918,11 @@ export function mountHistoria(root: HTMLElement): () => void {
     [flashTimer, idleTimer, cursorTimer, kioskLoopTimer].forEach((id) => window.clearTimeout(id));
     listeners.forEach(([target, type, handler, options]) => target.removeEventListener(type, handler, options));
     resizeObserver.disconnect();
-    layers.forEach((layer) => layer.video.pause());
+    layers.forEach((layer) => {
+      layer.video.pause();
+      layer.video.removeAttribute("src");
+      layer.video.load();
+    });
     guideVideo?.pause();
     soundtrack?.destroy();
     doc.classList.remove(
@@ -926,4 +933,12 @@ export function mountHistoria(root: HTMLElement): () => void {
       "historia-fullscreen",
     );
   };
+
+  const activarSonido = (activar: boolean) => {
+    if (!soundtrack) return;
+    if (activar) void soundtrack.enable();
+    else soundtrack.disable();
+  };
+
+  return { destruir, activarSonido };
 }
