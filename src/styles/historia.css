@@ -592,7 +592,7 @@ html.historia-cursor-hidden * {
   opacity: 0;
   visibility: hidden;
   transform-origin: 50% 46%;
-  will-change: opacity, transform, filter;
+  will-change: opacity, transform;
 }
 
 .historia-stage__video {
@@ -601,12 +601,6 @@ html.historia-cursor-hidden * {
   height: 100%;
   object-fit: cover;
   background: #01020f;
-  animation: historia-drift 22s ease-in-out infinite alternate;
-}
-
-@keyframes historia-drift {
-  from { transform: scale(1) translate3d(0, 0, 0); }
-  to { transform: scale(1.045) translate3d(-1.2%, -0.8%, 0); }
 }
 
 .historia-stage__stars {
@@ -654,20 +648,7 @@ html.historia-cursor-hidden * {
 }
 
 .historia-stage__grain {
-  inset: -20%;
-  opacity: 0.075;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  animation: historia-grain 900ms steps(6) infinite;
-}
-
-@keyframes historia-grain {
-  0% { transform: translate3d(0, 0, 0); }
-  20% { transform: translate3d(-4%, 3%, 0); }
-  40% { transform: translate3d(3%, -5%, 0); }
-  60% { transform: translate3d(-6%, -2%, 0); }
-  80% { transform: translate3d(5%, 4%, 0); }
-  100% { transform: translate3d(0, 0, 0); }
+  display: none;
 }
 
 .historia-stage__letterbox {

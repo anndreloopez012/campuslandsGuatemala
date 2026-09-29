@@ -610,6 +610,15 @@ const curryear = new Date().getFullYear();
     });
 
     if (!canvas || !context) return () => {};
+    if (window.matchMedia("(pointer: coarse)").matches) return () => {};
+
+    const nav = navigator as Navigator & {
+      deviceMemory?: number;
+      hardwareConcurrency?: number;
+    };
+    const isConstrained =
+      Boolean(nav.deviceMemory && nav.deviceMemory <= 4) ||
+      Boolean(nav.hardwareConcurrency && nav.hardwareConcurrency <= 4);
 
     const trail: Array<{ x: number; y: number; bornAt: number }> = [];
     const sparks: Array<{
@@ -628,7 +637,7 @@ const curryear = new Date().getFullYear();
       bornAt: number;
       rotation: number;
     }> = [];
-    const maxSparks = 96;
+    const maxSparks = isConstrained ? 24 : 96;
     const trailDuration = 210;
     const clickBurstDuration = 620;
     let animationFrame = 0;
@@ -678,8 +687,10 @@ const curryear = new Date().getFullYear();
         context.lineJoin = "round";
         context.strokeStyle = gradient;
         context.lineWidth = 2.2;
-        context.shadowColor = "rgb(44 170 255 / 82%)";
-        context.shadowBlur = 12;
+        if (!isConstrained) {
+          context.shadowColor = "rgb(44 170 255 / 82%)";
+          context.shadowBlur = 10;
+        }
         context.beginPath();
         trail.forEach((point, index) => {
           if (index === 0) context.moveTo(point.x, point.y);
@@ -785,8 +796,10 @@ const curryear = new Date().getFullYear();
         const color = spark.aqua ? "0 221 177" : "87 187 255";
         context.strokeStyle = `rgb(${color} / ${spark.life * 72}%)`;
         context.fillStyle = `rgb(255 255 255 / ${spark.life * 88}%)`;
-        context.shadowColor = `rgb(${color} / 80%)`;
-        context.shadowBlur = 7;
+        if (!isConstrained) {
+          context.shadowColor = `rgb(${color} / 80%)`;
+          context.shadowBlur = 6;
+        }
         context.lineWidth = Math.max(0.45, spark.size * 0.45);
         context.beginPath();
         context.moveTo(spark.x - spark.vx * 5, spark.y - spark.vy * 5);

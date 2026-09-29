@@ -57,7 +57,7 @@ class Starfield {
   private height = 0;
   private ratio = 1;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, private readonly lowPower = false) {
     this.canvas = canvas;
     this.context = canvas.getContext("2d", { alpha: true });
     this.resize();
@@ -71,7 +71,7 @@ class Starfield {
     this.canvas.width = Math.round(this.width * this.ratio);
     this.canvas.height = Math.round(this.height * this.ratio);
     this.context?.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
-    const count = Math.round(clamp((this.width * this.height) / 2400, 160, 560));
+    const count = Math.round(clamp((this.width * this.height) / (this.lowPower ? 5200 : 2400), 70, this.lowPower ? 160 : 560));
     this.stars = new Float32Array(count * 3);
     this.tints = [];
     const palette = ["255 255 255", "173 229 255", "87 187 255", "0 221 177"];
@@ -132,12 +132,20 @@ export function mountHistoria(root: HTMLElement): () => void {
 
   const params = new URLSearchParams(window.location.search);
   const kiosk = params.has("kiosco") || params.has("kiosk");
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    hardwareConcurrency?: number;
+    connection?: { saveData?: boolean };
+  };
+  const isConstrainedDevice =
+    Boolean(nav.deviceMemory && nav.deviceMemory <= 4) ||
+    Boolean(nav.hardwareConcurrency && nav.hardwareConcurrency <= 4) ||
+    Boolean(nav.connection?.saveData) ||
+    window.innerWidth < 1440;
   const useHd =
-    !connection?.saveData &&
-    window.innerWidth >= 900 &&
-    Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) >= 1500;
+    !isConstrainedDevice &&
+    window.innerWidth >= 1600 &&
+    Math.max(window.innerWidth, window.innerHeight) * Math.min(window.devicePixelRatio || 1, 2) >= 2200;
 
   root.classList.add("historia--cinema");
   if (reduceMotion) root.classList.add("historia--calm");
@@ -237,7 +245,7 @@ export function mountHistoria(root: HTMLElement): () => void {
   const fullscreenButton = hud.querySelector<HTMLButtonElement>("[data-historia-fullscreen]");
   const flash = stage.querySelector<HTMLElement>("[data-historia-flash]");
   const starsCanvas = stage.querySelector<HTMLCanvasElement>("[data-historia-stars]");
-  const starfield = starsCanvas ? new Starfield(starsCanvas) : null;
+  const starfield = starsCanvas ? new Starfield(starsCanvas, isConstrainedDevice) : null;
 
   const soundtrack = root.dataset.audioSrc
     ? createSoundtrack({
@@ -328,10 +336,27 @@ export function mountHistoria(root: HTMLElement): () => void {
     video.load();
   };
 
+  const releaseLayer = (layer: StageLayer | null) => {
+    if (!layer || !layer.requested) return;
+    const video = layer.video;
+    if (!video.paused) video.pause();
+    if (isConstrainedDevice) {
+      video.removeAttribute("src");
+      video.load();
+      layer.requested = false;
+      layer.ready = false;
+      layer.last = "";
+    }
+  };
+
   const requestNearby = (order: number) => {
     scenes.forEach((scene) => {
       const distance = scene.order - order;
-      if (distance >= -1 && distance <= 2) requestLayer(scene.layer);
+      if (distance >= -1 && distance <= (isConstrainedDevice ? 1 : 2)) {
+        requestLayer(scene.layer);
+      } else if (Math.abs(distance) > 2) {
+        releaseLayer(scene.layer);
+      }
     });
   };
 
@@ -541,15 +566,28 @@ export function mountHistoria(root: HTMLElement): () => void {
       scale = 1;
     }
 
-    const style = `${weight.toFixed(3)}|${scale.toFixed(4)}|${blur.toFixed(1)}`;
+    const isVisible = weight > 0.005;
+    const style = isConstrainedDevice
+      ? `${weight.toFixed(3)}|${scale.toFixed(4)}|${isVisible}`
+      : `${weight.toFixed(3)}|${scale.toFixed(4)}|${blur.toFixed(1)}|${isVisible}`;
     if (style !== layer.last) {
       layer.last = style;
       layer.root.style.opacity = weight.toFixed(3);
       layer.root.style.transform = `scale(${scale.toFixed(4)})`;
-      layer.root.style.filter = blur > 0.3 ? `blur(${blur.toFixed(1)}px) saturate(${(1 + blur * 0.035).toFixed(2)})` : "";
+      layer.root.style.visibility = isVisible ? "visible" : "hidden";
+      if (!isConstrainedDevice && blur > 0.6) {
+        layer.root.style.filter = `blur(${blur.toFixed(1)}px) saturate(${(1 + blur * 0.035).toFixed(2)})`;
+      } else if (layer.root.style.filter) {
+        layer.root.style.filter = "";
+      }
     }
 
     const video = layer.video;
+    if (!isVisible) {
+      if (!video.paused) video.pause();
+      return weight;
+    }
+
     if (layer.mode === "loop") {
       if (!reduceMotion && video.paused && layer.requested) video.play().catch(() => {});
       return weight;
@@ -558,7 +596,8 @@ export function mountHistoria(root: HTMLElement): () => void {
     if (reduceMotion || !layer.ready || !layer.duration) return weight;
     const target = clamp((scene.progress - 0.03) / 0.94) * Math.max(0, layer.duration - 0.06);
     layer.shown += (target - layer.shown) * (cine.active ? 0.35 : 0.2);
-    if (!video.seeking && Math.abs(video.currentTime - layer.shown) > 0.012) {
+    const seekThreshold = isConstrainedDevice ? 0.045 : 0.016;
+    if (!video.seeking && Math.abs(video.currentTime - layer.shown) > seekThreshold) {
       video.currentTime = layer.shown;
     }
     return Math.abs(target - layer.shown) > 0.004 ? weight + 1 : weight;
@@ -635,8 +674,10 @@ export function mountHistoria(root: HTMLElement): () => void {
 
     if (cine.active) advanceCine(delta, active, now);
 
-    const ambient = !reduceMotion && !ended && !document.hidden;
-    if (ambient || unsettled || cine.active || Math.abs(velocity) > 0.05) schedule();
+    const isMoving = Math.abs(velocity) > 0.015 || cine.active || unsettled;
+    if (isMoving || (!isConstrainedDevice && !reduceMotion && !ended && !document.hidden)) {
+      schedule();
+    }
   };
 
   function schedule() {
