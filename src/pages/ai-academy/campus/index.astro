@@ -3,6 +3,7 @@ export const prerender = false;
 
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
 import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
+import DiplomaReplica from "~/components/ai-academy/DiplomaReplica.astro";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { SITE_URL } from "~/config/seo.mjs";
 import {
@@ -145,23 +146,8 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
               const url = verifyUrl(diploma.credentialId);
               return (
                 <div class="campus__diploma">
-                  <div class="cx-cert">
-                    <div class="cx-cert__top"><span>Campuslands Guatemala · AI Academy</span><span>Credencial verificable</span></div>
-                    <div class="campus__cert-body">
-                      <div>
-                        <p class="campus__cert-label">Se otorga a</p>
-                        <p class="cx-cert__name">{student.fullName}</p>
-                        <p class="cx-cert__title">por completar <strong>{diploma.title}</strong>, {diploma.hours} horas de formación presencial aplicada.</p>
-                      </div>
-                      <span class="cx-seal">AI<br />ACADEMY<br /><CampusIcon name="destello" size={12} fill /></span>
-                    </div>
-                    {diploma.skills.length > 0 && <ul class="cx-skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
-                    <dl class="cx-cert__meta">
-                      <div><dt>Emitido</dt><dd>{formatDiplomaDate(diploma.issuedAt)}</dd></div>
-                      <div><dt>ID de credencial</dt><dd>{diploma.credentialId}</dd></div>
-                      <div><dt>Horas</dt><dd>{diploma.hours}</dd></div>
-                    </dl>
-                  </div>
+                  <DiplomaReplica fullName={student.fullName} title={diploma.title} hours={diploma.hours} issuedAt={diploma.issuedAt} credentialId={diploma.credentialId} verifyUrl={url} design={diploma.design} />
+                  {diploma.skills.length > 0 && <ul class="cx-skills campus__skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
                   <div class="campus__diploma-actions">
                     <a class="cx-btn cx-btn--linkedin" href={linkedinAddUrl(diploma, url)} target="_blank" rel="noopener noreferrer">
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z"/></svg>
@@ -491,9 +477,8 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
 
   .campus__panel { display: grid; gap: 1.4rem; }
   .campus__panel[hidden] { display: none; }
-  .campus__diploma { display: grid; gap: 1.2rem; }
-  .campus__cert-body { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.2rem; }
-  .campus__cert-label { color: rgb(223 245 255 / 55%); font: 700 0.62rem/1.4 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.16em; text-transform: uppercase; }
+  .campus__diploma { display: grid; gap: 1.2rem; width: min(100%, 60rem); }
+  .campus__skills { margin-top: -0.3rem; }
   .campus__diploma-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
   .campus__verify { color: var(--ai-glow, #b997ff); font-size: 0.85rem; font-weight: 700; text-decoration: none; }
   .campus__verify:hover { color: #fff; }
@@ -585,7 +570,6 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
     .campus__tabs { top: 4.6rem; gap: 0.2rem; overflow: visible; }
     .campus__tabs button { flex: 1 1 0; gap: 0.35rem; min-width: 0; padding: 0 0.4rem; font-size: 0.82rem; }
     .campus__tabs button > span { display: none; }
-    .campus__cert-body { flex-direction: column-reverse; }
     .campus__diploma-actions .cx-btn { width: 100%; }
     .campus__me { width: 100%; }
     .campus__who { flex: 1; }

@@ -1,0 +1,39 @@
+---
+import { diplomaLines, DEFAULT_DIPLOMA_DESIGN, type DiplomaData, type DiplomaDesign } from "~/lib/academy-diploma";
+import "~/styles/ai-academy-diploma.css";
+
+interface Props extends DiplomaData {
+  design?: DiplomaDesign | null;
+  revoked?: boolean;
+  label?: string;
+}
+
+const { design, revoked = false, label, ...data } = Astro.props;
+const lines = diplomaLines(data, design ?? DEFAULT_DIPLOMA_DESIGN);
+---
+
+<div class:list={["dpl", revoked && "dpl--revoked"]} role="img" aria-label={label ?? `Diploma de ${data.fullName}: ${data.title}`} data-diploma>
+  {lines.map((line) => (
+    <p
+      class:list={["dpl__l", line.strong && "dpl__l--strong", line.className]}
+      style={`--y: ${line.y}; --s: ${line.s};${line.w ? ` --w: ${line.w};` : ""}`}
+      data-fit
+      data-s={line.s}
+      data-min={line.min ?? 9}
+      data-wrap={line.wrap ? "1" : undefined}
+      aria-hidden="true"
+    >{line.text}</p>
+  ))}
+  <span class="dpl__rule" aria-hidden="true"></span>
+  {revoked && <span class="dpl__void" aria-hidden="true">REVOCADO</span>}
+</div>
+
+<script>
+  import { fitDiploma } from "~/lib/academy-diploma";
+
+  const fitAll = () => document.querySelectorAll<HTMLElement>("[data-diploma]").forEach((element) => fitDiploma(element));
+  document.addEventListener("astro:page-load", () => {
+    fitAll();
+    void document.fonts?.ready.then(fitAll);
+  });
+</script>

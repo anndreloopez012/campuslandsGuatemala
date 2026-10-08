@@ -180,7 +180,13 @@ export type AcademyEnrollment = { id: number; block: AcademyBlockRef; cohort: st
 export type AcademyDiploma = { id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: "emitido" | "revocado"; studentId: number | null; file: AcademyFile | null };
 export type AcademyTool = { id: number; title: string; url: string; description: string; category: string; order: number; block: AcademyBlockRef };
 export type AcademyVideo = { id: number; title: string; description: string; session: number | null; order: number; source: "archivo" | "enlace"; externalUrl: string; durationSeconds: number | null; file: AcademyFile | null; block: AcademyBlockRef };
-export type AcademyDetail = { workshop: AcademyWorkshop; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyGenerateResult = {
+  results: { student: number; fullName?: string; state: "emitido" | "actualizado" | "omitido" | "error"; reason?: string; credentialId?: string }[];
+  emitted: number; updated: number; skipped: number; failed: number;
+};
+// Los diplomas con el diseño oficial se reconocen por el nombre del archivo.
+export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) => Boolean(diploma.file?.name.startsWith("Diploma AI Academy - "));
+export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: { signer: string; signerRole: string; place: string }; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
@@ -393,6 +399,26 @@ export class BlogAdminApi {
 
   removeDiploma(id: number) {
     return this.request<void>(`/editor/academy/diplomas/${id}`, { method: "DELETE" });
+  }
+
+  // Diplomas con el diseño oficial: el servidor genera el PDF con nombre, taller, horas y fecha.
+  generateDiplomas(data: { workshop: string; students?: number[]; block?: number; issuedAt?: string; skills?: string; overwrite?: boolean }) {
+    return this.request<AcademyGenerateResult>("/editor/academy/diplomas/generate", { method: "POST", body: JSON.stringify({ data }) });
+  }
+
+  regenerateDiploma(id: number) {
+    return this.request<AcademyDiploma>(`/editor/academy/diplomas/${id}/regenerate`, { method: "POST" });
+  }
+
+  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string }) {
+    const headers = new Headers({ Accept: "application/pdf", "Content-Type": "application/json" });
+    if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diplomas/preview`, { method: "POST", headers, body: JSON.stringify({ data }) });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error?.message || "No se pudo generar la vista previa.");
+    }
+    return response.blob();
   }
 
   saveTool(data: Record<string, unknown>, id?: number) {

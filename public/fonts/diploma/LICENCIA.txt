@@ -1,0 +1,3 @@
+Open Sans, © The Open Sans Project Authors (https://github.com/googlefonts/opensans).
+Licencia SIL Open Font License 1.1 (https://openfontlicense.org).
+Se usa en el diploma de AI Academy (réplica web del PDF oficial).

@@ -10,7 +10,10 @@ export const CAMPUS_COOKIE = "cl_ai_campus";
 const MAX_AGE = 60 * 60 * 24 * 7;
 
 export type CampusFile = { id: number; name: string; mime: string; size: number };
-export type CampusDiploma = { id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null };
+export type CampusDiploma = {
+  id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null;
+  design?: { signer: string; signerRole: string; place: string } | null;
+};
 export type CampusTool = { id: number; title: string; url: string; description: string; category: string };
 export type CampusVideo = {
   id: number; title: string; description: string; session: number | null; source: "archivo" | "enlace"; externalUrl: string;

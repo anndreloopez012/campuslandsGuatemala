@@ -249,118 +249,7 @@
   font-size: 0.82rem;
 }
 
-/* Diploma digital: lámina holográfica */
-.cx-cert {
-  position: relative;
-  display: grid;
-  gap: 1.1rem;
-  padding: clamp(1.4rem, 3.5vw, 2.4rem);
-  overflow: hidden;
-  border-radius: 1.6rem;
-  color: #fff;
-  background:
-    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--cx-accent) 34%, transparent), transparent 52%),
-    linear-gradient(150deg, #191b5c, #0b0c2d 60%, #07081c);
-  box-shadow: 0 2rem 5rem rgb(0 0 0 / 45%);
-  isolation: isolate;
-}
-
-.cx-cert::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  padding: 1px;
-  content: "";
-  background: conic-gradient(from var(--cx-foil, 0deg), #57bbff, #b997ff, #ff7ad9, #7fffdc, #ffc56b, #57bbff);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: cx-foil 8s linear infinite;
-}
-
-.cx-cert::after {
-  position: absolute;
-  inset: -60%;
-  z-index: -1;
-  content: "";
-  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 10%) 50%, transparent 60%);
-  transform: translateX(-30%);
-  animation: cx-shine 6s ease-in-out infinite;
-}
-
-@property --cx-foil {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-@keyframes cx-foil { to { --cx-foil: 360deg; } }
-@keyframes cx-shine { 50% { transform: translateX(30%); } }
-
-.cx-cert__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  color: rgb(223 245 255 / 66%);
-  font: 700 0.62rem/1.4 Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.cx-seal {
-  display: grid;
-  width: 4.4rem;
-  aspect-ratio: 1;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  color: #050507;
-  background: conic-gradient(from 0deg, var(--cx-accent), #fff, var(--cx-accent), #b997ff, var(--cx-accent));
-  box-shadow: 0 0 0 0.35rem rgb(255 255 255 / 6%), 0 0 2rem color-mix(in srgb, var(--cx-accent) 50%, transparent);
-  font: 900 0.62rem/1.1 Menlo, Monaco, Consolas, monospace;
-  text-align: center;
-}
-
-.cx-cert__name {
-  font-size: clamp(1.8rem, 4.6vw, 3rem);
-  font-weight: 800;
-  line-height: 1.02;
-  letter-spacing: -0.045em;
-}
-
-.cx-cert__title {
-  color: var(--cx-text);
-  font-size: 1rem;
-  line-height: 1.55;
-}
-
-.cx-cert__title strong {
-  color: #fff;
-}
-
-.cx-cert__meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: 0.8rem;
-  margin: 0;
-  padding-top: 1rem;
-  border-top: 1px dashed rgb(185 151 255 / 26%);
-}
-
-.cx-cert__meta dt {
-  color: rgb(223 245 255 / 52%);
-  font: 700 0.58rem/1.4 Menlo, Monaco, Consolas, monospace;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.cx-cert__meta dd {
-  margin: 0.3rem 0 0;
-  font-weight: 700;
-}
-
+/* Competencias del diploma (el diploma en sí es la réplica de ai-academy-diploma.css) */
 .cx-skills {
   display: flex;
   flex-wrap: wrap;
@@ -383,9 +272,7 @@
   .cx-sky::before,
   .cx-sky::after,
   .cx-orbit__ring,
-  .cx-orbit img,
-  .cx-cert::before,
-  .cx-cert::after {
+  .cx-orbit img {
     animation: none;
   }
 }

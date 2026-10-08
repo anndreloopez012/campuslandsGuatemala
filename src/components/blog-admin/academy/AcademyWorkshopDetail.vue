@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import type { AcademyBlock, AcademyDetail, AcademyDiploma, AcademyEnrollment, AcademyPerson, AcademyTool, AcademyVideo, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyAdmin from "../AcademyAdmin.vue";
 import AcademyIcon from "./AcademyIcon.vue";
+import DiplomaReplica from "./DiplomaReplica.vue";
+import { isGeneratedDiploma, type AcademyGenerateResult } from "../../../lib/blog-admin";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
 const emit = defineEmits<{
@@ -37,7 +39,8 @@ const workshop = computed(() => detail.value?.workshop);
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "?";
 const sizeLabel = (bytes: number) => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 const dateLabel = (value?: string) => (value ? new Intl.DateTimeFormat("es-GT", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value)) : "");
-const today = () => new Date().toISOString().slice(0, 10);
+// Hoy en Guatemala (la fecha que lleva el diploma).
+const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guatemala" }).format(new Date());
 
 // ---------------------------------------------------------------- bloques
 // Cada bloque es una edición del taller con su grupo de alumnos. El administrador define el avance
@@ -81,11 +84,21 @@ async function patchBlock(block: AcademyBlock, change: Partial<Pick<AcademyBlock
   }
 }
 
-function setSession(block: AcademyBlock, session: number) {
+async function setSession(block: AcademyBlock, session: number) {
   const next = block.currentSession === session ? session - 1 : session;
   const label = next === 0 ? "sin iniciar" : `en el sábado ${next} de ${block.totalSessions}`;
-  void patchBlock(block, { currentSession: next }, `${block.name} quedó ${label} (${Math.round((next / block.totalSessions) * 100)} %). Sus alumnos ya lo ven.`);
+  await patchBlock(block, { currentSession: next }, `${block.name} quedó ${label} (${Math.round((next / block.totalSessions) * 100)} %). Sus alumnos ya lo ven.`);
+  // Al llegar al último sábado se ofrece emitir de una vez los diplomas del bloque.
+  const pending = pendingOf(block.id);
+  if (next === block.totalSessions && pending.length && window.confirm(`${block.name} terminó. ¿Emitir ahora los diplomas de sus ${pending.length} ${pending.length === 1 ? "alumno" : "alumnos"} con fecha de hoy?`)) {
+    await emitDiplomas(pending, today());
+  }
 }
+
+// Alumnos del bloque que aún no tienen diploma con PDF.
+const pendingOf = (blockId: number) => (detail.value?.enrollments ?? [])
+  .filter((item) => item.block?.id === blockId && !diplomaOf(item.student.id)?.file)
+  .map((item) => item.student.id);
 
 async function deleteBlock(block: AcademyBlock) {
   if (!window.confirm(`¿Eliminar "${block.name}"? Sus videos y herramientas exclusivos pasarán a ser de todos los bloques.`)) return;
@@ -160,6 +173,82 @@ async function unenroll(item: AcademyEnrollment) {
 type DiplomaDraft = { id?: number; student: number; title: string; issuedAt: string; hours: number; skills: string; status: "emitido" | "revocado"; file: { id: number; name: string; size: number } | null; uploading: number | null };
 const editing = ref<DiplomaDraft | null>(null);
 const diplomaOf = (studentId: number) => detail.value?.diplomas.find((item) => item.studentId === studentId);
+
+// ---------------------------------------------------------------- emisión automática con el diseño oficial
+// Se eligen los estudiantes y la fecha; el CMS genera cada PDF con su nombre, el taller y las horas.
+const auto = reactive({ block: 0, issuedAt: today(), skills: "", selected: [] as number[] });
+const autoRunning = ref(false);
+const autoResult = ref<AcademyGenerateResult | null>(null);
+const autoCandidates = computed(() => (detail.value?.enrollments ?? [])
+  .filter((item) => !auto.block || item.block?.id === auto.block)
+  .map((item) => ({ enrollment: item, diploma: diplomaOf(item.student.id) })));
+const pendingIds = computed(() => autoCandidates.value.filter((item) => !item.diploma?.file).map((item) => item.enrollment.student.id));
+const selectPending = () => { auto.selected = [...pendingIds.value]; };
+watch(() => [auto.block, detail.value?.diplomas.length, detail.value?.enrollments.length], selectPending);
+const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-MUESTRA`);
+const previewPerson = computed(() => autoCandidates.value.find((item) => auto.selected.includes(item.enrollment.student.id))?.enrollment.student
+  ?? autoCandidates.value[0]?.enrollment.student ?? null);
+const previewData = computed(() => ({
+  fullName: previewPerson.value?.fullName || "Nombre del estudiante",
+  title: workshop.value?.title || "",
+  hours: workshop.value?.hours || 16,
+  issuedAt: auto.issuedAt || today(),
+  credentialId: sampleId.value,
+  verifyUrl: `${window.location.origin}/ai-academy/diploma/${sampleId.value}/`,
+}));
+
+async function openPreview() {
+  const win = window.open("", "_blank");
+  try {
+    const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, issuedAt: auto.issuedAt });
+    const url = URL.createObjectURL(blob);
+    if (win) win.location.href = url; else window.location.assign(url);
+  } catch (value) {
+    win?.close();
+    say(problem(value, "No se pudo generar la vista previa."), "error");
+  }
+}
+
+async function emitDiplomas(students: number[], issuedAt = auto.issuedAt) {
+  if (!students.length) return;
+  autoRunning.value = true;
+  autoResult.value = null;
+  try {
+    const result = await props.api.generateDiplomas({ workshop: props.workshopKey, students, issuedAt, skills: auto.skills });
+    autoResult.value = result;
+    const parts = [`${result.emitted} ${result.emitted === 1 ? "diploma emitido" : "diplomas emitidos"}`];
+    if (result.updated) parts.push(`${result.updated} con PDF nuevo`);
+    if (result.skipped) parts.push(`${result.skipped} ya tenían`);
+    if (result.failed) parts.push(`${result.failed} con error`);
+    say(`${parts.join(", ")}. Ya están en el campus de cada estudiante.`, result.failed ? "error" : "success");
+    await load(true);
+  } catch (value) {
+    say(problem(value, "No se pudieron emitir los diplomas."), "error");
+  } finally {
+    autoRunning.value = false;
+  }
+}
+
+function runAuto() {
+  const count = auto.selected.length;
+  if (!count) return;
+  if (!window.confirm(`¿Emitir ${count} ${count === 1 ? "diploma" : "diplomas"} con fecha ${dateLabel(auto.issuedAt)}? Cada estudiante lo verá al instante en su campus.`)) return;
+  void emitDiplomas([...auto.selected]);
+}
+
+async function regenerate(diploma: AcademyDiploma) {
+  const message = isGeneratedDiploma(diploma)
+    ? "¿Volver a generar el PDF con los datos actuales (nombre, taller, fecha)?"
+    : "¿Reemplazar el PDF subido por uno con el diseño oficial?";
+  if (!window.confirm(message)) return;
+  try {
+    await props.api.regenerateDiploma(diploma.id);
+    say("PDF del diploma generado con el diseño oficial.");
+    await load(true);
+  } catch (value) {
+    say(problem(value, "No se pudo generar el PDF."), "error");
+  }
+}
 
 // Emitir desde el taller: se elige al estudiante en un desplegable y se sube su PDF.
 // Si aún no estaba inscrito, se inscribe en el mismo paso para que el diploma quede amarrado a su cuenta.
@@ -528,6 +617,7 @@ onMounted(async () => {
               <label>Inicio<input type="date" class="mini-input" :value="block.startDate" @change="patchBlock(block, { startDate: ($event.target as HTMLInputElement).value }, 'Fecha actualizada.')" /></label>
               <label>Sesiones<select class="mini-input" :value="block.totalSessions" @change="patchBlock(block, { totalSessions: Number(($event.target as HTMLSelectElement).value) }, 'Número de sesiones actualizado.')"><option v-for="number in 12" :key="number" :value="number">{{ number }}</option></select></label>
               <button type="button" class="ghost-action ghost-action--small" @click="studentFilter = block.id; selectTab('estudiantes')">Ver alumnos</button>
+              <button v-if="block.status === 'finalizado' && pendingOf(block.id).length" type="button" class="primary-action primary-action--small" :disabled="autoRunning" @click="emitDiplomas(pendingOf(block.id), today())">Emitir {{ pendingOf(block.id).length }} diplomas</button>
               <button type="button" class="ghost-action ghost-action--small ghost-action--danger" :disabled="Boolean(block.students)" :title="block.students ? 'Mueve a sus alumnos a otro bloque para eliminarlo' : ''" @click="deleteBlock(block)">Eliminar</button>
             </footer>
           </article>
@@ -584,8 +674,86 @@ onMounted(async () => {
       <template v-else-if="tab === 'diplomas'">
         <section class="panel">
           <div class="panel__head">
-            <div><h3>Emitir diploma</h3><p>Elige al estudiante dueño del diploma y sube su PDF. Solo esa cuenta podrá verlo, descargarlo y agregarlo a LinkedIn.</p></div>
+            <div><h3>Emitir diplomas automáticamente</h3><p>Elige a quién y la fecha: cada diploma se genera con el diseño oficial, el nombre del estudiante y el taller, y queda en su campus listo para descargar y agregar a LinkedIn.</p></div>
           </div>
+          <div class="auto">
+            <div class="auto__stage">
+              <DiplomaReplica :data="previewData" :design="detail.diplomaDesign" />
+              <div class="auto__stage-foot">
+                <span><AcademyIcon name="destello" :size="13" fill /> Vista previa en vivo · {{ previewPerson ? previewPerson.fullName : "ejemplo" }}</span>
+                <button type="button" class="ghost-action ghost-action--small" @click="openPreview">Ver el PDF real ↗</button>
+              </div>
+            </div>
+            <form class="auto__form" @submit.prevent="runAuto">
+              <div class="grid-2">
+                <label class="field">Bloque
+                  <select v-model.number="auto.block">
+                    <option :value="0">Todos los bloques</option>
+                    <option v-for="block in blocks" :key="block.id" :value="block.id">{{ block.name }} · {{ block.progress }}%</option>
+                  </select>
+                </label>
+                <label class="field">Fecha de emisión<input v-model="auto.issuedAt" type="date" required /></label>
+              </div>
+              <label class="field">Competencias (opcional)<input v-model="auto.skills" placeholder="Prompts, Agentes, Automatización" /><small>Se muestran en el campus junto al diploma.</small></label>
+              <div class="auto__head">
+                <strong>Estudiantes</strong>
+                <span><button type="button" class="link-action" @click="selectPending">Pendientes ({{ pendingIds.length }})</button> · <button type="button" class="link-action" @click="auto.selected = []">Ninguno</button></span>
+              </div>
+              <div class="auto__list">
+                <label v-for="item in autoCandidates" :key="item.enrollment.id" class="auto__item" :class="{ active: auto.selected.includes(item.enrollment.student.id), done: item.diploma?.file }">
+                  <input v-model="auto.selected" type="checkbox" :value="item.enrollment.student.id" :disabled="Boolean(item.diploma?.file)" />
+                  <span class="avatar">{{ initials(item.enrollment.student.fullName) }}</span>
+                  <span class="auto__who"><strong>{{ item.enrollment.student.fullName }}</strong><small>{{ item.enrollment.block?.name || "Sin bloque" }}</small></span>
+                  <span class="chip" :class="item.diploma?.file ? 'chip--ok' : item.diploma ? 'chip--warn' : 'chip--soft'">{{ item.diploma?.file ? "Ya tiene diploma" : item.diploma ? "Sin PDF" : "Pendiente" }}</span>
+                </label>
+                <p v-if="!autoCandidates.length" class="auto__empty">No hay estudiantes {{ auto.block ? "en este bloque" : "inscritos" }}. Inscríbelos en la pestaña Estudiantes.</p>
+              </div>
+              <div v-if="autoResult" class="auto__result" role="status">
+                <span class="chip chip--ok">{{ autoResult.emitted }} emitidos</span>
+                <span v-if="autoResult.updated" class="chip chip--soft">{{ autoResult.updated }} con PDF nuevo</span>
+                <span v-if="autoResult.skipped" class="chip chip--warn">{{ autoResult.skipped }} omitidos</span>
+                <span v-if="autoResult.failed" class="chip chip--bad">{{ autoResult.failed }} con error</span>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="primary-action" :disabled="autoRunning || !auto.selected.length">{{ autoRunning ? "Generando diplomas…" : `Generar y emitir ${auto.selected.length} ${auto.selected.length === 1 ? "diploma" : "diplomas"}` }}</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <div><h3>Diplomas del taller</h3><p>Cada diploma lleva un identificador verificable y un botón para agregarlo a LinkedIn.</p></div>
+          </div>
+          <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="diploma" :size="26" /></b><strong>Aún no hay diplomas</strong>Emítelos con el panel de arriba.</div>
+          <div v-else class="rows">
+            <div v-for="item in detail.enrollments" :key="item.id" class="row">
+              <span class="avatar">{{ initials(item.student.fullName) }}</span>
+              <div class="row__main">
+                <strong>{{ item.student.fullName }}</strong>
+                <span v-if="diplomaOf(item.student.id)">
+                  <span class="chip" :class="diplomaOf(item.student.id)!.status === 'emitido' ? 'chip--ok' : 'chip--bad'">{{ diplomaOf(item.student.id)!.status === "emitido" ? "Emitido" : "Revocado" }}</span>
+                  {{ diplomaOf(item.student.id)!.credentialId }} · {{ dateLabel(diplomaOf(item.student.id)!.issuedAt) }}{{ diplomaOf(item.student.id)!.file ? (isGeneratedDiploma(diplomaOf(item.student.id)!) ? " · diseño oficial" : " · PDF subido") : " · sin PDF" }}
+                </span>
+                <span v-else>Sin diploma todavía</span>
+              </div>
+              <div class="row__actions">
+                <template v-if="diplomaOf(item.student.id)">
+                  <a v-if="diplomaOf(item.student.id)!.file" class="ghost-action ghost-action--small" :href="api.fileUrl(diplomaOf(item.student.id)!.file!)" target="_blank" rel="noopener">PDF</a>
+                  <button type="button" class="ghost-action ghost-action--small" @click="regenerate(diplomaOf(item.student.id)!)">{{ isGeneratedDiploma(diplomaOf(item.student.id)!) ? "Regenerar" : "Usar diseño oficial" }}</button>
+                  <button type="button" class="ghost-action ghost-action--small" @click="copy(verifyUrl(diplomaOf(item.student.id)!), 'Enlace de verificación copiado.')">Verificación</button>
+                  <button type="button" class="ghost-action ghost-action--small" @click="startDiploma(item.student, diplomaOf(item.student.id))">Editar</button>
+                  <button type="button" class="ghost-action ghost-action--small" @click="toggleRevoke(diplomaOf(item.student.id)!)">{{ diplomaOf(item.student.id)!.status === "emitido" ? "Revocar" : "Reactivar" }}</button>
+                  <button type="button" class="ghost-action ghost-action--small ghost-action--danger" @click="deleteDiploma(diplomaOf(item.student.id)!)">Eliminar</button>
+                </template>
+                <button v-else type="button" class="primary-action" :disabled="autoRunning" @click="emitDiplomas([item.student.id])">Emitir diploma</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <details class="panel manual">
+          <summary class="manual__summary"><span><strong>¿Ya tienes el PDF hecho? Súbelo a mano</strong><small>Para diplomas especiales con otro diseño: elige al estudiante y sube su archivo, o arrastra varios a la vez.</small></span><AcademyIcon name="subir" :size="18" /></summary>
           <form class="issue" @submit.prevent="issueDiploma">
             <label class="field">Estudiante
               <select v-model.number="issue.student" aria-label="Estudiante dueño del diploma">
@@ -624,40 +792,9 @@ onMounted(async () => {
               <button type="submit" class="primary-action" :disabled="busy || issue.uploading !== null || !issue.student || !issue.file">{{ busy ? "Emitiendo…" : "Emitir diploma" }}</button>
             </div>
           </form>
-        </section>
 
-        <section class="panel">
-          <div class="panel__head">
-            <div><h3>Diplomas del taller</h3><p>Cada diploma lleva un identificador verificable y un botón para agregarlo a LinkedIn.</p></div>
-          </div>
-          <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="diploma" :size="26" /></b><strong>Aún no hay diplomas</strong>Emite el primero con el formulario de arriba.</div>
-          <div v-else class="rows">
-            <div v-for="item in detail.enrollments" :key="item.id" class="row">
-              <span class="avatar">{{ initials(item.student.fullName) }}</span>
-              <div class="row__main">
-                <strong>{{ item.student.fullName }}</strong>
-                <span v-if="diplomaOf(item.student.id)">
-                  <span class="chip" :class="diplomaOf(item.student.id)!.status === 'emitido' ? 'chip--ok' : 'chip--bad'">{{ diplomaOf(item.student.id)!.status === "emitido" ? "Emitido" : "Revocado" }}</span>
-                  {{ diplomaOf(item.student.id)!.credentialId }} · {{ dateLabel(diplomaOf(item.student.id)!.issuedAt) }}{{ diplomaOf(item.student.id)!.file ? "" : " · sin PDF" }}
-                </span>
-                <span v-else>Sin diploma todavía</span>
-              </div>
-              <div class="row__actions">
-                <template v-if="diplomaOf(item.student.id)">
-                  <a v-if="diplomaOf(item.student.id)!.file" class="ghost-action ghost-action--small" :href="api.fileUrl(diplomaOf(item.student.id)!.file!)" target="_blank" rel="noopener">PDF</a>
-                  <button type="button" class="ghost-action ghost-action--small" @click="copy(verifyUrl(diplomaOf(item.student.id)!), 'Enlace de verificación copiado.')">Verificación</button>
-                  <button type="button" class="ghost-action ghost-action--small" @click="startDiploma(item.student, diplomaOf(item.student.id))">Editar</button>
-                  <button type="button" class="ghost-action ghost-action--small" @click="toggleRevoke(diplomaOf(item.student.id)!)">{{ diplomaOf(item.student.id)!.status === "emitido" ? "Revocar" : "Reactivar" }}</button>
-                  <button type="button" class="ghost-action ghost-action--small ghost-action--danger" @click="deleteDiploma(diplomaOf(item.student.id)!)">Eliminar</button>
-                </template>
-                <button v-else type="button" class="primary-action" @click="startDiploma(item.student)">Emitir diploma</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section v-if="detail.enrollments.length" class="panel">
-          <div class="panel__head"><div><h3>Carga masiva</h3><p>Arrastra varios PDF: se asignan solos si el nombre del archivo contiene el correo o el nombre completo del estudiante.</p></div></div>
+          <div v-if="detail.enrollments.length" class="manual__bulk">
+            <div class="panel__head"><div><h3>Carga masiva</h3><p>Arrastra varios PDF: se asignan solos si el nombre del archivo contiene el correo o el nombre completo del estudiante.</p></div></div>
           <label class="drop" :class="{ 'drop--over': bulkOver }" @dragover.prevent="bulkOver = true" @dragleave.prevent="bulkOver = false" @drop.prevent="addBulk($event.dataTransfer?.files)">
             <input type="file" accept="application/pdf,.pdf" multiple @change="addBulk(($event.target as HTMLInputElement).files)" />
             <span class="drop__icon" aria-hidden="true"><AcademyIcon name="subir" /></span>
@@ -675,7 +812,8 @@ onMounted(async () => {
               <button type="button" class="primary-action" :disabled="busy || !bulk.some((item) => item.student && item.state === 'pendiente')" @click="runBulk">Emitir {{ bulk.filter((item) => item.student && item.state === "pendiente").length }} diplomas</button>
             </div>
           </div>
-        </section>
+          </div>
+        </details>
       </template>
 
       <!-- HERRAMIENTAS -->
@@ -887,6 +1025,34 @@ onMounted(async () => {
 <style scoped src="./academy-admin.css"></style>
 <style scoped>
 .detail { padding-bottom: 80px; }
+.auto { display: grid; gap: 22px; }
+.auto__stage { display: grid; gap: 10px; align-content: start; }
+.auto__stage-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+.auto__stage-foot span { display: inline-flex; align-items: center; gap: 6px; }
+.auto__form { display: grid; gap: 14px; align-content: start; }
+.auto__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.auto__head span { color: var(--muted); font-size: 12px; }
+.auto__list { display: grid; gap: 6px; max-height: 320px; overflow: auto; padding-right: 4px; }
+.auto__item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.auto__item.active { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.auto__item.done { cursor: default; opacity: 0.6; }
+.auto__item input { accent-color: var(--accent); }
+.auto__item .avatar { width: 32px; height: 32px; font-size: 11px; }
+.auto__who { display: grid; flex: 1; min-width: 0; }
+.auto__who strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.auto__who small { color: var(--muted); font-size: 11px; }
+.auto__empty { margin: 0; padding: 18px; color: var(--muted); font-size: 13px; text-align: center; }
+.auto__result { display: flex; flex-wrap: wrap; gap: 6px; }
+.manual { padding: 0; }
+.manual__summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 22px; cursor: pointer; list-style: none; }
+.manual__summary::-webkit-details-marker { display: none; }
+.manual__summary span { display: grid; gap: 4px; }
+.manual__summary strong { font-size: 15px; }
+.manual__summary small { color: var(--muted); font-size: 12px; }
+.manual[open] .manual__summary { border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.manual > .issue, .manual__bulk { padding: 20px 22px; }
+.manual__bulk { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+@media (min-width: 1180px) { .auto { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } .auto__stage { position: sticky; top: 20px; } }
 .blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 14px; }
 .block { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); }
 .block--en-curso { border-color: color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent), 0 18px 40px rgba(0, 0, 30, 0.35); }

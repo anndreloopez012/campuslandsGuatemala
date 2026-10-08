@@ -1,0 +1,105 @@
+/* Réplica web del diploma oficial de AI Academy (el PDF lo genera el CMS con el mismo diseño).
+   Todo se mide en puntos de la hoja Carta horizontal (792 × 612): --y es la línea base desde abajo,
+   --s el tamaño de letra y --w el ancho máximo. Así la réplica coincide con el PDF a cualquier tamaño. */
+
+@font-face {
+  font-family: "Open Sans Diploma";
+  src: url("/fonts/diploma/OpenSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Sans Diploma";
+  src: url("/fonts/diploma/OpenSans-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+
+.dpl {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 792 / 612;
+  overflow: hidden;
+  container-type: inline-size;
+  border-radius: clamp(0.4rem, 1.4cqw, 1rem);
+  color: #231f20;
+  background: #fff url("/img/ai-academy/diploma-fondo.jpg") center / 100% 100% no-repeat;
+  box-shadow: 0 1.6rem 4rem rgb(0 0 0 / 42%), 0 0 0 1px rgb(255 255 255 / 8%);
+  font-family: "Open Sans Diploma", "Open Sans", "Segoe UI", system-ui, sans-serif;
+  isolation: isolate;
+  user-select: none;
+}
+
+.dpl__l {
+  position: absolute;
+  left: 50%;
+  bottom: calc((var(--y) - 0.112 * var(--s)) / 612 * 100%);
+  max-width: calc(var(--w, 680) / 792 * 100%);
+  margin: 0;
+  font-size: calc(var(--s) / 792 * 100cqw);
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.dpl__l--strong {
+  font-weight: 600;
+}
+
+.dpl__name {
+  text-transform: uppercase;
+}
+
+/* El nombre del taller se centra en su eje: si es largo, se reduce y como último recurso pasa a dos líneas. */
+.dpl__title {
+  top: calc((612 - 327) / 612 * 100%);
+  bottom: auto;
+  width: max-content;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-wrap: balance;
+  transform: translate(-50%, -50%);
+}
+
+.dpl__title.is-wrapped {
+  white-space: normal;
+}
+
+.dpl__rule {
+  position: absolute;
+  left: calc(304 / 792 * 100%);
+  bottom: calc(117 / 612 * 100%);
+  width: calc(184 / 792 * 100%);
+  height: max(1px, calc(0.8 / 792 * 100cqw));
+  background: #231f20;
+}
+
+.dpl__verify {
+  color: #736e8c;
+}
+
+.dpl--revoked::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: "";
+  background: rgb(255 255 255 / 55%);
+  backdrop-filter: grayscale(1);
+}
+
+.dpl__void {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  padding: 0.6cqw 2.4cqw;
+  border: 0.45cqw solid #e5485f;
+  border-radius: 1cqw;
+  color: #e5485f;
+  font: 800 5cqw/1 Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.4cqw;
+  transform: translate(-50%, -50%) rotate(-12deg);
+}
