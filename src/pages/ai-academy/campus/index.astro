@@ -7,7 +7,7 @@ import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { SITE_URL } from "~/config/seo.mjs";
 import {
   campusData, campusFileUrl, embedUrl, formatDiplomaDate, formatDuration, linkedinAddUrl, linkedinShareUrl,
-  type CampusVideo,
+  type CampusVideo, type CampusWorkshop,
 } from "~/lib/academy-campus";
 import "~/styles/index.css";
 import "~/styles/ai-academy-tema.css";
@@ -23,7 +23,10 @@ const requested = Astro.url.searchParams.get("taller");
 const current = workshops.find((item) => item.key === requested) ?? workshops[0];
 const welcome = Astro.url.searchParams.has("bienvenida");
 
-const progressOf = (videos: CampusVideo[]) => (videos.length ? Math.round((videos.filter((video) => video.progress.completed).length / videos.length) * 100) : 0);
+// El avance lo define el administrador moviendo la sesión del bloque (sábado 2 de 4 = 50 %).
+const progressOf = (item: CampusWorkshop) => item.block?.progress ?? 0;
+const block = current?.block ?? null;
+const blockStatus = !block ? "" : block.status === "finalizado" ? "Finalizado" : block.status === "por-iniciar" ? "Por iniciar" : `Sábado ${block.currentSession} de ${block.totalSessions}`;
 const verifyUrl = (id: string) => `${SITE_URL}/ai-academy/diploma/${id}/`;
 const favicon = (url: string) => {
   try { return `https://www.google.com/s2/favicons?sz=64&domain=${new URL(url).hostname}`; } catch { return ""; }
@@ -32,16 +35,19 @@ const host = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/.*$/, "
 
 // Primero las clases por sábado; el material complementario (sin sábado) va al final.
 const videos = [...(current?.videos ?? [])].sort((a, b) => (a.session ?? 99) - (b.session ?? 99));
-const sessions = [...videos.reduce((map, video, index) => {
+// Solo los videos de sábados ya alcanzados se reproducen; los demás aparecen con candado.
+const open = videos.filter((video) => !video.locked);
+const sessions = [...videos.reduce((map, video) => {
   const label = video.session ? `Sábado ${video.session}` : "Material complementario";
-  map.set(label, [...(map.get(label) ?? []), { video, index }]);
+  map.set(label, [...(map.get(label) ?? []), { video, index: open.indexOf(video) }]);
   return map;
 }, new Map<string, { video: CampusVideo; index: number }[]>())];
-const resumeIndex = Math.max(0, videos.findIndex((video) => !video.progress.completed));
+const nextLocked = videos.find((video) => video.locked)?.session ?? null;
+const resumeIndex = Math.max(0, open.findIndex((video) => !video.progress.completed));
 const categories = [...new Set((current?.tools ?? []).map((tool) => tool.category).filter(Boolean))];
-const defaultTab = current?.diplomas.length ? "diplomas" : videos.length ? "videos" : "herramientas";
+const defaultTab = current?.diplomas.length ? "diplomas" : open.length ? "videos" : "herramientas";
 
-const playerData = videos.map((video) => ({
+const playerData = open.map((video) => ({
   id: video.id,
   title: video.title,
   description: video.description,
@@ -85,7 +91,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
           {workshops.length > 1 && (
             <nav class="campus__switch" aria-label="Mis talleres">
               {workshops.map((item) => {
-                const pct = progressOf(item.videos);
+                const pct = progressOf(item);
                 return (
                   <a href={`/ai-academy/campus/?taller=${item.key}`} class:list={["campus__pill", item.key === current.key && "is-active"]} style={`--cx-accent: ${item.accent};`} aria-current={item.key === current.key ? "page" : undefined}>
                     <span class="campus__ring" style={`--pct: ${pct}`} aria-hidden="true"><b>{pct}%</b></span>
@@ -101,20 +107,30 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
             <div class="campus__hero-copy">
               <div class="campus__chips">
                 <span class="campus__code">{current.code}</span>
-                {current.enrollment.cohort && <span class="campus__chip">{current.enrollment.cohort}</span>}
-                <span class:list={["campus__chip", current.enrollment.status === "completado" && "is-ok"]}>{current.enrollment.status === "completado" ? "Completado" : current.enrollment.status === "en-curso" ? "En curso" : "Inscrito"}</span>
+                {block && <span class="campus__chip">{block.name}</span>}
+                {block && <span class:list={["campus__chip", block.status === "finalizado" && "is-ok"]}>{blockStatus}</span>}
               </div>
               <h2>{current.title}</h2>
               {current.description && <p>{current.description}</p>}
             </div>
             <div class="campus__progress">
-              <span class="campus__ring campus__ring--big" style={`--pct: ${progressOf(videos)}`}><b>{progressOf(videos)}%</b></span>
+              <span class="campus__ring campus__ring--big" style={`--pct: ${progressOf(current)}`}><b>{progressOf(current)}%</b></span>
               <dl>
                 <div><dt>{current.diplomas.length}</dt><dd>diploma{current.diplomas.length === 1 ? "" : "s"}</dd></div>
                 <div><dt>{current.tools.length}</dt><dd>herramientas</dd></div>
-                <div><dt>{videos.filter((video) => video.progress.completed).length}/{videos.length}</dt><dd>videos vistos</dd></div>
+                <div><dt>{open.filter((video) => video.progress.completed).length}/{open.length}</dt><dd>videos vistos</dd></div>
               </dl>
             </div>
+            {block && (
+              <ol class="campus__route" aria-label="Avance de tu bloque">
+                {Array.from({ length: block.totalSessions }, (_, i) => i + 1).map((number) => (
+                  <li class:list={[number <= block.currentSession && "is-done", number === block.currentSession && "is-now"]}>
+                    <span>{number <= block.currentSession ? <CampusIcon name="check" size={13} /> : number === block.currentSession + 1 ? number : <CampusIcon name="candado" size={12} />}</span>
+                    <small>Sábado {number}</small>
+                  </li>
+                ))}
+              </ol>
+            )}
           </article>
 
           <div class="campus__tabs" role="tablist" aria-label="Secciones del taller" data-tabs data-default={defaultTab}>
@@ -164,7 +180,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                 <span class="campus__lock" aria-hidden="true"><CampusIcon name="candado" size={28} /></span>
                 <h3>Tu diploma se desbloquea al terminar el taller</h3>
                 <p>Cuando el equipo lo emita aparecerá aquí, con su identificador verificable y el botón para agregarlo a LinkedIn.</p>
-                <div class="campus__lock-bar" aria-hidden="true"><i style={`width: ${Math.max(6, progressOf(videos))}%`}></i></div>
+                <div class="campus__lock-bar" aria-hidden="true"><i style={`width: ${Math.max(6, progressOf(current))}%`}></i></div>
               </div>
             )}
           </section>
@@ -205,7 +221,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
 
           <!-- VIDEOS -->
           <section class="campus__panel" role="tabpanel" data-panel="videos" aria-label="Videos" hidden>
-            {videos.length ? (
+            {open.length ? (
               <div class="campus__cinema">
                 <div class="campus__stage">
                   <div class="campus__screen" data-screen>
@@ -226,7 +242,15 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                   {sessions.map(([label, items]) => (
                     <div class="campus__session">
                       <p class="campus__session-label">{label}</p>
-                      {items.map(({ video, index }) => (
+                      {items.map(({ video, index }) => video.locked ? (
+                        <div class="campus__item is-locked" title={`Se habilita cuando tu bloque llegue al Sábado ${video.session}`}>
+                          <span class="campus__item-state"><CampusIcon name="candado" size={14} /></span>
+                          <span class="campus__item-body">
+                            <strong>{video.title}</strong>
+                            <small>Se habilita en el Sábado {video.session}</small>
+                          </span>
+                        </div>
+                      ) : (
                         <button type="button" class:list={["campus__item", video.progress.completed && "is-done"]} data-video-index={index} aria-label={`Reproducir ${video.title}`}>
                           <span class="campus__item-state"><CampusIcon name="play" size={14} fill class="is-play" /><CampusIcon name="check" size={16} class="is-check" /></span>
                           <span class="campus__item-body">
@@ -241,7 +265,11 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                 </aside>
               </div>
             ) : (
-              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true"><CampusIcon name="video" size={28} /></span><h3>Las clases grabadas llegarán pronto</h3><p>Cuando el equipo publique los videos de cada sábado, los verás aquí.</p></div>
+              <div class="cx-glass campus__locked">
+                <span class="campus__lock" aria-hidden="true"><CampusIcon name={nextLocked ? "candado" : "video"} size={28} /></span>
+                <h3>{nextLocked ? `Tus clases se habilitan cada sábado` : "Las clases grabadas llegarán pronto"}</h3>
+                <p>{nextLocked ? `La próxima se abre cuando tu bloque llegue al Sábado ${nextLocked}.` : "Cuando el equipo publique los videos de cada sábado, los verás aquí."}</p>
+              </div>
             )}
           </section>
           <script type="application/json" data-videos set:html={JSON.stringify({ videos: playerData, resume: resumeIndex })} />
@@ -516,6 +544,14 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
   .campus__item-state :global(.is-check), .campus__item.is-done .campus__item-state :global(.is-play) { display: none; }
   .campus__item.is-done .campus__item-state :global(.is-check) { display: block; }
   .campus__item-body { display: grid; gap: 0.25rem; min-width: 0; }
+  .campus__item.is-locked { cursor: default; opacity: 0.55; }
+  .campus__item.is-locked:hover { background: transparent; }
+  .campus__route { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; grid-column: 1 / -1; }
+  .campus__route li { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.75rem 0.35rem 0.35rem; border: 1px solid var(--cx-line); border-radius: 999px; color: rgb(223 245 255 / 55%); font-size: 0.78rem; }
+  .campus__route li span { display: grid; width: 1.6rem; height: 1.6rem; place-items: center; border-radius: 50%; background: rgb(255 255 255 / 8%); font: 800 0.72rem/1 Menlo, Monaco, Consolas, monospace; }
+  .campus__route li.is-done { border-color: color-mix(in srgb, var(--cx-accent) 45%, transparent); color: #fff; }
+  .campus__route li.is-done span { color: #050507; background: var(--cx-accent); }
+  .campus__route li.is-now { background: color-mix(in srgb, var(--cx-accent) 14%, transparent); }
   .campus__item-body strong { overflow: hidden; font-size: 0.9rem; text-overflow: ellipsis; white-space: nowrap; }
   .campus__item-body small { color: rgb(223 245 255 / 55%); font-size: 0.75rem; }
   .campus__item-bar { height: 4px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 8%); }

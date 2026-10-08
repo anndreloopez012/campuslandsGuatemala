@@ -154,6 +154,7 @@ export type AcademyWorkshop = {
   isOpen: boolean;
   startDate: string;
   counts?: { students: number; diplomas: number; tools: number; videos: number };
+  blocks?: AcademyBlock[];
 };
 
 export type AcademyPerson = {
@@ -166,14 +167,20 @@ export type AcademyPerson = {
   isOwner: boolean;
   mustChangePassword: boolean;
   createdAt: string;
-  workshops?: { key: string; code: string; title: string; accent: string; enrollmentId: number; status: string }[];
+  workshops?: { key: string; code: string; title: string; accent: string; enrollmentId: number; status: string; block: AcademyBlockRef }[];
 };
 
-export type AcademyEnrollment = { id: number; cohort: string; status: "inscrito" | "en-curso" | "completado"; enrolledAt: string; student: AcademyPerson };
+// Bloque: cada vez que se imparte el taller. El avance (%) sale de la sesión actual que define el administrador.
+export type AcademyBlock = {
+  id: number; name: string; startDate: string; totalSessions: number; currentSession: number; progress: number;
+  status: "por-iniciar" | "en-curso" | "finalizado"; students?: number;
+};
+export type AcademyBlockRef = { id: number; name: string } | null;
+export type AcademyEnrollment = { id: number; block: AcademyBlockRef; cohort: string; status: "inscrito" | "en-curso" | "completado"; enrolledAt: string; student: AcademyPerson };
 export type AcademyDiploma = { id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: "emitido" | "revocado"; studentId: number | null; file: AcademyFile | null };
-export type AcademyTool = { id: number; title: string; url: string; description: string; category: string; order: number };
-export type AcademyVideo = { id: number; title: string; description: string; session: number | null; order: number; source: "archivo" | "enlace"; externalUrl: string; durationSeconds: number | null; file: AcademyFile | null };
-export type AcademyDetail = { workshop: AcademyWorkshop; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyTool = { id: number; title: string; url: string; description: string; category: string; order: number; block: AcademyBlockRef };
+export type AcademyVideo = { id: number; title: string; description: string; session: number | null; order: number; source: "archivo" | "enlace"; externalUrl: string; durationSeconds: number | null; file: AcademyFile | null; block: AcademyBlockRef };
+export type AcademyDetail = { workshop: AcademyWorkshop; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
@@ -356,11 +363,23 @@ export class BlogAdminApi {
     return this.request<AcademyWorkshop>(`/editor/academy/workshops/${encodeURIComponent(key)}`, { method: "PUT", body: JSON.stringify({ data }) });
   }
 
-  enroll(data: { workshop: string; students: number[]; cohort?: string; status?: string }) {
+  createBlock(data: { workshop: string; name: string; startDate?: string; totalSessions?: number }) {
+    return this.request<AcademyBlock>("/editor/academy/blocks", { method: "POST", body: JSON.stringify({ data }) });
+  }
+
+  updateBlock(id: number, data: Partial<Pick<AcademyBlock, "name" | "startDate" | "totalSessions" | "currentSession">>) {
+    return this.request<AcademyBlock>(`/editor/academy/blocks/${id}`, { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  removeBlock(id: number) {
+    return this.request<void>(`/editor/academy/blocks/${id}`, { method: "DELETE" });
+  }
+
+  enroll(data: { workshop: string; students: number[]; block?: number; status?: string }) {
     return this.request<{ created: number }>("/editor/academy/enrollments", { method: "POST", body: JSON.stringify({ data }) });
   }
 
-  updateEnrollment(id: number, data: { cohort?: string; status?: string }) {
+  updateEnrollment(id: number, data: { block?: number; status?: string }) {
     return this.request<Partial<AcademyEnrollment>>(`/editor/academy/enrollments/${id}`, { method: "PUT", body: JSON.stringify({ data }) });
   }
 

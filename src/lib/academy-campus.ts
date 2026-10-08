@@ -15,10 +15,18 @@ export type CampusTool = { id: number; title: string; url: string; description: 
 export type CampusVideo = {
   id: number; title: string; description: string; session: number | null; source: "archivo" | "enlace"; externalUrl: string;
   durationSeconds: number | null; file: CampusFile | null; progress: { seconds: number; completed: boolean };
+  // true si el bloque del alumno aún no llega a ese sábado: se muestra con candado y sin archivo.
+  locked?: boolean;
+};
+// Bloque del alumno: su edición del taller. El avance lo define el administrador por sesión.
+export type CampusBlock = {
+  id: number; name: string; startDate: string; totalSessions: number; currentSession: number; progress: number;
+  status: "por-iniciar" | "en-curso" | "finalizado";
 };
 export type CampusWorkshop = {
   key: string; slug: string; code: string; title: string; accent: string; description: string; hours: number; isPublic: boolean;
   enrollment: { cohort: string; status: string; enrolledAt: string };
+  block: CampusBlock | null;
   diplomas: CampusDiploma[]; tools: CampusTool[]; videos: CampusVideo[];
 };
 export type CampusData = { student: { id: number; email: string; fullName: string; mustChangePassword: boolean }; workshops: CampusWorkshop[] };

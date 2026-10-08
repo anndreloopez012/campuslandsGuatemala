@@ -49,7 +49,7 @@ watch(role, () => { search.value = ""; filter.value = "todos"; void load(); });
 
 // ---------------------------------------------------------------- crear y editar
 const creating = ref(false);
-const form = reactive({ fullName: "", email: "", phone: "", cohort: "", password: "", workshops: [] as string[] });
+const form = reactive({ fullName: "", email: "", phone: "", password: "", workshops: [] as string[], blocks: {} as Record<string, number> });
 const formError = ref("");
 const showPassword = ref(false);
 const created = ref<{ fullName: string; email: string; password: string; phone: string; reset?: boolean; active?: boolean } | null>(null);
@@ -63,7 +63,7 @@ function generatePassword() {
 }
 
 function openCreate() {
-  Object.assign(form, { fullName: "", email: "", phone: "", cohort: "", password: "", workshops: [] });
+  Object.assign(form, { fullName: "", email: "", phone: "", password: "", workshops: [], blocks: {} });
   showPassword.value = false;
   formError.value = "";
   created.value = null;
@@ -202,7 +202,7 @@ onMounted(load);
           <span v-if="person.blocked" class="chip chip--bad">Bloqueada</span>
           <span v-else-if="person.mustChangePassword" class="chip chip--warn">Debe cambiar contraseña</span>
           <span v-else class="chip chip--ok">Activa</span>
-          <span v-for="item in person.workshops ?? []" :key="item.key" class="chip" :style="{ '--accent': item.accent }">{{ item.code }}</span>
+          <span v-for="item in person.workshops ?? []" :key="item.key" class="chip" :style="{ '--accent': item.accent }" :title="`${item.title}${item.block ? ` · ${item.block.name}` : ''}`">{{ item.code }}<small v-if="item.block" class="chip__block">{{ item.block.name }}</small></span>
           <span v-if="role === 'student' && !(person.workshops ?? []).length" class="chip chip--soft">Sin talleres</span>
         </div>
         <footer>
@@ -259,10 +259,14 @@ onMounted(load);
                     <input v-model="form.workshops" type="checkbox" :value="workshop.key" />
                     <span class="chip">{{ workshop.code }}</span>
                     <span>{{ workshop.title }}</span>
+                    <select v-if="form.workshops.includes(workshop.key)" v-model.number="form.blocks[workshop.key]" class="wpick__block" aria-label="Bloque" @click.stop>
+                      <option :value="undefined">{{ workshop.blocks?.[0]?.name ?? "Bloque 1" }}</option>
+                      <option v-for="block in (workshop.blocks ?? []).slice(1)" :key="block.id" :value="block.id">{{ block.name }}</option>
+                    </select>
                   </label>
                 </div>
               </div>
-              <label class="field" style="margin-top: 12px">Cohorte (opcional)<input v-model="form.cohort" maxlength="80" placeholder="Ej. Cohorte octubre 2026" /></label>
+              <small class="wpick__hint">Cada taller entra al bloque que elijas; si no eliges, al más reciente.</small>
             </template>
             <p v-if="formError" class="error" style="margin-top: 12px">{{ formError }}</p>
             <div class="form-actions">
@@ -324,4 +328,7 @@ onMounted(load);
 .wpick__item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
 .wpick__item.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .wpick__item input { accent-color: var(--green); }
+.wpick__block { margin-left: auto; min-height: 32px; max-width: 200px; padding: 0 8px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9px; color: #fff; background: var(--field); font: inherit; font-size: 12px; }
+.wpick__hint { display: block; margin-top: 8px; color: var(--muted); font-size: 11px; }
+.chip__block { margin-left: 6px; padding-left: 6px; border-left: 1px solid rgba(3, 11, 40, 0.3); font: 700 9px/1 ui-monospace, monospace; text-transform: none; }
 </style>
