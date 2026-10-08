@@ -138,7 +138,7 @@ export function slugify(value: string) {
 
 // ------------------------------------------------------------------ campus de AI Academy
 
-export type AcademyFile = { id: number; name: string; mime: string; size: number; url: string };
+export type AcademyFile = { id: number; name: string; mime: string; size: number; url: string; downloadUrl?: string };
 
 export type AcademyWorkshop = {
   id: number;
@@ -408,6 +408,18 @@ export class BlogAdminApi {
 
   regenerateDiploma(id: number) {
     return this.request<AcademyDiploma>(`/editor/academy/diplomas/${id}/regenerate`, { method: "POST" });
+  }
+
+  // Descarga en conjunto (ZIP): todos los emitidos del taller, los de un bloque o los elegidos.
+  async downloadDiplomasZip(data: { workshop: string; ids?: number[]; block?: number }) {
+    const headers = new Headers({ Accept: "application/zip", "Content-Type": "application/json" });
+    if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diplomas/zip`, { method: "POST", headers, body: JSON.stringify({ data }) });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error?.message || "No se pudieron descargar los diplomas.");
+    }
+    return response.blob();
   }
 
   async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string }) {

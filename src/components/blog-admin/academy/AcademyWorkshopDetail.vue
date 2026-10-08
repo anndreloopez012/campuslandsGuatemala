@@ -236,6 +236,45 @@ function runAuto() {
   void emitDiplomas([...auto.selected]);
 }
 
+// ---------------------------------------------------------------- descargas
+// Individual: enlace firmado de descarga. En conjunto: un ZIP con los PDF (todos, un bloque o los elegidos).
+const listBlock = ref(0);
+const picked = ref<number[]>([]);
+const zipping = ref(false);
+const listed = computed(() => (detail.value?.enrollments ?? []).filter((item) => !listBlock.value || item.block?.id === listBlock.value));
+const downloadable = computed(() => listed.value.map((item) => diplomaOf(item.student.id)).filter((diploma): diploma is AcademyDiploma => Boolean(diploma?.file && diploma.status === "emitido")));
+const allPicked = computed(() => downloadable.value.length > 0 && downloadable.value.every((diploma) => picked.value.includes(diploma.id)));
+watch(listBlock, () => { picked.value = []; });
+
+function togglePickAll() {
+  picked.value = allPicked.value ? [] : downloadable.value.map((diploma) => diploma.id);
+}
+
+function saveBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+async function downloadZip() {
+  const ids = picked.value.length ? [...picked.value] : downloadable.value.map((diploma) => diploma.id);
+  if (!ids.length) return;
+  zipping.value = true;
+  try {
+    const blob = await props.api.downloadDiplomasZip({ workshop: props.workshopKey, ids });
+    const scope = picked.value.length ? "seleccion" : listBlock.value ? blockName(listBlock.value) : "todos";
+    saveBlob(blob, `Diplomas AI Academy - ${workshop.value?.code ?? ""} - ${scope} - ${today()}.zip`.replace(/[\\/:*?"<>|]+/g, ""));
+    say(`${ids.length} ${ids.length === 1 ? "diploma descargado" : "diplomas descargados"} en un ZIP.`);
+  } catch (value) {
+    say(problem(value, "No se pudieron descargar los diplomas."), "error");
+  } finally {
+    zipping.value = false;
+  }
+}
+
 async function regenerate(diploma: AcademyDiploma) {
   const message = isGeneratedDiploma(diploma)
     ? "¿Volver a generar el PDF con los datos actuales (nombre, taller, fecha)?"
@@ -725,9 +764,23 @@ onMounted(async () => {
           <div class="panel__head">
             <div><h3>Diplomas del taller</h3><p>Cada diploma lleva un identificador verificable y un botón para agregarlo a LinkedIn.</p></div>
           </div>
+          <div v-if="detail.enrollments.length" class="dl-bar">
+            <label class="dl-bar__all"><input type="checkbox" :checked="allPicked" :disabled="!downloadable.length" @change="togglePickAll" /> Seleccionar todos</label>
+            <select v-if="blocks.length > 1" v-model.number="listBlock" class="mini-input dl-bar__block" aria-label="Filtrar por bloque">
+              <option :value="0">Todos los bloques</option>
+              <option v-for="block in blocks" :key="block.id" :value="block.id">{{ block.name }}</option>
+            </select>
+            <span class="dl-bar__count">{{ downloadable.length }} {{ downloadable.length === 1 ? "diploma emitido" : "diplomas emitidos" }}</span>
+            <button type="button" class="primary-action primary-action--small dl-bar__zip" :disabled="zipping || !downloadable.length" @click="downloadZip">
+              <AcademyIcon name="bajar" :size="15" />
+              {{ zipping ? "Preparando ZIP…" : picked.length ? `Descargar seleccionados (${picked.length})` : `Descargar todos (${downloadable.length})` }}
+            </button>
+          </div>
           <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="diploma" :size="26" /></b><strong>Aún no hay diplomas</strong>Emítelos con el panel de arriba.</div>
           <div v-else class="rows">
-            <div v-for="item in detail.enrollments" :key="item.id" class="row">
+            <div v-for="item in listed" :key="item.id" class="row row--pickable" :class="{ 'row--picked': diplomaOf(item.student.id) && picked.includes(diplomaOf(item.student.id)!.id) }">
+              <input v-if="diplomaOf(item.student.id)?.file && diplomaOf(item.student.id)!.status === 'emitido'" v-model="picked" class="row__pick" type="checkbox" :value="diplomaOf(item.student.id)!.id" :aria-label="`Elegir el diploma de ${item.student.fullName}`" />
+              <span v-else class="row__pick row__pick--empty" aria-hidden="true"></span>
               <span class="avatar">{{ initials(item.student.fullName) }}</span>
               <div class="row__main">
                 <strong>{{ item.student.fullName }}</strong>
@@ -739,7 +792,10 @@ onMounted(async () => {
               </div>
               <div class="row__actions">
                 <template v-if="diplomaOf(item.student.id)">
-                  <a v-if="diplomaOf(item.student.id)!.file" class="ghost-action ghost-action--small" :href="api.fileUrl(diplomaOf(item.student.id)!.file!)" target="_blank" rel="noopener">PDF</a>
+                  <template v-if="diplomaOf(item.student.id)!.file">
+                    <a class="ghost-action ghost-action--small" :href="api.fileUrl(diplomaOf(item.student.id)!.file!)" target="_blank" rel="noopener">Ver</a>
+                    <a class="ghost-action ghost-action--small" :href="api.fileUrl({ url: diplomaOf(item.student.id)!.file!.downloadUrl || diplomaOf(item.student.id)!.file!.url })" download>Descargar</a>
+                  </template>
                   <button type="button" class="ghost-action ghost-action--small" @click="regenerate(diplomaOf(item.student.id)!)">{{ isGeneratedDiploma(diplomaOf(item.student.id)!) ? "Regenerar" : "Usar diseño oficial" }}</button>
                   <button type="button" class="ghost-action ghost-action--small" @click="copy(verifyUrl(diplomaOf(item.student.id)!), 'Enlace de verificación copiado.')">Verificación</button>
                   <button type="button" class="ghost-action ghost-action--small" @click="startDiploma(item.student, diplomaOf(item.student.id))">Editar</button>
@@ -1025,6 +1081,15 @@ onMounted(async () => {
 <style scoped src="./academy-admin.css"></style>
 <style scoped>
 .detail { padding-bottom: 80px; }
+.dl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; background: rgba(2, 9, 34, 0.45); }
+.dl-bar__all { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+.dl-bar__all input, .row__pick { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }
+.dl-bar__count { color: var(--muted); font-size: 12px; }
+.dl-bar__zip { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.row--pickable { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+.row__pick { cursor: pointer; }
+.row__pick--empty { display: inline-block; }
+.row--picked { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .auto { display: grid; gap: 22px; }
 .auto__stage { display: grid; gap: 10px; align-content: start; }
 .auto__stage-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
