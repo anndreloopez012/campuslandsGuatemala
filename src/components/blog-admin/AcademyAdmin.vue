@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { AI_ACADEMY_DEFAULT_STATE, AI_ACADEMY_WORKSHOPS } from "../../content/aiAcademy";
 import type { BlogAdminApi, EditorWorkshop, EditorWorkshopChanges, EditorWorkshopCurriculum } from "../../lib/blog-admin";
+import AcademyIcon from "./academy/AcademyIcon.vue";
 
 const props = defineProps<{
   api: BlogAdminApi;
@@ -317,7 +318,7 @@ onBeforeUnmount(() => {
             <span class="workshop__code">{{ card.base.code }}</span>
             <span class="workshop__order">{{ String(index + 1).padStart(2, "0") }}/{{ String(cards.length).padStart(2, "0") }}</span>
             <span v-if="isDirty(card)" class="workshop__badge">Sin guardar</span>
-            <span v-else-if="savedLabel(card)" class="workshop__badge workshop__badge--saved">✓ {{ savedLabel(card) }}</span>
+            <span v-else-if="savedLabel(card)" class="workshop__badge workshop__badge--saved"><AcademyIcon name="check" :size="12" /> {{ savedLabel(card) }}</span>
           </header>
 
           <h2>{{ card.base.title }}</h2>
@@ -401,7 +402,7 @@ onBeforeUnmount(() => {
             <button type="button" class="workshop__discard" :disabled="!isDirty(card) || card.saving" @click="discard(card)">Descartar</button>
             <button type="button" class="primary-action primary-action--small" :disabled="!isDirty(card) || card.saving || card.uploading" @click="save(card)">
               <span>{{ card.saving ? "Guardando…" : "Guardar y publicar" }}</span>
-              <b>✓</b>
+              <b><AcademyIcon name="check" :size="15" /></b>
             </button>
           </footer>
         </article>
@@ -412,7 +413,7 @@ onBeforeUnmount(() => {
           <span><i aria-hidden="true"></i>{{ dirtyCards.length === 1 ? "1 taller con cambios sin guardar" : `${dirtyCards.length} talleres con cambios sin guardar` }}</span>
           <button type="button" class="primary-action primary-action--small" :disabled="savingAll" @click="saveAll">
             <span>{{ savingAll ? "Guardando…" : "Guardar todo" }}</span>
-            <b>✓</b>
+            <b><AcademyIcon name="check" :size="15" /></b>
           </button>
         </div>
       </transition>
@@ -459,7 +460,7 @@ onBeforeUnmount(() => {
 .workshop__top { display: flex; align-items: center; gap: 10px; }
 .workshop__code { padding: 6px 10px; border-radius: 999px; color: #030b28; background: var(--accent); font: 800 11px/1 ui-monospace, monospace; letter-spacing: 0.08em; }
 .workshop__order { color: var(--muted); font: 700 10px/1 ui-monospace, monospace; letter-spacing: 0.14em; }
-.workshop__badge { margin-left: auto; padding: 6px 10px; border: 1px solid rgba(255, 197, 107, 0.4); border-radius: 999px; color: #ffd591; background: rgba(255, 197, 107, 0.08); font: 700 10px/1 ui-monospace, monospace; letter-spacing: 0.06em; }
+.workshop__badge { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 6px 10px; border: 1px solid rgba(255, 197, 107, 0.4); border-radius: 999px; color: #ffd591; background: rgba(255, 197, 107, 0.08); font: 700 10px/1 ui-monospace, monospace; letter-spacing: 0.06em; }
 .workshop__badge--saved { border-color: rgba(0, 217, 164, 0.35); color: #9ff5dd; background: rgba(0, 217, 164, 0.08); }
 
 .workshop h2 { margin: 2px 0 0; font-size: clamp(22px, 2.2vw, 27px); line-height: 1.12; letter-spacing: -0.035em; }

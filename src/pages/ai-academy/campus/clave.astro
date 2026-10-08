@@ -83,6 +83,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
   .clave__rules { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: -0.3rem 0 0; padding: 0; list-style: none; }
   .clave__rules li { padding: 0.3rem 0.65rem; border: 1px solid rgb(255 255 255 / 12%); border-radius: 999px; color: rgb(223 245 255 / 60%); font-size: 0.75rem; transition: all 0.2s; }
   .clave__rules li.is-ok { border-color: rgb(0 240 180 / 45%); color: #7fffdc; background: rgb(0 240 180 / 8%); }
-  .clave__rules li.is-ok::before { content: "✓ "; }
+  .clave__rules li { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .clave__rules li.is-ok::before { width: 0.8rem; height: 0.8rem; content: ""; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; }
   .clave__back { color: var(--ai-glow, #b997ff); font-size: 0.85rem; text-decoration: none; text-align: center; }
 </style>

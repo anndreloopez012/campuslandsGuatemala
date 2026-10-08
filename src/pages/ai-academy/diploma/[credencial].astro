@@ -2,6 +2,7 @@
 export const prerender = false;
 
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
 import { SITE_URL } from "~/config/seo.mjs";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { formatDiplomaDate, linkedinShareUrl, verifyDiploma } from "~/lib/academy-campus";
@@ -39,7 +40,7 @@ const dataFooter = {
       {diploma ? (
         <>
           <div class:list={["verify__stamp", revoked && "is-revoked"]} role="status">
-            <span aria-hidden="true">{revoked ? "✕" : "✓"}</span>
+            <span aria-hidden="true">{revoked ? <CampusIcon name="cerrar" size={18} /> : <CampusIcon name="check" size={18} />}</span>
             <div>
               <strong>{revoked ? "Credencial revocada" : "Credencial verificada"}</strong>
               <small>{revoked ? "Este diploma ya no es válido. Si crees que es un error, escríbenos." : "Emitida por Campuslands Guatemala · AI Academy"}</small>
@@ -54,7 +55,7 @@ const dataFooter = {
                 <h1 class="cx-cert__name">{diploma.student.fullName}</h1>
                 <p class="cx-cert__title">por completar <strong>{diploma.title}</strong>, {diploma.hours} horas de formación presencial aplicada en inteligencia artificial.</p>
               </div>
-              <span class="cx-seal">AI<br />ACADEMY<br />✦</span>
+              <span class="cx-seal">AI<br />ACADEMY<br /><CampusIcon name="destello" size={12} fill /></span>
             </div>
             {diploma.skills.length > 0 && <ul class="cx-skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
             <dl class="cx-cert__meta">
@@ -73,7 +74,7 @@ const dataFooter = {
         </>
       ) : (
         <div class="cx-glass verify__missing">
-          <span aria-hidden="true">?</span>
+          <span aria-hidden="true"><CampusIcon name="escudo" size={30} /></span>
           <h1>No encontramos ese diploma</h1>
           <p>Revisa que el identificador esté completo. Tiene la forma <code>CLGT-TALLER-AAMM-XXXXXX</code>.</p>
           <a class="cx-btn" href="/ai-academy/">Ir a AI Academy</a>
@@ -104,7 +105,7 @@ const dataFooter = {
   .verify__actions { display: flex; flex-wrap: wrap; gap: 0.7rem; }
 
   .verify__missing { display: grid; justify-items: center; gap: 0.9rem; padding: clamp(2rem, 6vw, 3.5rem); text-align: center; }
-  .verify__missing > span { display: grid; width: 4rem; height: 4rem; place-items: center; border-radius: 1.3rem; background: rgb(122 60 255 / 20%); font-size: 1.8rem; font-weight: 800; }
+  .verify__missing > span { display: grid; width: 4rem; height: 4rem; place-items: center; border-radius: 1.3rem; background: rgb(122 60 255 / 20%); color: #b997ff; }
   .verify__missing h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2.2rem); letter-spacing: -0.04em; }
   .verify__missing p { max-width: 30rem; margin: 0; color: var(--cx-text); line-height: 1.6; }
   .verify__missing code { color: #fff; }

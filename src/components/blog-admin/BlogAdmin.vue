@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import BlockEditor from "./BlockEditor.vue";
 import GalleryAdmin from "./GalleryAdmin.vue";
 import AcademyCampus from "./academy/AcademyCampus.vue";
+import AcademyIcon from "./academy/AcademyIcon.vue";
 import { renderBlogBlocks } from "../../lib/blog";
 import {
   BLOG_EDITOR_STORAGE_KEY,
@@ -802,7 +803,7 @@ onBeforeUnmount(() => {
           <button :class="{ active: activeTab === 'posts' }" @click="selectTab('posts')"><b>01</b><span>Publicaciones</span><i>{{ articleStats.total }}</i></button>
           <button :class="{ active: activeTab === 'galleries' }" @click="selectTab('galleries')"><b>02</b><span>Galerías</span><i>{{ dashboard.galleries.length }}</i></button>
           <button :class="{ active: activeTab === 'categories' }" @click="selectTab('categories')"><b>03</b><span>Categorías</span><i>{{ dashboard.categories.length }}</i></button>
-          <button :class="{ active: activeTab === 'academy' }" @click="selectTab('academy')"><b>04</b><span>AI Academy</span><i>✦</i></button>
+          <button :class="{ active: activeTab === 'academy' }" @click="selectTab('academy')"><b>04</b><span>AI Academy</span><i><AcademyIcon name="destello" :size="12" fill /></i></button>
           <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>05</b><span>Identidad y SEO</span><i>↗</i></button>
         </nav>
         <div class="workspace-sidebar__bottom">

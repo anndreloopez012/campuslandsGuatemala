@@ -2,6 +2,7 @@
 export const prerender = false;
 
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { SITE_URL } from "~/config/seo.mjs";
 import {
@@ -73,7 +74,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
 
       {!current ? (
         <div class="cx-glass campus__empty">
-          <span aria-hidden="true">🛰</span>
+          <span aria-hidden="true"><CampusIcon name="orbita" size={30} /></span>
           <h2>Aún no estás inscrito en un taller</h2>
           <p>Cuando el equipo te inscriba, aquí aparecerán tus diplomas, herramientas y videos.</p>
           <a class="cx-btn" href={help} target="_blank" rel="noopener noreferrer">Escribir al equipo ↗</a>
@@ -116,9 +117,9 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
           </article>
 
           <div class="campus__tabs" role="tablist" aria-label="Secciones del taller" data-tabs data-default={defaultTab}>
-            <button type="button" role="tab" data-tab="diplomas"><span aria-hidden="true">🎓</span>Diplomas<i>{current.diplomas.length}</i></button>
-            <button type="button" role="tab" data-tab="herramientas"><span aria-hidden="true">⚙</span>Herramientas<i>{current.tools.length}</i></button>
-            <button type="button" role="tab" data-tab="videos"><span aria-hidden="true">▶</span>Videos<i>{videos.length}</i></button>
+            <button type="button" role="tab" data-tab="diplomas"><span aria-hidden="true"><CampusIcon name="diploma" size={18} /></span>Diplomas<i>{current.diplomas.length}</i></button>
+            <button type="button" role="tab" data-tab="herramientas"><span aria-hidden="true"><CampusIcon name="herramienta" size={17} /></span>Herramientas<i>{current.tools.length}</i></button>
+            <button type="button" role="tab" data-tab="videos"><span aria-hidden="true"><CampusIcon name="video" size={18} /></span>Videos<i>{videos.length}</i></button>
           </div>
 
           <!-- DIPLOMAS -->
@@ -135,7 +136,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                         <p class="cx-cert__name">{student.fullName}</p>
                         <p class="cx-cert__title">por completar <strong>{diploma.title}</strong>, {diploma.hours} horas de formación presencial aplicada.</p>
                       </div>
-                      <span class="cx-seal">AI<br />ACADEMY<br />✦</span>
+                      <span class="cx-seal">AI<br />ACADEMY<br /><CampusIcon name="destello" size={12} fill /></span>
                     </div>
                     {diploma.skills.length > 0 && <ul class="cx-skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
                     <dl class="cx-cert__meta">
@@ -158,7 +159,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
               );
             }) : (
               <div class="cx-glass campus__locked">
-                <span class="campus__lock" aria-hidden="true">🔒</span>
+                <span class="campus__lock" aria-hidden="true"><CampusIcon name="candado" size={28} /></span>
                 <h3>Tu diploma se desbloquea al terminar el taller</h3>
                 <p>Cuando el equipo lo emita aparecerá aquí, con su identificador verificable y el botón para agregarlo a LinkedIn.</p>
                 <div class="campus__lock-bar" aria-hidden="true"><i style={`width: ${Math.max(6, progressOf(videos))}%`}></i></div>
@@ -196,7 +197,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                 <p class="campus__none" hidden data-tools-empty>Ninguna herramienta coincide con tu búsqueda.</p>
               </>
             ) : (
-              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true">⚙</span><h3>Pronto verás aquí tus herramientas</h3><p>El equipo publicará los enlaces y recursos del taller.</p></div>
+              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true"><CampusIcon name="herramienta" size={28} /></span><h3>Pronto verás aquí tus herramientas</h3><p>El equipo publicará los enlaces y recursos del taller.</p></div>
             )}
           </section>
 
@@ -216,7 +217,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                       <h3 data-now-title></h3>
                       <p data-now-desc></p>
                     </div>
-                    <button type="button" class="cx-btn cx-btn--ghost cx-btn--small" data-mark>Marcar como visto ✓</button>
+                    <button type="button" class="cx-btn cx-btn--ghost cx-btn--small" data-mark><CampusIcon name="check" size={16} />Marcar como visto</button>
                   </div>
                 </div>
                 <aside class="campus__playlist" aria-label="Lista de videos">
@@ -225,7 +226,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                       <p class="campus__session-label">{label}</p>
                       {items.map(({ video, index }) => (
                         <button type="button" class:list={["campus__item", video.progress.completed && "is-done"]} data-video-index={index} aria-label={`Reproducir ${video.title}`}>
-                          <span class="campus__item-state" data-state>{video.progress.completed ? "✓" : "▶"}</span>
+                          <span class="campus__item-state"><CampusIcon name="play" size={14} fill class="is-play" /><CampusIcon name="check" size={16} class="is-check" /></span>
                           <span class="campus__item-body">
                             <strong>{video.title}</strong>
                             <small>{video.source === "enlace" ? "Enlace" : "Video"}{video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ""}</small>
@@ -238,14 +239,14 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                 </aside>
               </div>
             ) : (
-              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true">▶</span><h3>Las clases grabadas llegarán pronto</h3><p>Cuando el equipo publique los videos de cada sábado, los verás aquí.</p></div>
+              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true"><CampusIcon name="video" size={28} /></span><h3>Las clases grabadas llegarán pronto</h3><p>Cuando el equipo publique los videos de cada sábado, los verás aquí.</p></div>
             )}
           </section>
           <script type="application/json" data-videos set:html={JSON.stringify({ videos: playerData, resume: resumeIndex })} />
         </>
       )}
     </div>
-    <p class="campus__toast" role="status" aria-live="polite" data-toast></p>
+    <p class="campus__toast" role="status" aria-live="polite"><CampusIcon name="check" size={16} /><span data-toast></span></p>
     <div class="campus__confetti" aria-hidden="true" data-confetti></div>
   </section>
 </LayoutNavbar>
@@ -260,8 +261,8 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
     const say = (message: string) => {
       if (!toast) return;
       toast.textContent = message;
-      toast.classList.add("is-visible");
-      window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+      toast.parentElement?.classList.add("is-visible");
+      window.setTimeout(() => toast.parentElement?.classList.remove("is-visible"), 2600);
     };
 
     // Pestañas (recuerdan la última en la URL)
@@ -333,8 +334,6 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
       const item = root.querySelector<HTMLElement>(`[data-video-index="${index}"]`);
       const video = list[index];
       if (!item || !video) return;
-      const state = item.querySelector<HTMLElement>("[data-state]");
-      if (state) state.textContent = video.completed ? "✓" : "▶";
       item.classList.toggle("is-done", video.completed);
     };
 
@@ -373,7 +372,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
         save(true);
         paintItem(current);
         if (mark) mark.hidden = true;
-        say("¡Video completado! ✓");
+        say("¡Video completado!");
       } else if (Math.abs(player.currentTime - lastSaved) >= 15) {
         lastSaved = player.currentTime;
         save();
@@ -385,7 +384,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
       save(true);
       paintItem(current);
       mark.hidden = true;
-      say("Marcado como visto ✓");
+      say("Marcado como visto.");
     });
     root.querySelectorAll<HTMLButtonElement>("[data-video-index]").forEach((button) => button.addEventListener("click", () => play(Number(button.dataset.videoIndex), true)));
     if (list.length) play(Math.min(parsed.resume ?? 0, list.length - 1));
@@ -454,6 +453,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
   .campus__progress dd { margin: 0.35rem 0 0; color: rgb(223 245 255 / 58%); font-size: 0.8rem; }
 
   .campus__tabs { position: sticky; top: 5.2rem; z-index: 6; display: flex; gap: 0.4rem; margin: 1.4rem 0; padding: 0.4rem; overflow-x: auto; border: 1px solid var(--cx-line); border-radius: 1.2rem; background: rgb(7 8 28 / 86%); backdrop-filter: blur(14px); }
+  .campus__tabs button > span { display: inline-flex; }
   .campus__tabs button { display: inline-flex; flex: 1 0 auto; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.9rem; padding: 0 1.1rem; border: 0; border-radius: 0.85rem; color: rgb(223 245 255 / 70%); background: transparent; font: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer; transition: background 0.2s, color 0.2s; }
   .campus__tabs button[aria-selected="true"] { color: #050507; background: var(--cx-accent); }
   .campus__tabs i { padding: 0.15rem 0.45rem; border-radius: 999px; background: rgb(255 255 255 / 12%); font: 700 0.7rem/1.2 Menlo, Monaco, Consolas, monospace; font-style: normal; }
@@ -471,7 +471,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
   .campus__locked, .campus__empty { display: grid; justify-items: center; gap: 0.8rem; padding: clamp(2rem, 6vw, 3.5rem); text-align: center; }
   .campus__locked h3, .campus__empty h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.7rem); letter-spacing: -0.03em; }
   .campus__locked p, .campus__empty p { max-width: 30rem; margin: 0; color: var(--cx-text); line-height: 1.6; }
-  .campus__lock, .campus__empty > span { display: grid; width: 4rem; height: 4rem; place-items: center; border-radius: 1.3rem; background: color-mix(in srgb, var(--cx-accent) 20%, transparent); font-size: 1.6rem; }
+  .campus__lock, .campus__empty > span { display: grid; color: color-mix(in srgb, var(--cx-accent) 70%, white); width: 4rem; height: 4rem; place-items: center; border-radius: 1.3rem; background: color-mix(in srgb, var(--cx-accent) 20%, transparent); font-size: 1.6rem; }
   .campus__lock-bar { width: min(100%, 18rem); height: 8px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 8%); }
   .campus__lock-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #57bbff, var(--cx-accent)); }
 
@@ -511,6 +511,8 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
   .campus__item.is-current { border-color: color-mix(in srgb, var(--cx-accent) 50%, transparent); background: color-mix(in srgb, var(--cx-accent) 12%, transparent); }
   .campus__item-state { display: grid; width: 2.1rem; height: 2.1rem; place-items: center; border-radius: 0.7rem; background: rgb(255 255 255 / 8%); font-size: 0.8rem; }
   .campus__item.is-done .campus__item-state { color: #050507; background: #7fffdc; }
+  .campus__item-state :global(.is-check), .campus__item.is-done .campus__item-state :global(.is-play) { display: none; }
+  .campus__item.is-done .campus__item-state :global(.is-check) { display: block; }
   .campus__item-body { display: grid; gap: 0.25rem; min-width: 0; }
   .campus__item-body strong { overflow: hidden; font-size: 0.9rem; text-overflow: ellipsis; white-space: nowrap; }
   .campus__item-body small { color: rgb(223 245 255 / 55%); font-size: 0.75rem; }
@@ -518,7 +520,8 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
   .campus__item-bar i { display: block; height: 100%; background: var(--cx-accent); }
 
   .campus__toast { position: fixed; bottom: 1.5rem; left: 50%; z-index: 60; padding: 0.8rem 1.2rem; border: 1px solid rgb(0 240 180 / 45%); border-radius: 999px; color: #7fffdc; background: rgb(4 18 24 / 94%); font-weight: 700; opacity: 0; pointer-events: none; transform: translate(-50%, 1rem); transition: opacity 0.25s, transform 0.25s; }
-  .campus__toast:empty { display: none; }
+  .campus__toast:has([data-toast]:empty) { display: none; }
+  .campus__toast { display: inline-flex; align-items: center; gap: 0.55rem; }
   .campus__toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
   .campus__confetti { position: fixed; inset: 0; z-index: 70; overflow: hidden; pointer-events: none; }

@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import type { AcademyDetail, AcademyDiploma, AcademyEnrollment, AcademyPerson, AcademyTool, AcademyVideo, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyAdmin from "../AcademyAdmin.vue";
+import AcademyIcon from "./AcademyIcon.vue";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
 const emit = defineEmits<{
@@ -386,7 +387,7 @@ onMounted(load);
           <div><h3>Estudiantes inscritos</h3><p>Solo ellos verán los diplomas, herramientas y videos de este taller.</p></div>
           <button type="button" class="primary-action" @click="openPicker">+ Inscribir estudiantes</button>
         </div>
-        <div v-if="!detail.enrollments.length" class="empty"><b>✦</b><strong>Aún no hay estudiantes</strong>Inscribe a quienes ya tienen cuenta o créalas en Usuarios.</div>
+        <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="estudiantes" :size="26" /></b><strong>Aún no hay estudiantes</strong>Inscribe a quienes ya tienen cuenta o créalas en Usuarios.</div>
         <div v-else class="rows">
           <div v-for="item in detail.enrollments" :key="item.id" class="row">
             <span class="avatar">{{ initials(item.student.fullName) }}</span>
@@ -411,7 +412,7 @@ onMounted(load);
           <div class="panel__head">
             <div><h3>Diplomas del taller</h3><p>Cada diploma lleva un identificador verificable y un botón para agregarlo a LinkedIn.</p></div>
           </div>
-          <div v-if="!detail.enrollments.length" class="empty"><b>🎓</b><strong>Primero inscribe estudiantes</strong>Los diplomas se emiten a estudiantes del taller.</div>
+          <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="diploma" :size="26" /></b><strong>Primero inscribe estudiantes</strong>Los diplomas se emiten a estudiantes del taller.</div>
           <div v-else class="rows">
             <div v-for="item in detail.enrollments" :key="item.id" class="row">
               <span class="avatar">{{ initials(item.student.fullName) }}</span>
@@ -441,7 +442,7 @@ onMounted(load);
           <div class="panel__head"><div><h3>Carga masiva</h3><p>Arrastra varios PDF: se asignan solos si el nombre del archivo contiene el correo o el nombre completo del estudiante.</p></div></div>
           <label class="drop" :class="{ 'drop--over': bulkOver }" @dragover.prevent="bulkOver = true" @dragleave.prevent="bulkOver = false" @drop.prevent="addBulk($event.dataTransfer?.files)">
             <input type="file" accept="application/pdf,.pdf" multiple @change="addBulk(($event.target as HTMLInputElement).files)" />
-            <span class="drop__icon" aria-hidden="true">⇪</span>
+            <span class="drop__icon" aria-hidden="true"><AcademyIcon name="subir" /></span>
             <strong>Arrastra los diplomas aquí o <u>elígelos</u></strong>
             <small>Ej. ana.perez@correo.com.pdf o Diploma - Ana Pérez.pdf</small>
           </label>
@@ -465,7 +466,7 @@ onMounted(load);
           <div><h3>Herramientas</h3><p>Enlaces que el estudiante abre desde su campus: apps, plantillas, documentos, prompts.</p></div>
           <button type="button" class="primary-action" @click="editTool()">+ Agregar enlace</button>
         </div>
-        <div v-if="!detail.tools.length" class="empty"><b>⚙</b><strong>Sin herramientas todavía</strong>Agrega el primer enlace para este taller.</div>
+        <div v-if="!detail.tools.length" class="empty"><b><AcademyIcon name="herramienta" :size="24" /></b><strong>Sin herramientas todavía</strong>Agrega el primer enlace para este taller.</div>
         <div v-else class="tools">
           <article v-for="(tool, index) in detail.tools" :key="tool.id" class="tool">
             <img v-if="favicon(tool.url)" :src="favicon(tool.url)" alt="" width="40" height="40" loading="lazy" />
@@ -491,7 +492,7 @@ onMounted(load);
           <div><h3>Videos</h3><p>Sube el archivo (MP4 recomendado) o pega un enlace de YouTube o Vimeo. Se agrupan por sábado.</p></div>
           <button type="button" class="primary-action" @click="editVideo()">+ Agregar video</button>
         </div>
-        <div v-if="!detail.videos.length" class="empty"><b>▶</b><strong>Sin videos todavía</strong>Sube la primera clase del taller.</div>
+        <div v-if="!detail.videos.length" class="empty"><b><AcademyIcon name="video" :size="26" /></b><strong>Sin videos todavía</strong>Sube la primera clase del taller.</div>
         <div v-for="[group, videos] in sessions" :key="group" class="vgroup">
           <h4>{{ group }}</h4>
           <div class="rows">
@@ -632,7 +633,7 @@ onMounted(load);
             </div>
             <label v-else class="drop" :class="{ 'drop--over': videoOver }" @dragover.prevent="videoOver = true" @dragleave.prevent="videoOver = false" @drop.prevent="attachVideo($event.dataTransfer?.files?.[0])">
               <input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" @change="attachVideo(($event.target as HTMLInputElement).files?.[0])" />
-              <span class="drop__icon" aria-hidden="true">▶</span>
+              <span class="drop__icon" aria-hidden="true"><AcademyIcon name="video" /></span>
               <strong>Arrastra el video o <u>elígelo</u></strong>
               <small>MP4, WebM o MOV · hasta 2 GB</small>
             </label>

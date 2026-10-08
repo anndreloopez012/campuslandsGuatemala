@@ -3,6 +3,7 @@ export const prerender = false;
 
 import { Image } from "astro:assets";
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
 import orbitAI from "~/assets/img/ai-academy/orbit-ai-academy.png";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { campusData, loginStudent, setCampusSession } from "~/lib/academy-campus";
@@ -50,9 +51,9 @@ const dataFooter = {
         <h1 id="acceso-titulo">Tu órbita de <span>aprendizaje.</span></h1>
         <p class="acceso__lead">Tus diplomas listos para LinkedIn, las herramientas de cada taller y las clases grabadas, en un solo lugar.</p>
         <ul class="acceso__features">
-          <li><b>🎓</b><span><strong>Diplomas verificables</strong>Agrégalos a tu perfil de LinkedIn con un clic.</span></li>
-          <li><b>⚙</b><span><strong>Herramientas</strong>Los enlaces y recursos de cada taller.</span></li>
-          <li><b>▶</b><span><strong>Videos</strong>Repasa cada sesión y continúa donde quedaste.</span></li>
+          <li><b><CampusIcon name="diploma" /></b><span><strong>Diplomas verificables</strong>Agrégalos a tu perfil de LinkedIn con un clic.</span></li>
+          <li><b><CampusIcon name="herramienta" size={19} /></b><span><strong>Herramientas</strong>Los enlaces y recursos de cada taller.</span></li>
+          <li><b><CampusIcon name="video" /></b><span><strong>Videos</strong>Repasa cada sesión y continúa donde quedaste.</span></li>
         </ul>
         <div class="cx-orbit acceso__orbit" aria-hidden="true">
           <span class="cx-orbit__ring"></span>
@@ -180,7 +181,7 @@ const dataFooter = {
     border: 1px solid rgb(185 151 255 / 26%);
     border-radius: 0.9rem;
     background: rgb(122 60 255 / 12%);
-    font-size: 1.05rem;
+    color: #b997ff;
   }
 
   .acceso__features strong {

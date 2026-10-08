@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import type { AcademyPerson, AcademyWorkshop, BlogAdminApi } from "../../../lib/blog-admin";
+import AcademyIcon from "./AcademyIcon.vue";
 
 const props = defineProps<{ api: BlogAdminApi; workshops: AcademyWorkshop[] }>();
 const emit = defineEmits<{
@@ -165,7 +166,7 @@ onMounted(load);
     <div v-if="loading" class="state"><i aria-hidden="true"></i><p>Cargando cuentas…</p></div>
     <div v-else-if="error" class="state"><p class="error">{{ error }}</p></div>
     <div v-else-if="!visible.length" class="empty" style="margin-top: 18px">
-      <b>{{ role === "student" ? "🎓" : "🛰" }}</b>
+      <b><AcademyIcon :name="role === 'student' ? 'diploma' : 'escudo'" :size="26" /></b>
       <strong>{{ users.length ? "Nada coincide con la búsqueda" : role === "student" ? "Aún no hay estudiantes" : "Aún no hay administradores" }}</strong>
       {{ users.length ? "Prueba con otro nombre o filtro." : "Crea la primera cuenta con el botón de arriba." }}
     </div>
