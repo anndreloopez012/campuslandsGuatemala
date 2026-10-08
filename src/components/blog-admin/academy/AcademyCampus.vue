@@ -2,13 +2,10 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import type { AcademyOverview, AcademyWorkshop, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyWorkshopDetail from "./AcademyWorkshopDetail.vue";
-import AcademyUsers from "./AcademyUsers.vue";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string }>();
-const emit = defineEmits<{ (e: "notice", message: string, type?: "success" | "error"): void }>();
+const emit = defineEmits<{ (e: "notice", message: string, type?: "success" | "error"): void; (e: "users"): void }>();
 
-type View = "talleres" | "usuarios";
-const view = ref<View>("talleres");
 const openKey = ref<string | null>(null);
 const loading = ref(true);
 const error = ref("");
@@ -79,6 +76,7 @@ onMounted(load);
       :cms-url="cmsUrl"
       :workshop-key="openKey"
       @back="openKey = null; load(true)"
+      @users="emit('users')"
       @notice="(message, type) => emit('notice', message, type)"
     />
 
@@ -90,10 +88,7 @@ onMounted(load);
           <span>Crea talleres, inscribe estudiantes y publica sus diplomas, herramientas y videos. Cada estudiante solo verá el contenido de los talleres en los que está inscrito.</span>
         </div>
         <div class="campus__nav">
-          <nav class="seg" aria-label="Secciones del campus">
-            <button type="button" :class="{ active: view === 'talleres' }" @click="view = 'talleres'">Talleres <i>{{ overview.workshops.length }}</i></button>
-            <button type="button" :class="{ active: view === 'usuarios' }" @click="view = 'usuarios'">Usuarios <i>{{ overview.students + overview.admins }}</i></button>
-          </nav>
+          <button type="button" class="ghost-action" @click="emit('users')">Usuarios y accesos</button>
           <a class="ghost-action" href="/ai-academy/acceso" target="_blank" rel="noopener">Ver acceso de estudiantes ↗</a>
         </div>
       </header>
@@ -101,7 +96,7 @@ onMounted(load);
       <div v-if="loading" class="state"><i aria-hidden="true"></i><p>Cargando el campus…</p></div>
       <div v-else-if="error" class="state"><p class="error">{{ error }}</p><button type="button" class="ghost-action" @click="load()">Reintentar</button></div>
 
-      <template v-else-if="view === 'talleres'">
+      <template v-else>
         <dl class="stats">
           <div><dt>{{ overview.workshops.length }}</dt><dd>talleres</dd></div>
           <div class="is-green"><dt>{{ overview.students }}</dt><dd>estudiantes</dd></div>
@@ -142,7 +137,6 @@ onMounted(load);
         </div>
       </template>
 
-      <AcademyUsers v-else :api="api" :workshops="overview.workshops" @notice="(message, type) => emit('notice', message, type)" @changed="load(true)" />
     </template>
 
     <transition name="modal">

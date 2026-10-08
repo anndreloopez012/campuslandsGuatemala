@@ -9,7 +9,7 @@ export const CMS_URL = String(runtimeCmsUrl || import.meta.env.PUBLIC_CMS_URL ||
 export const CAMPUS_COOKIE = "cl_ai_campus";
 const MAX_AGE = 60 * 60 * 24 * 7;
 
-export type CampusFile = { id: number; name: string; mime: string; size: number; url: string };
+export type CampusFile = { id: number; name: string; mime: string; size: number };
 export type CampusDiploma = { id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null };
 export type CampusTool = { id: number; title: string; url: string; description: string; category: string };
 export type CampusVideo = {
@@ -23,7 +23,8 @@ export type CampusWorkshop = {
 };
 export type CampusData = { student: { id: number; email: string; fullName: string; mustChangePassword: boolean }; workshops: CampusWorkshop[] };
 
-export const cmsFileUrl = (file: Pick<CampusFile, "url">) => (/^https?:\/\//.test(file.url) ? file.url : `${CMS_URL}${file.url}`);
+// Los archivos del campus solo se abren con la sesión del estudiante dueño (ver campus/archivo/[id].ts).
+export const campusFileUrl = (file: Pick<CampusFile, "id">, download = false) => `/ai-academy/campus/archivo/${file.id}/${download ? "?dl=1" : ""}`;
 
 export function setCampusSession(cookies: AstroCookies, token: string) {
   cookies.set(CAMPUS_COOKIE, token, { httpOnly: true, secure: import.meta.env.PROD, sameSite: "lax", path: "/", maxAge: MAX_AGE });

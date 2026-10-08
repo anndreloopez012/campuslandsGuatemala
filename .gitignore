@@ -26,3 +26,6 @@ public/fonts/* 2.woff2
 
 # jetbrains setting folder
 .idea/
+
+# cuentas de demostración locales
+CREDENCIALES-DEMO-LOCAL.md

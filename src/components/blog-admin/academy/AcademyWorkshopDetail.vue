@@ -7,6 +7,7 @@ import AcademyIcon from "./AcademyIcon.vue";
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
 const emit = defineEmits<{
   (e: "back"): void;
+  (e: "users"): void;
   (e: "notice", message: string, type?: "success" | "error"): void;
 }>();
 
@@ -39,34 +40,32 @@ const dateLabel = (value?: string) => (value ? new Intl.DateTimeFormat("es-GT", 
 const today = () => new Date().toISOString().slice(0, 10);
 
 // ---------------------------------------------------------------- estudiantes
-const picking = ref(false);
 const allStudents = ref<AcademyPerson[]>([]);
-const search = ref("");
-const selected = ref<number[]>([]);
+const studentsLoaded = ref(false);
+const enrollPick = ref(0);
 const cohort = ref("");
 const enrolledIds = computed(() => new Set(detail.value?.enrollments.map((item) => item.student.id)));
-const candidates = computed(() => allStudents.value
-  .filter((person) => !enrolledIds.value.has(person.id))
-  .filter((person) => `${person.fullName} ${person.email}`.toLowerCase().includes(search.value.trim().toLowerCase())));
+const byName = (a: AcademyPerson, b: AcademyPerson) => a.fullName.localeCompare(b.fullName, "es");
+const candidates = computed(() => allStudents.value.filter((person) => !enrolledIds.value.has(person.id) && !person.blocked).sort(byName));
 
-async function openPicker() {
-  picking.value = true;
-  selected.value = [];
-  search.value = "";
+async function loadStudents() {
   try {
     allStudents.value = (await props.api.academyUsers("student")).users;
   } catch (value) {
     say(problem(value, "No se pudo cargar la lista de estudiantes."), "error");
+  } finally {
+    studentsLoaded.value = true;
   }
 }
 
 async function enrollSelected() {
-  if (!selected.value.length) return;
+  if (!enrollPick.value) return;
   busy.value = true;
   try {
-    const result = await props.api.enroll({ workshop: props.workshopKey, students: selected.value, cohort: cohort.value });
-    picking.value = false;
-    say(result.created === 1 ? "Estudiante inscrito." : `${result.created} estudiantes inscritos.`);
+    await props.api.enroll({ workshop: props.workshopKey, students: [enrollPick.value], cohort: cohort.value });
+    const person = allStudents.value.find((item) => item.id === enrollPick.value);
+    enrollPick.value = 0;
+    say(`${person?.fullName ?? "Estudiante"} quedó inscrito: ya ve este taller en su campus.`);
     await load(true);
   } catch (value) {
     say(problem(value, "No se pudo inscribir."), "error");
@@ -99,6 +98,55 @@ async function unenroll(item: AcademyEnrollment) {
 type DiplomaDraft = { id?: number; student: number; title: string; issuedAt: string; hours: number; skills: string; status: "emitido" | "revocado"; file: { id: number; name: string; size: number } | null; uploading: number | null };
 const editing = ref<DiplomaDraft | null>(null);
 const diplomaOf = (studentId: number) => detail.value?.diplomas.find((item) => item.studentId === studentId);
+
+// Emitir desde el taller: se elige al estudiante en un desplegable y se sube su PDF.
+// Si aún no estaba inscrito, se inscribe en el mismo paso para que el diploma quede amarrado a su cuenta.
+const issue = reactive({ student: 0, title: "", issuedAt: today(), hours: 16, skills: "", file: null as { id: number; name: string; size: number } | null, uploading: null as number | null });
+const issueError = ref("");
+const issueEnrolled = computed(() => (detail.value?.enrollments ?? []).map((item) => item.student).filter((person) => !diplomaOf(person.id)).sort(byName));
+const issueOthers = computed(() => candidates.value);
+const issueStudent = computed(() => allStudents.value.find((person) => person.id === issue.student) ?? detail.value?.enrollments.find((item) => item.student.id === issue.student)?.student);
+
+function resetIssue() {
+  Object.assign(issue, { student: 0, title: workshop.value?.title || "", issuedAt: today(), hours: workshop.value?.hours || 16, skills: "", file: null, uploading: null });
+  issueError.value = "";
+}
+
+async function attachIssuePdf(file: File | undefined | null) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith(".pdf")) { issueError.value = "El diploma debe ser un PDF."; return; }
+  issueError.value = "";
+  issue.uploading = 0;
+  try {
+    const uploaded = await props.api.uploadAcademyFile(file, "diploma", (value) => { issue.uploading = value; });
+    issue.file = { id: uploaded.id, name: uploaded.name, size: uploaded.size };
+  } catch (value) {
+    issueError.value = problem(value, "No se pudo subir el PDF.");
+  } finally {
+    issue.uploading = null;
+  }
+}
+
+async function issueDiploma() {
+  issueError.value = "";
+  if (!issue.student) { issueError.value = "Elige al estudiante dueño del diploma."; return; }
+  if (!issue.file) { issueError.value = "Sube el PDF del diploma."; return; }
+  busy.value = true;
+  try {
+    if (!enrolledIds.value.has(issue.student)) await props.api.enroll({ workshop: props.workshopKey, students: [issue.student], cohort: "" });
+    await props.api.saveDiploma({
+      workshop: props.workshopKey, student: issue.student, title: issue.title || workshop.value?.title, issuedAt: issue.issuedAt,
+      hours: issue.hours, skills: issue.skills, status: "emitido", file: issue.file.id,
+    });
+    say(`Diploma emitido a ${issueStudent.value?.fullName ?? "el estudiante"}: solo esa cuenta puede verlo y descargarlo.`);
+    resetIssue();
+    await load(true);
+  } catch (value) {
+    issueError.value = problem(value, "No se pudo emitir el diploma.");
+  } finally {
+    busy.value = false;
+  }
+}
 const issuedCount = computed(() => detail.value?.diplomas.filter((item) => item.status === "emitido").length ?? 0);
 
 function startDiploma(student: AcademyPerson, diploma?: AcademyDiploma) {
@@ -345,9 +393,13 @@ async function saveSettings() {
 function selectTab(next: Tab) {
   tab.value = next;
   if (next === "ajustes") fillSettings();
+  if (next === "diplomas" && !issue.title) resetIssue();
 }
 
-onMounted(load);
+onMounted(async () => {
+  await Promise.all([load(), loadStudents()]);
+  resetIssue();
+});
 </script>
 
 <template>
@@ -385,9 +437,19 @@ onMounted(load);
       <section v-if="tab === 'estudiantes'" class="panel">
         <div class="panel__head">
           <div><h3>Estudiantes inscritos</h3><p>Solo ellos verán los diplomas, herramientas y videos de este taller.</p></div>
-          <button type="button" class="primary-action" @click="openPicker">+ Inscribir estudiantes</button>
         </div>
-        <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="estudiantes" :size="26" /></b><strong>Aún no hay estudiantes</strong>Inscribe a quienes ya tienen cuenta o créalas en Usuarios.</div>
+        <form class="enroll" @submit.prevent="enrollSelected">
+          <label class="field enroll__who">Estudiante
+            <select v-model.number="enrollPick" :disabled="!candidates.length" aria-label="Estudiante a inscribir">
+              <option :value="0">{{ !studentsLoaded ? "Cargando estudiantes…" : candidates.length ? "Elige un estudiante" : "Todos los estudiantes ya están inscritos" }}</option>
+              <option v-for="person in candidates" :key="person.id" :value="person.id">{{ person.fullName }} · {{ person.email }}</option>
+            </select>
+          </label>
+          <label class="field enroll__cohort">Cohorte (opcional)<input v-model="cohort" placeholder="Ej. Octubre 2026" /></label>
+          <button type="submit" class="primary-action" :disabled="busy || !enrollPick">Inscribir</button>
+          <button type="button" class="link-action enroll__new" @click="emit('users')">+ Crear estudiante en Usuarios</button>
+        </form>
+        <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="estudiantes" :size="26" /></b><strong>Aún no hay estudiantes</strong>Elige uno en el desplegable de arriba para inscribirlo.</div>
         <div v-else class="rows">
           <div v-for="item in detail.enrollments" :key="item.id" class="row">
             <span class="avatar">{{ initials(item.student.fullName) }}</span>
@@ -410,9 +472,53 @@ onMounted(load);
       <template v-else-if="tab === 'diplomas'">
         <section class="panel">
           <div class="panel__head">
+            <div><h3>Emitir diploma</h3><p>Elige al estudiante dueño del diploma y sube su PDF. Solo esa cuenta podrá verlo, descargarlo y agregarlo a LinkedIn.</p></div>
+          </div>
+          <form class="issue" @submit.prevent="issueDiploma">
+            <label class="field">Estudiante
+              <select v-model.number="issue.student" aria-label="Estudiante dueño del diploma">
+                <option :value="0">{{ !studentsLoaded ? "Cargando estudiantes…" : issueEnrolled.length || issueOthers.length ? "Elige al estudiante" : "No hay estudiantes: créalos en Usuarios" }}</option>
+                <optgroup v-if="issueEnrolled.length" label="Inscritos en este taller">
+                  <option v-for="person in issueEnrolled" :key="person.id" :value="person.id">{{ person.fullName }} · {{ person.email }}</option>
+                </optgroup>
+                <optgroup v-if="issueOthers.length" label="Sin inscribir (se inscribe al emitir)">
+                  <option v-for="person in issueOthers" :key="person.id" :value="person.id">{{ person.fullName }} · {{ person.email }}</option>
+                </optgroup>
+              </select>
+            </label>
+            <div class="field">Diploma en PDF
+              <div v-if="issue.uploading !== null" class="file-tile"><span class="file-tile__icon">PDF</span><div><strong>Subiendo… {{ issue.uploading }}%</strong><span class="progress"><i :style="{ width: `${issue.uploading}%` }"></i></span></div></div>
+              <div v-else-if="issue.file" class="file-tile">
+                <span class="file-tile__icon">PDF</span>
+                <div><strong>{{ issue.file.name }}</strong><span>{{ sizeLabel(issue.file.size) }}</span></div>
+                <button type="button" class="ghost-action ghost-action--small ghost-action--danger" @click="issue.file = null">Quitar</button>
+              </div>
+              <label v-else class="drop drop--compact" @dragover.prevent @drop.prevent="attachIssuePdf($event.dataTransfer?.files?.[0])">
+                <input type="file" accept="application/pdf,.pdf" @change="attachIssuePdf(($event.target as HTMLInputElement).files?.[0])" />
+                <span class="drop__icon" aria-hidden="true"><AcademyIcon name="subir" /></span>
+                <strong>Arrastra el PDF o <u>elígelo</u></strong>
+                <small>Queda privado: solo el dueño puede abrirlo.</small>
+              </label>
+            </div>
+            <label class="field">Título de la credencial<input v-model="issue.title" maxlength="160" /></label>
+            <div class="grid-2">
+              <label class="field">Fecha de emisión<input v-model="issue.issuedAt" type="date" required /></label>
+              <label class="field">Horas<input v-model.number="issue.hours" type="number" min="1" max="400" /></label>
+            </div>
+            <label class="field issue__wide">Competencias<input v-model="issue.skills" placeholder="Prompts, Agentes, Automatización" /><small>Separadas por comas. Aparecen en el diploma digital.</small></label>
+            <p v-if="issueError" class="error issue__wide">{{ issueError }}</p>
+            <div class="form-actions issue__wide">
+              <button type="button" class="ghost-action" @click="resetIssue">Limpiar</button>
+              <button type="submit" class="primary-action" :disabled="busy || issue.uploading !== null || !issue.student || !issue.file">{{ busy ? "Emitiendo…" : "Emitir diploma" }}</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
             <div><h3>Diplomas del taller</h3><p>Cada diploma lleva un identificador verificable y un botón para agregarlo a LinkedIn.</p></div>
           </div>
-          <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="diploma" :size="26" /></b><strong>Primero inscribe estudiantes</strong>Los diplomas se emiten a estudiantes del taller.</div>
+          <div v-if="!detail.enrollments.length" class="empty"><b><AcademyIcon name="diploma" :size="26" /></b><strong>Aún no hay diplomas</strong>Emite el primero con el formulario de arriba.</div>
           <div v-else class="rows">
             <div v-for="item in detail.enrollments" :key="item.id" class="row">
               <span class="avatar">{{ initials(item.student.fullName) }}</span>
@@ -534,32 +640,6 @@ onMounted(load);
       </form>
     </template>
 
-    <!-- Inscribir -->
-    <transition name="modal">
-      <div v-if="picking" class="modal" role="dialog" aria-modal="true" aria-labelledby="inscribir" @click.self="picking = false">
-        <div class="modal__card">
-          <h3 id="inscribir">Inscribir estudiantes</h3>
-          <p>Elige estudiantes con cuenta. Si alguien aún no tiene, créalo en la sección Usuarios.</p>
-          <div class="grid-2">
-            <label class="field">Buscar<input v-model="search" placeholder="Nombre o correo" /></label>
-            <label class="field">Cohorte<input v-model="cohort" placeholder="Ej. Cohorte octubre 2026" /></label>
-          </div>
-          <div class="pick">
-            <label v-for="person in candidates" :key="person.id" class="pick__item" :class="{ active: selected.includes(person.id) }">
-              <input v-model="selected" type="checkbox" :value="person.id" />
-              <span class="avatar">{{ initials(person.fullName) }}</span>
-              <span><strong>{{ person.fullName }}</strong><small>{{ person.email }}</small></span>
-            </label>
-            <p v-if="!candidates.length" class="pick__empty">No hay estudiantes disponibles para inscribir.</p>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="ghost-action" @click="picking = false">Cancelar</button>
-            <button type="button" class="primary-action" :disabled="busy || !selected.length" @click="enrollSelected">Inscribir {{ selected.length || "" }}</button>
-          </div>
-        </div>
-      </div>
-    </transition>
-
     <!-- Diploma -->
     <transition name="modal">
       <div v-if="editing" class="modal" role="dialog" aria-modal="true" aria-labelledby="diploma" @click.self="editing = null">
@@ -581,7 +661,7 @@ onMounted(load);
             </div>
             <label v-else class="drop" @dragover.prevent @drop.prevent="attachDiplomaPdf($event.dataTransfer?.files?.[0])">
               <input type="file" accept="application/pdf,.pdf" @change="attachDiplomaPdf(($event.target as HTMLInputElement).files?.[0])" />
-              <span class="drop__icon" aria-hidden="true">↑</span>
+              <span class="drop__icon" aria-hidden="true"><AcademyIcon name="subir" /></span>
               <strong>Arrastra el PDF o <u>elígelo</u></strong>
               <small>Queda privado: solo el estudiante puede descargarlo.</small>
             </label>
@@ -662,6 +742,18 @@ onMounted(load);
 <style scoped src="./academy-admin.css"></style>
 <style scoped>
 .detail { padding-bottom: 80px; }
+.enroll { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-bottom: 18px; padding: 16px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 18px; background: color-mix(in srgb, var(--accent) 6%, rgba(2, 9, 34, 0.5)); }
+.enroll .primary-action { min-height: 44px; }
+.enroll__new { grid-column: 1 / -1; justify-self: start; font-size: 12px; }
+.issue { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
+.issue > .field { align-content: start; }
+.issue__wide { grid-column: 1 / -1; }
+.issue .grid-2 { margin: 0; }
+.field select { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; color: #fff; background: rgba(2, 9, 34, 0.7); font: inherit; font-size: 14px; }
+.field select:focus { outline: 0; border-color: var(--accent); }
+.field select option, .field select optgroup { color: #fff; background: #07102e; }
+.drop--compact { min-height: 0; padding: 14px; }
+@media (max-width: 760px) { .enroll, .issue { grid-template-columns: 1fr; } }
 .detail__back { margin-bottom: 18px; font-size: 13px; }
 .hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 24px; padding: clamp(24px, 3vw, 36px); overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 28px; background: radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 55%), var(--card); isolation: isolate; }
 .hero__orb { position: absolute; right: -6%; bottom: -60%; z-index: -1; width: 46%; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 50%; box-shadow: 0 0 120px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 0 60px color-mix(in srgb, var(--accent) 10%, transparent); }

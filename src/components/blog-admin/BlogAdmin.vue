@@ -4,6 +4,7 @@ import BlockEditor from "./BlockEditor.vue";
 import GalleryAdmin from "./GalleryAdmin.vue";
 import AcademyCampus from "./academy/AcademyCampus.vue";
 import AcademyIcon from "./academy/AcademyIcon.vue";
+import AcademyUsersPage from "./academy/AcademyUsersPage.vue";
 import { renderBlogBlocks } from "../../lib/blog";
 import {
   BLOG_EDITOR_STORAGE_KEY,
@@ -17,7 +18,7 @@ import {
   type EditorUser,
 } from "../../lib/blog-admin";
 
-type WorkspaceTab = "posts" | "galleries" | "categories" | "academy" | "settings";
+type WorkspaceTab = "posts" | "galleries" | "categories" | "academy" | "users" | "settings";
 type AppState = "checking" | "login" | "workspace";
 type ArticleSearchScope = "all" | "title" | "author" | "category" | "tags";
 type ArticleSortOrder = "recent" | "oldest" | "title-asc" | "title-desc";
@@ -804,7 +805,8 @@ onBeforeUnmount(() => {
           <button :class="{ active: activeTab === 'galleries' }" @click="selectTab('galleries')"><b>02</b><span>Galerías</span><i>{{ dashboard.galleries.length }}</i></button>
           <button :class="{ active: activeTab === 'categories' }" @click="selectTab('categories')"><b>03</b><span>Categorías</span><i>{{ dashboard.categories.length }}</i></button>
           <button :class="{ active: activeTab === 'academy' }" @click="selectTab('academy')"><b>04</b><span>AI Academy</span><i><AcademyIcon name="destello" :size="12" fill /></i></button>
-          <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>05</b><span>Identidad y SEO</span><i>↗</i></button>
+          <button :class="{ active: activeTab === 'users' }" @click="selectTab('users')"><b>05</b><span>Usuarios</span><i><AcademyIcon name="estudiantes" :size="12" /></i></button>
+          <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>06</b><span>Identidad y SEO</span><i>↗</i></button>
         </nav>
         <div class="workspace-sidebar__bottom">
           <a href="/ai-academy/" target="_blank" rel="noopener">Ver AI Academy ↗</a>
@@ -821,6 +823,7 @@ onBeforeUnmount(() => {
           <option value="galleries">Galerías</option>
           <option value="categories">Categorías</option>
           <option value="academy">AI Academy</option>
+          <option value="users">Usuarios</option>
           <option value="settings">Identidad y SEO</option>
         </select>
         <button aria-label="Cerrar sesión" @click="logout">↪</button>
@@ -1085,6 +1088,13 @@ onBeforeUnmount(() => {
           v-else-if="activeTab === 'academy'"
           :api="api"
           :cms-url="cmsUrl"
+          @notice="(message, type) => showNotice(message, type)"
+          @users="selectTab('users')"
+        />
+
+        <AcademyUsersPage
+          v-else-if="activeTab === 'users'"
+          :api="api"
           @notice="(message, type) => showNotice(message, type)"
         />
 

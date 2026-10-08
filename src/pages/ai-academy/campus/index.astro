@@ -6,7 +6,7 @@ import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { SITE_URL } from "~/config/seo.mjs";
 import {
-  campusData, cmsFileUrl, embedUrl, formatDiplomaDate, formatDuration, linkedinAddUrl, linkedinShareUrl,
+  campusData, campusFileUrl, embedUrl, formatDiplomaDate, formatDuration, linkedinAddUrl, linkedinShareUrl,
   type CampusVideo,
 } from "~/lib/academy-campus";
 import "~/styles/index.css";
@@ -30,7 +30,8 @@ const favicon = (url: string) => {
 };
 const host = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
 
-const videos = current?.videos ?? [];
+// Primero las clases por sábado; el material complementario (sin sábado) va al final.
+const videos = [...(current?.videos ?? [])].sort((a, b) => (a.session ?? 99) - (b.session ?? 99));
 const sessions = [...videos.reduce((map, video, index) => {
   const label = video.session ? `Sábado ${video.session}` : "Material complementario";
   map.set(label, [...(map.get(label) ?? []), { video, index }]);
@@ -45,7 +46,7 @@ const playerData = videos.map((video) => ({
   title: video.title,
   description: video.description,
   kind: video.source === "enlace" ? (embedUrl(video.externalUrl) ? "embed" : "externo") : "archivo",
-  src: video.source === "enlace" ? embedUrl(video.externalUrl) || video.externalUrl : video.file ? cmsFileUrl(video.file) : "",
+  src: video.source === "enlace" ? embedUrl(video.externalUrl) || video.externalUrl : video.file ? campusFileUrl(video.file) : "",
   seconds: video.progress.seconds,
   completed: video.progress.completed,
 }));
@@ -151,7 +152,8 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
                       Agregar a mi perfil de LinkedIn
                     </a>
                     <a class="cx-btn cx-btn--ghost" href={linkedinShareUrl(url)} target="_blank" rel="noopener noreferrer">Compartir publicación</a>
-                    {diploma.file && <a class="cx-btn cx-btn--ghost" href={cmsFileUrl(diploma.file)} download>Descargar PDF ↓</a>}
+                    {diploma.file && <a class="cx-btn cx-btn--ghost" href={campusFileUrl(diploma.file, true)} download>Descargar PDF ↓</a>}
+                    {diploma.file && <a class="cx-btn cx-btn--ghost" href={campusFileUrl(diploma.file)} target="_blank" rel="noopener">Ver PDF</a>}
                     <button type="button" class="cx-btn cx-btn--ghost" data-copy={url}>Copiar enlace de verificación</button>
                     <a class="campus__verify" href={url} target="_blank" rel="noopener">Ver página de verificación ↗</a>
                   </div>

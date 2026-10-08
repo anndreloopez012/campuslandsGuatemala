@@ -273,15 +273,15 @@ onMounted(load);
 .users__filter { min-height: 44px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; background: var(--field); font: inherit; font-size: 13px; }
 .users__note { margin: 12px 0 0; color: #ffd591; font-size: 12px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; margin-top: 18px; }
-.person { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); transition: border-color 0.2s, transform 0.2s; }
+.person { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); transition: border-color 0.2s, transform 0.2s; }
 .person:hover { border-color: rgba(87, 187, 255, 0.35); transform: translateY(-2px); }
 .person.is-blocked { opacity: 0.6; }
 .person header { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .person header div { display: grid; gap: 3px; min-width: 0; }
 .person strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .person header span:not(.avatar) { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.person__chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.person footer { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.person__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.person footer { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .wpick { display: grid; gap: 6px; }
 .wpick__item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
 .wpick__item.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
