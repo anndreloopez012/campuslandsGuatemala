@@ -401,15 +401,16 @@ export class BlogAdminApi {
   }
 
   createAcademyUser(data: Record<string, unknown>) {
-    return this.request<{ id: number; email: string; fullName: string; temporaryPassword: string }>("/editor/academy/users", { method: "POST", body: JSON.stringify({ data }) });
+    return this.request<{ id: number; email: string; fullName: string; temporaryPassword: string; active: boolean }>("/editor/academy/users", { method: "POST", body: JSON.stringify({ data }) });
   }
 
   updateAcademyUser(id: number, data: Record<string, unknown>) {
     return this.request<AcademyPerson>(`/editor/academy/users/${id}`, { method: "PUT", body: JSON.stringify({ data }) });
   }
 
-  resetAcademyPassword(id: number) {
-    return this.request<{ temporaryPassword: string }>(`/editor/academy/users/${id}/password`, { method: "POST" });
+  // Sin contraseña genera una temporal; con contraseña la deja activa de una vez.
+  resetAcademyPassword(id: number, password = "") {
+    return this.request<{ temporaryPassword: string; active: boolean }>(`/editor/academy/users/${id}/password`, { method: "POST", body: JSON.stringify({ data: password ? { password } : {} }) });
   }
 
   // Subida al almacén privado con progreso real (los videos pueden pesar cientos de MB).
