@@ -1,0 +1,1565 @@
+---
+export const prerender = false;
+
+import { Image } from "astro:assets";
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import orbitAI from "~/assets/img/ai-academy/orbit-ai-academy.png";
+import { SITE_URL } from "~/config/seo.mjs";
+import { AI_ACADEMY_FAQS, workshopName, workshopPath, workshopWhatsappUrl } from "~/content/aiAcademy";
+import { curriculumPath, formatFileSize, formatUpdatedAt, getLiveWorkshops } from "~/lib/ai-academy";
+import "~/styles/index.css";
+import "~/styles/ai-academy-tema.css";
+
+const slug = String(Astro.params.taller ?? "").replace(/\/+$/, "");
+const workshops = await getLiveWorkshops();
+const workshop = workshops.find((item) => item.slug === slug);
+if (!workshop) return Astro.redirect("/ai-academy/#talleres", 302);
+
+const position = workshops.indexOf(workshop) + 1;
+const others = workshops.filter((item) => item.slug !== workshop.slug);
+const name = workshopName(workshop);
+const pageUrl = `${SITE_URL}${workshopPath(workshop)}`;
+const whatsappUrl = workshopWhatsappUrl(workshop);
+const shareText = `Mira este taller de AI Academy de Campuslands Guatemala: ${name}`;
+const shareWhatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${pageUrl}`)}`;
+const curriculum = workshop.curriculum;
+const curriculumHref = curriculumPath(workshop);
+const curriculumSize = curriculum ? formatFileSize(curriculum.size) : "";
+const curriculumDate = curriculum ? formatUpdatedAt(curriculum.updatedAt) : "";
+const hasDate = Boolean(workshop.startDate && workshop.startDate !== "Próximamente");
+const statusLabel = workshop.isOpen ? "Inscripciones abiertas" : "Próximamente";
+const dateLabel = hasDate ? (workshop.isOpen ? `Inicia el ${workshop.startDate}` : `Inicio estimado: ${workshop.startDate}`) : "Fecha por confirmar";
+const ctaLabel = workshop.isOpen ? "Inscribirme al taller" : "Quiero que me avisen";
+const titleParts = workshop.title.split(/(\bIA\b)/);
+const faqs = AI_ACADEMY_FAQS;
+
+const structuredData = [
+  {
+    "@type": "Course",
+    "@id": `${pageUrl}#curso`,
+    name,
+    description: workshop.promise,
+    url: pageUrl,
+    courseCode: workshop.code,
+    inLanguage: "es",
+    educationalLevel: "Principiante",
+    teaches: workshop.sessions.map((session) => session.title),
+    provider: {
+      "@type": "EducationalOrganization",
+      name: "Campuslands Guatemala",
+      sameAs: SITE_URL,
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "onsite",
+      courseWorkload: "PT16H",
+      location: {
+        "@type": "Place",
+        name: "Campus Tec",
+        address: { "@type": "PostalAddress", addressLocality: "Ciudad de Guatemala", addressRegion: "Zona 4", addressCountry: "GT" },
+      },
+    },
+  },
+  {
+    "@type": "FAQPage",
+    "@id": `${pageUrl}#preguntas`,
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  },
+];
+
+const dataFooter = {
+  title: `Tu lugar en ${workshop.title} te está esperando.`,
+  content: "Escríbenos y te compartimos fechas, cupos, costos y opciones de pago para este taller.",
+  buttonType: "ia",
+  buttonLink: whatsappUrl,
+};
+---
+
+<LayoutNavbar dataFooter={dataFooter} pageType="WebPage" structuredData={structuredData}>
+  <div class="ai-page wt" style={`--wt-accent: ${workshop.accent};`} data-wt-root>
+    <section class="wt-hero" aria-labelledby="wt-title">
+      <div class="wt-hero__grid" aria-hidden="true"></div>
+      <div class="ai-shell wt-hero__layout">
+        <div class="wt-hero__copy">
+          <nav class="wt-breadcrumb" aria-label="Estás aquí">
+            <a href="/ai-academy/">AI Academy</a>
+            <span aria-hidden="true">/</span>
+            <a href="/ai-academy/#talleres">Talleres</a>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">{workshop.code}</span>
+          </nav>
+
+          <div class="wt-hero__badges">
+            <span class="wt-code">{workshop.code}</span>
+            <span class:list={["ai-status-pill", workshop.isOpen ? "ai-status-pill--open" : "ai-status-pill--upcoming"]}>
+              <span class="ai-status-pill__dot"></span>
+              {statusLabel}
+            </span>
+            <span class="wt-date">{dateLabel}</span>
+          </div>
+
+          <p class="ai-kicker"><span></span>{workshop.eyebrow ? workshop.eyebrow.replace(/:$/, "") : `Ruta ${String(position).padStart(2, "0")} de AI Academy`}</p>
+          <h1 id="wt-title">
+            {titleParts.map((part) => (part === "IA" ? <span class="wt-glow">IA</span> : part))}
+          </h1>
+          <p class="wt-hero__lead">{workshop.promise}</p>
+
+          <div class="ai-actions">
+            <a class="ai-button ai-button--primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+              {ctaLabel}
+              <span aria-hidden="true">↗</span>
+            </a>
+            <a class="ai-button ai-button--ghost" href={curriculum ? curriculumHref : "#malla-curricular"}>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+              {curriculum ? "Descargar malla en PDF" : "Ver malla curricular"}
+            </a>
+          </div>
+
+          <div class="wt-share" aria-label="Compartir este taller">
+            <span class="wt-share__label">Comparte este taller</span>
+            <button type="button" class="wt-share__btn" data-wt-copy={pageUrl}>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+              <span data-wt-copy-label>Copiar enlace</span>
+            </button>
+            <a class="wt-share__btn" href={shareWhatsappUrl} target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2c.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"></path></svg>
+              <span>WhatsApp</span>
+            </a>
+            <button type="button" class="wt-share__btn" data-wt-share hidden>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="m16 6-4-4-4 4"></path><path d="M12 2v13"></path></svg>
+              <span>Más opciones</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="wt-pass-wrap">
+        <aside class="wt-pass" aria-label={`Ficha del taller ${name}`}>
+          <div class="wt-pass__head">
+            <span>AI ACADEMY · PASE DE TALLER</span>
+            <span>{String(position).padStart(2, "0")}/{String(workshops.length).padStart(2, "0")}</span>
+          </div>
+          <div class="wt-pass__body">
+            <div class="wt-pass__orbit" aria-hidden="true">
+              <span class="wt-pass__ring"></span>
+              <Image src={orbitAI} alt="" format="avif" widths={[180, 280, 360]} sizes="(max-width: 719px) 42vw, 180px" loading="eager" decoding="async" />
+            </div>
+            <div class="wt-pass__code">
+              <small>Código</small>
+              <strong>{workshop.code}</strong>
+              <span>{workshop.title}</span>
+            </div>
+          </div>
+          <dl class="wt-pass__rows">
+            <div><dt>Inicio</dt><dd>{hasDate ? workshop.startDate : "Por confirmar"}</dd></div>
+            <div><dt>Duración</dt><dd>4 sábados · 16 h</dd></div>
+            <div><dt>Modalidad</dt><dd>Presencial</dd></div>
+            <div><dt>Sede</dt><dd>Campus Tec, Zona 4</dd></div>
+          </dl>
+          <div class="wt-pass__tear" aria-hidden="true"></div>
+          <div class="wt-pass__foot">
+            <div>
+              <small>Estado</small>
+              <strong class:list={[workshop.isOpen && "is-open"]}>{statusLabel}</strong>
+            </div>
+            <span class="wt-pass__barcode" aria-hidden="true"></span>
+          </div>
+        </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="wt-section wt-download" id="malla-curricular" aria-labelledby="wt-download-title" data-wt-reveal>
+      <div class="ai-shell">
+        <div class="wt-download__card">
+          <div class="wt-doc" aria-hidden="true">
+            <div class="wt-doc__sheet wt-doc__sheet--back"></div>
+            <div class="wt-doc__sheet wt-doc__sheet--mid"></div>
+            <div class="wt-doc__sheet wt-doc__sheet--front">
+              <span class="wt-doc__badge">PDF</span>
+              <span class="wt-doc__code">{workshop.code}</span>
+              <span class="wt-doc__title">Malla curricular</span>
+              <i></i><i></i><i></i><i></i><i></i>
+            </div>
+          </div>
+          <div class="wt-download__copy">
+            <p class="ai-section-code">01 / Malla curricular</p>
+            <h2 id="wt-download-title">Llévate el programa completo</h2>
+            <p>
+              Sesiones, entregables, herramientas y requisitos del taller en un documento listo para
+              revisar con calma, compartir con tu equipo o presentar a tu empresa.
+            </p>
+            {curriculum ? (
+              <>
+                <ul class="wt-download__meta" aria-label="Detalles del documento">
+                  <li>PDF</li>
+                  {curriculumSize && <li>{curriculumSize}</li>}
+                  {curriculumDate && <li>Actualizada el {curriculumDate}</li>}
+                </ul>
+                <div class="ai-actions">
+                  <a class="ai-button ai-button--primary" href={curriculumHref} download>
+                    Descargar PDF
+                    <span aria-hidden="true">↓</span>
+                  </a>
+                  <a class="ai-button ai-button--ghost" href={`${curriculumHref}?ver`} target="_blank" rel="noopener">
+                    Ver en el navegador
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <p class="wt-download__pending">
+                  <span aria-hidden="true"></span>
+                  Estamos preparando la versión en PDF de este taller. Mientras tanto, te la enviamos por WhatsApp.
+                </p>
+                <div class="ai-actions">
+                  <a class="ai-button ai-button--primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                    Pedir la malla por WhatsApp
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="wt-section wt-route" aria-labelledby="wt-route-title">
+      <div class="ai-shell">
+        <header class="wt-head" data-wt-reveal>
+          <p class="ai-section-code">02 / Ruta formativa</p>
+          <h2 id="wt-route-title">Cuatro sábados. <span>Cuatro entregables.</span></h2>
+          <p>Cada sesión dura 4 horas: la mitad para entender el método y la otra mitad para construir tu proyecto, paso a paso.</p>
+        </header>
+        <ol class="wt-timeline">
+          {workshop.sessions.map((session, index) => (
+            <li class="wt-step" data-wt-reveal style={`--wt-delay: ${index * 90}ms`}>
+              <div class="wt-step__marker" aria-hidden="true">
+                <span>{String(index + 1).padStart(2, "0")}</span>
+              </div>
+              <article class="wt-step__card">
+                <p class="wt-step__when">Sábado {index + 1} · 4 horas</p>
+                <h3>{session.title}</h3>
+                <p>{session.description}</p>
+                <p class="wt-step__output"><span>Sales con</span>{session.output}</p>
+              </article>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="wt-section wt-fit" aria-labelledby="wt-fit-title">
+      <div class="ai-shell">
+        <header class="wt-head" data-wt-reveal>
+          <p class="ai-section-code">03 / Antes de empezar</p>
+          <h2 id="wt-fit-title">Hecho para quien quiere <span>resultados, no trucos.</span></h2>
+        </header>
+        <div class="wt-fit__grid">
+          <article class="wt-panel" data-wt-reveal>
+            <p class="wt-panel__label">Ideal para</p>
+            <p class="wt-panel__text">{workshop.audience}</p>
+            <p class="wt-panel__note">No necesitas saber programar ni tener experiencia previa con IA.</p>
+          </article>
+          <article class="wt-panel" data-wt-reveal style="--wt-delay: 90ms">
+            <p class="wt-panel__label">Herramientas</p>
+            <ul class="wt-tools">
+              {workshop.tools.map((tool) => <li>{tool}</li>)}
+            </ul>
+            <p class="wt-panel__note">Algunas tienen plan gratuito; antes de iniciar te compartimos la lista completa.</p>
+          </article>
+          <article class="wt-panel" data-wt-reveal style="--wt-delay: 180ms">
+            <p class="wt-panel__label">Método</p>
+            <div class="wt-method" role="img" aria-label="50% fundamentos y 50% práctica">
+              <span style="--wt-share: 50%">Fundamentos</span>
+              <span style="--wt-share: 50%">Práctica</span>
+            </div>
+            <dl class="wt-facts">
+              <div><dt>16</dt><dd>horas</dd></div>
+              <div><dt>04</dt><dd>sábados</dd></div>
+              <div><dt>01</dt><dd>proyecto</dd></div>
+            </dl>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="wt-section wt-final" aria-labelledby="wt-final-title" data-wt-reveal>
+      <div class="ai-shell">
+        <div class="wt-final__card">
+          <p class="ai-section-code">04 / Proyecto final</p>
+          <h2 id="wt-final-title">Terminas con algo que funciona.</h2>
+          <p class="wt-final__text">{workshop.final}</p>
+          <a class="ai-button ai-button--primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+            {ctaLabel}
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="wt-section wt-faq" aria-labelledby="wt-faq-title">
+      <div class="ai-shell wt-faq__layout">
+        <header class="wt-head" data-wt-reveal>
+          <p class="ai-section-code">05 / Preguntas frecuentes</p>
+          <h2 id="wt-faq-title">Lo que más nos <span>preguntan.</span></h2>
+          <p>¿Tienes otra duda? Escríbenos y te respondemos el mismo día.</p>
+          <a class="wt-link" href={whatsappUrl} target="_blank" rel="noopener noreferrer">Hablar con el equipo ↗</a>
+        </header>
+        <div class="wt-faq__list">
+          {faqs.map((faq) => (
+            <details class="wt-faq__item">
+              <summary>{faq.question}<span aria-hidden="true"></span></summary>
+              <p>{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="wt-section wt-others" aria-labelledby="wt-others-title">
+      <div class="ai-shell">
+        <header class="wt-head" data-wt-reveal>
+          <p class="ai-section-code">06 / Otras rutas</p>
+          <h2 id="wt-others-title">Sigue explorando <span>AI Academy.</span></h2>
+        </header>
+        <div class="wt-others__grid">
+          {others.map((item, index) => (
+            <a class="wt-other" href={workshopPath(item)} style={`--wt-accent: ${item.accent}; --wt-delay: ${index * 70}ms`} data-wt-reveal>
+              <span class="wt-other__code">{item.code}</span>
+              <strong>{item.title}</strong>
+              <span class="wt-other__promise">{item.promise}</span>
+              <span class="wt-other__foot">
+                <span class:list={["ai-status-pill", item.isOpen ? "ai-status-pill--open" : "ai-status-pill--upcoming"]}>
+                  <span class="ai-status-pill__dot"></span>
+                  {item.isOpen ? "Inscripciones abiertas" : "Próximamente"}
+                </span>
+                <span class="wt-other__go" aria-hidden="true">→</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <div class="wt-dock" aria-label="Acciones rápidas">
+      <a class="wt-dock__primary" href={whatsappUrl} target="_blank" rel="noopener noreferrer">{ctaLabel}</a>
+      <a class="wt-dock__pdf" href={curriculum ? curriculumHref : "#malla-curricular"} aria-label={curriculum ? "Descargar malla curricular en PDF" : "Ver malla curricular"}>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+        <span>PDF</span>
+      </a>
+    </div>
+
+    <p class="wt-toast" role="status" aria-live="polite" data-wt-toast></p>
+  </div>
+</LayoutNavbar>
+
+<script>
+  type WtCleanup = () => void;
+  declare global {
+    interface Window {
+      __workshopCleanup?: WtCleanup;
+    }
+  }
+
+  function initializeWorkshop() {
+    window.__workshopCleanup?.();
+    const root = document.querySelector<HTMLElement>("[data-wt-root]");
+    if (!root) return;
+    const toast = root.querySelector<HTMLElement>("[data-wt-toast]");
+    const timers: number[] = [];
+
+    const say = (message: string) => {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+      timers.push(window.setTimeout(() => toast.classList.remove("is-visible"), 2400));
+    };
+
+    const copyButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-wt-copy]"));
+    const onCopy = async (event: Event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      const url = button.dataset.wtCopy || window.location.href;
+      const label = button.querySelector<HTMLElement>("[data-wt-copy-label]");
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const field = document.createElement("textarea");
+        field.value = url;
+        field.setAttribute("readonly", "");
+        field.style.position = "fixed";
+        field.style.opacity = "0";
+        document.body.append(field);
+        field.select();
+        document.execCommand("copy");
+        field.remove();
+      }
+      button.classList.add("is-done");
+      if (label) label.textContent = "¡Enlace copiado!";
+      say("Enlace copiado. Pégalo donde quieras compartirlo.");
+      timers.push(window.setTimeout(() => {
+        button.classList.remove("is-done");
+        if (label) label.textContent = "Copiar enlace";
+      }, 2400));
+    };
+    copyButtons.forEach((button) => button.addEventListener("click", onCopy));
+
+    const shareButton = root.querySelector<HTMLButtonElement>("[data-wt-share]");
+    const onShare = () => {
+      navigator.share?.({ title: document.title, text: document.querySelector("h1")?.textContent?.trim(), url: window.location.href }).catch(() => {});
+    };
+    if (shareButton && typeof navigator.share === "function") {
+      shareButton.hidden = false;
+      shareButton.addEventListener("click", onShare);
+    }
+
+    const revealables = Array.from(root.querySelectorAll<HTMLElement>("[data-wt-reveal]"));
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let observer: IntersectionObserver | null = null;
+    if (reduce || !("IntersectionObserver" in window)) {
+      revealables.forEach((element) => element.classList.add("is-visible"));
+    } else {
+      root.classList.add("wt--animated");
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer?.unobserve(entry.target);
+        });
+      }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+      revealables.forEach((element) => observer?.observe(element));
+    }
+
+    window.__workshopCleanup = () => {
+      observer?.disconnect();
+      copyButtons.forEach((button) => button.removeEventListener("click", onCopy));
+      shareButton?.removeEventListener("click", onShare);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.__workshopCleanup = undefined;
+    };
+  }
+
+  document.addEventListener("astro:page-load", initializeWorkshop);
+  document.addEventListener("astro:before-swap", () => window.__workshopCleanup?.());
+</script>
+
+<style>
+  .wt {
+    --wt-line: rgb(185 151 255 / 18%);
+    --wt-panel: linear-gradient(160deg, rgb(13 14 52 / 82%), rgb(7 8 28 / 92%));
+    --wt-text: rgb(223 245 255 / 74%);
+    padding-bottom: 4rem;
+  }
+
+  .wt-section {
+    padding: clamp(3.5rem, 8vw, 6.5rem) 0;
+  }
+
+  .wt-head {
+    max-width: 46rem;
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+  }
+
+  .wt-head h2,
+  .wt-download__copy h2,
+  .wt-final__card h2 {
+    margin: 0.8rem 0 0;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    text-wrap: balance;
+  }
+
+  .wt-head h2 span {
+    color: transparent;
+    background: linear-gradient(110deg, #57bbff, #dff5ff 40%, var(--wt-accent) 75%, #7a3cff);
+    background-clip: text;
+  }
+
+  .wt-head > p:not(.ai-section-code) {
+    margin-top: 1rem;
+    color: var(--wt-text);
+    font-size: 1.02rem;
+    line-height: 1.7;
+  }
+
+  /* ---------------------------------------------------------------- Hero */
+  .wt-hero {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(2.5rem, 6vw, 5rem) 0 clamp(3rem, 7vw, 5.5rem);
+    isolation: isolate;
+  }
+
+  .wt-hero::before {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    content: "";
+    background:
+      radial-gradient(circle at 78% 38%, color-mix(in srgb, var(--wt-accent) 22%, transparent), transparent 30%),
+      radial-gradient(circle at 70% 52%, rgb(122 60 255 / 24%), transparent 42%),
+      linear-gradient(112deg, #000051 0%, #07052b 52%, #050507 100%);
+  }
+
+  .wt-hero::after {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: -1;
+    height: 10rem;
+    content: "";
+    background: linear-gradient(transparent, #050507);
+  }
+
+  .wt-hero__grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.16;
+    background-image:
+      linear-gradient(rgb(185 151 255 / 15%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(87 187 255 / 12%) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 85%);
+  }
+
+  .wt-hero__layout {
+    display: grid;
+    gap: clamp(2.5rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .wt-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.6rem;
+    color: rgb(223 245 255 / 52%);
+    font: 600 0.72rem/1.4 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .wt-breadcrumb a {
+    color: rgb(223 245 255 / 70%);
+    text-decoration: none;
+    transition: color 200ms ease;
+  }
+
+  .wt-breadcrumb a:hover {
+    color: #fff;
+  }
+
+  .wt-breadcrumb [aria-current] {
+    color: var(--wt-accent);
+  }
+
+  .wt-hero__badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .wt-code,
+  .wt-date {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.6rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    font: 700 0.62rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .wt-code {
+    color: #050507;
+    background: var(--wt-accent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--wt-accent) 45%, transparent);
+  }
+
+  .wt-date {
+    color: rgb(223 245 255 / 84%);
+    border: 1px solid rgb(223 245 255 / 18%);
+    background: rgb(7 16 43 / 50%);
+  }
+
+  .wt-hero h1 {
+    max-width: 14ch;
+    margin: 0;
+    font-size: clamp(2.7rem, 9vw, 5.6rem);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+    text-wrap: balance;
+  }
+
+  .wt-glow {
+    color: transparent;
+    background: linear-gradient(110deg, #57bbff 0%, #dff5ff 35%, var(--wt-accent) 65%, #7a3cff 100%);
+    background-clip: text;
+  }
+
+  .wt-hero__lead {
+    max-width: 38rem;
+    margin-top: 1.4rem;
+    color: var(--wt-text);
+    font-size: clamp(1.02rem, 1.8vw, 1.2rem);
+    line-height: 1.72;
+  }
+
+  .wt-share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.6rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--wt-line);
+  }
+
+  .wt-share__label {
+    margin-right: 0.3rem;
+    color: rgb(223 245 255 / 55%);
+    font: 700 0.66rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .wt-share__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.4rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid rgb(185 151 255 / 24%);
+    border-radius: 999px;
+    color: rgb(223 245 255 / 88%);
+    background: rgb(7 16 43 / 55%);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 200ms ease, border-color 200ms ease, background 200ms ease, color 200ms ease;
+  }
+
+  .wt-share__btn:hover {
+    transform: translateY(-2px);
+    border-color: rgb(185 151 255 / 60%);
+    background: rgb(122 60 255 / 16%);
+  }
+
+  .wt-share__btn.is-done {
+    color: #7fffdc;
+    border-color: rgb(0 240 180 / 55%);
+    background: rgb(0 240 180 / 10%);
+  }
+
+  .wt-share__btn[hidden] {
+    display: none;
+  }
+
+  /* Pase de taller: la sombra va en el contenedor porque la máscara de los recortes la cortaría. */
+  .wt-pass-wrap {
+    width: min(100%, 25rem);
+    justify-self: center;
+    filter: drop-shadow(0 1.8rem 2.6rem rgb(0 0 0 / 50%)) drop-shadow(0 0 2.4rem rgb(122 60 255 / 16%));
+    transform: rotate(-1.5deg);
+    transition: transform 400ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .wt-pass-wrap:hover {
+    transform: rotate(0deg) translateY(-4px);
+  }
+
+  .wt-pass {
+    --wt-notch-y: calc(100% - 5.4rem);
+    position: relative;
+    border: 1px solid rgb(185 151 255 / 26%);
+    border-radius: 1.6rem;
+    background:
+      radial-gradient(circle at 80% 0%, color-mix(in srgb, var(--wt-accent) 20%, transparent), transparent 55%),
+      var(--wt-panel);
+    -webkit-mask:
+      radial-gradient(circle at 0 var(--wt-notch-y), transparent 0.8rem, #000 calc(0.8rem + 0.5px)) left / 51% 100% no-repeat,
+      radial-gradient(circle at 100% var(--wt-notch-y), transparent 0.8rem, #000 calc(0.8rem + 0.5px)) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle at 0 var(--wt-notch-y), transparent 0.8rem, #000 calc(0.8rem + 0.5px)) left / 51% 100% no-repeat,
+      radial-gradient(circle at 100% var(--wt-notch-y), transparent 0.8rem, #000 calc(0.8rem + 0.5px)) right / 51% 100% no-repeat;
+  }
+
+  .wt-pass__head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.3rem;
+    border-bottom: 1px dashed var(--wt-line);
+    color: rgb(223 245 255 / 58%);
+    font: 700 0.6rem/1.3 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.14em;
+  }
+
+  .wt-pass__body {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem 1.3rem 0.6rem;
+  }
+
+  .wt-pass__orbit {
+    position: relative;
+    display: grid;
+    width: 7.5rem;
+    aspect-ratio: 1;
+    place-items: center;
+  }
+
+  .wt-pass__orbit :global(img) {
+    position: relative;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0.8rem 1.6rem rgb(122 60 255 / 45%));
+    animation: wt-float 6s ease-in-out infinite;
+  }
+
+  .wt-pass__ring {
+    position: absolute;
+    inset: 6%;
+    border: 1px solid color-mix(in srgb, var(--wt-accent) 55%, transparent);
+    border-radius: 50%;
+    box-shadow: 0 0 2rem color-mix(in srgb, var(--wt-accent) 25%, transparent);
+    animation: wt-spin 18s linear infinite;
+  }
+
+  .wt-pass__ring::after {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    content: "";
+    background: var(--wt-accent);
+    box-shadow: 0 0 12px var(--wt-accent);
+  }
+
+  .wt-pass__code small,
+  .wt-pass__foot small,
+  .wt-pass__rows dt {
+    display: block;
+    color: rgb(223 245 255 / 50%);
+    font: 700 0.58rem/1.4 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .wt-pass__code strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: #fff;
+    font: 800 clamp(1.7rem, 5vw, 2.2rem)/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: -0.02em;
+  }
+
+  .wt-pass__code span {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--wt-accent);
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .wt-pass__rows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem 1rem;
+    margin: 0;
+    padding: 1rem 1.3rem 1.2rem;
+  }
+
+  .wt-pass__rows dd {
+    margin: 0.25rem 0 0;
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .wt-pass__tear {
+    height: 0;
+    margin: 0 1.3rem;
+    border-top: 2px dashed rgb(185 151 255 / 24%);
+  }
+
+  .wt-pass__foot {
+    display: flex;
+    height: 5.4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 1.3rem;
+  }
+
+  .wt-pass__foot strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #d6c6ff;
+    font-size: 0.95rem;
+  }
+
+  .wt-pass__foot strong.is-open {
+    color: #7fffdc;
+  }
+
+  .wt-pass__barcode {
+    width: 6.5rem;
+    height: 2.2rem;
+    border-radius: 0.3rem;
+    opacity: 0.7;
+    background: repeating-linear-gradient(
+      90deg,
+      rgb(223 245 255 / 85%) 0 2px,
+      transparent 2px 4px,
+      rgb(223 245 255 / 85%) 4px 5px,
+      transparent 5px 8px,
+      rgb(223 245 255 / 85%) 8px 11px,
+      transparent 11px 13px
+    );
+  }
+
+  /* ---------------------------------------------------------------- Descarga */
+  .wt-download__card {
+    position: relative;
+    display: grid;
+    gap: clamp(2rem, 5vw, 3.5rem);
+    align-items: center;
+    padding: clamp(1.6rem, 4vw, 3rem);
+    overflow: hidden;
+    border: 1px solid rgb(185 151 255 / 24%);
+    border-radius: 2rem;
+    background:
+      radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--wt-accent) 16%, transparent), transparent 45%),
+      radial-gradient(circle at 100% 100%, rgb(122 60 255 / 18%), transparent 50%),
+      var(--wt-panel);
+  }
+
+  .wt-download__copy > p:not(.ai-section-code):not(.wt-download__pending) {
+    max-width: 34rem;
+    margin-top: 1rem;
+    color: var(--wt-text);
+    line-height: 1.7;
+  }
+
+  .wt-download__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 1.3rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .wt-download__meta li {
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgb(223 245 255 / 16%);
+    border-radius: 999px;
+    color: rgb(223 245 255 / 80%);
+    font: 700 0.66rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .wt-download__meta li:first-child {
+    color: #050507;
+    border-color: transparent;
+    background: var(--wt-accent);
+  }
+
+  .wt-download__pending {
+    display: flex;
+    gap: 0.75rem;
+    max-width: 34rem;
+    margin-top: 1.2rem;
+    padding: 0.9rem 1rem;
+    border: 1px dashed rgb(185 151 255 / 34%);
+    border-radius: 1rem;
+    color: rgb(223 245 255 / 82%);
+    line-height: 1.6;
+  }
+
+  .wt-download__pending span {
+    flex: none;
+    width: 0.6rem;
+    height: 0.6rem;
+    margin-top: 0.45rem;
+    border-radius: 50%;
+    background: #ffc56b;
+    box-shadow: 0 0 10px #ffc56b;
+    animation: ai-pulse-dot 1.8s ease-in-out infinite;
+  }
+
+  /* Documento ilustrado */
+  .wt-doc {
+    position: relative;
+    width: min(100%, 15rem);
+    aspect-ratio: 0.77;
+    justify-self: center;
+  }
+
+  .wt-doc__sheet {
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    border: 1px solid rgb(223 245 255 / 14%);
+    background: linear-gradient(170deg, #121546, #0a0b26);
+    transition: transform 450ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .wt-doc__sheet--back {
+    transform: rotate(-9deg) translate(-8%, 4%);
+    opacity: 0.55;
+  }
+
+  .wt-doc__sheet--mid {
+    transform: rotate(-4deg) translate(-3%, 2%);
+    opacity: 0.8;
+  }
+
+  .wt-doc__sheet--front {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 1.3rem 1.2rem;
+    background:
+      radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--wt-accent) 28%, transparent), transparent 55%),
+      linear-gradient(170deg, #181b58, #0c0d2c);
+    box-shadow: 0 1.6rem 3.5rem rgb(0 0 0 / 50%);
+  }
+
+  .wt-download__card:hover .wt-doc__sheet--back {
+    transform: rotate(-13deg) translate(-12%, 5%);
+  }
+
+  .wt-download__card:hover .wt-doc__sheet--mid {
+    transform: rotate(-6deg) translate(-5%, 2%);
+  }
+
+  .wt-download__card:hover .wt-doc__sheet--front {
+    transform: translateY(-6px) rotate(1.5deg);
+  }
+
+  .wt-doc__badge {
+    align-self: flex-start;
+    padding: 0.3rem 0.55rem;
+    border-radius: 0.45rem;
+    color: #fff;
+    background: #e5484d;
+    font: 800 0.66rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+  }
+
+  .wt-doc__code {
+    margin-top: 0.6rem;
+    color: var(--wt-accent);
+    font: 800 1.2rem/1 Menlo, Monaco, Consolas, monospace;
+  }
+
+  .wt-doc__title {
+    margin-bottom: 0.4rem;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .wt-doc__sheet--front i {
+    display: block;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: rgb(223 245 255 / 14%);
+  }
+
+  .wt-doc__sheet--front i:nth-of-type(2) { width: 82%; }
+  .wt-doc__sheet--front i:nth-of-type(3) { width: 92%; }
+  .wt-doc__sheet--front i:nth-of-type(4) { width: 64%; }
+  .wt-doc__sheet--front i:nth-of-type(5) { width: 74%; background: color-mix(in srgb, var(--wt-accent) 40%, transparent); }
+
+  /* ---------------------------------------------------------------- Ruta */
+  .wt-timeline {
+    position: relative;
+    display: grid;
+    gap: 1.1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .wt-timeline::before {
+    position: absolute;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    left: 1.45rem;
+    width: 2px;
+    content: "";
+    background: linear-gradient(var(--wt-accent), #7a3cff 60%, transparent);
+    opacity: 0.55;
+  }
+
+  .wt-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1rem;
+  }
+
+  .wt-step__marker span {
+    position: relative;
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--wt-accent) 60%, transparent);
+    border-radius: 50%;
+    color: #fff;
+    background: #0b0c2c;
+    box-shadow: 0 0 0 0.35rem #050507, 0 0 1.4rem color-mix(in srgb, var(--wt-accent) 35%, transparent);
+    font: 800 0.82rem/1 Menlo, Monaco, Consolas, monospace;
+  }
+
+  .wt-step__card {
+    padding: 1.3rem 1.4rem 1.4rem;
+    border: 1px solid var(--wt-line);
+    border-radius: 1.3rem;
+    background: var(--wt-panel);
+    transition: border-color 260ms ease, transform 260ms ease;
+  }
+
+  .wt-step__card:hover {
+    border-color: color-mix(in srgb, var(--wt-accent) 45%, transparent);
+    transform: translateX(4px);
+  }
+
+  .wt-step__when {
+    color: var(--wt-accent);
+    font: 700 0.66rem/1.4 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .wt-step__card h3 {
+    margin: 0.45rem 0 0;
+    font-size: clamp(1.25rem, 2.4vw, 1.55rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .wt-step__card > p:not(.wt-step__when):not(.wt-step__output) {
+    margin-top: 0.6rem;
+    color: var(--wt-text);
+    line-height: 1.7;
+  }
+
+  .wt-step__output {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    padding: 0.45rem 0.8rem 0.45rem 0.45rem;
+    border-radius: 999px;
+    color: #fff;
+    background: rgb(122 60 255 / 14%);
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  .wt-step__output span {
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    color: #050507;
+    background: var(--wt-accent);
+    font: 800 0.58rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ---------------------------------------------------------------- Para quién */
+  .wt-fit__grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .wt-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1.5rem;
+    border: 1px solid var(--wt-line);
+    border-radius: 1.4rem;
+    background: var(--wt-panel);
+  }
+
+  .wt-panel__label {
+    color: var(--wt-accent);
+    font: 700 0.66rem/1.4 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .wt-panel__text {
+    color: #fff;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .wt-panel__note {
+    margin-top: auto;
+    color: rgb(223 245 255 / 58%);
+    font-size: 0.85rem;
+    line-height: 1.55;
+  }
+
+  .wt-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .wt-tools li {
+    padding: 0.5rem 0.85rem;
+    border: 1px solid rgb(185 151 255 / 28%);
+    border-radius: 0.8rem;
+    color: #fff;
+    background: rgb(122 60 255 / 10%);
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+
+  .wt-method {
+    display: flex;
+    overflow: hidden;
+    border-radius: 0.8rem;
+    font: 700 0.68rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .wt-method span {
+    flex: 0 0 var(--wt-share);
+    padding: 0.85rem 0.7rem;
+    color: #050507;
+    background: var(--wt-accent);
+  }
+
+  .wt-method span + span {
+    color: #fff;
+    background: linear-gradient(120deg, #6830e4, #8f58ff);
+    text-align: right;
+  }
+
+  .wt-facts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin: 0;
+  }
+
+  .wt-facts div {
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--wt-line);
+  }
+
+  .wt-facts dt {
+    font: 800 1.6rem/1 Menlo, Monaco, Consolas, monospace;
+  }
+
+  .wt-facts dd {
+    margin: 0.3rem 0 0;
+    color: rgb(223 245 255 / 60%);
+    font-size: 0.78rem;
+  }
+
+  /* ---------------------------------------------------------------- Proyecto final */
+  .wt-final__card {
+    position: relative;
+    padding: clamp(2rem, 5vw, 3.8rem);
+    overflow: hidden;
+    border-radius: 2rem;
+    background:
+      radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--wt-accent) 30%, transparent), transparent 45%),
+      linear-gradient(125deg, #2a0f7a, #11104a 55%, #07081f);
+    box-shadow: 0 2rem 5rem rgb(122 60 255 / 18%);
+  }
+
+  .wt-final__card::before {
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    content: "";
+    background: linear-gradient(120deg, var(--wt-accent), transparent 40%, #b997ff);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .wt-final__text {
+    max-width: 44rem;
+    margin: 1.2rem 0 2rem;
+    color: #fff;
+    font-size: clamp(1.15rem, 2.6vw, 1.6rem);
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: -0.015em;
+  }
+
+  /* ---------------------------------------------------------------- Preguntas */
+  .wt-faq__layout {
+    display: grid;
+    gap: 2rem;
+  }
+
+  .wt-link {
+    display: inline-flex;
+    margin-top: 1.2rem;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid rgb(185 151 255 / 45%);
+    color: var(--ai-glow);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .wt-faq__list {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .wt-faq__item {
+    border: 1px solid var(--wt-line);
+    border-radius: 1.1rem;
+    background: rgb(10 11 38 / 70%);
+    transition: border-color 220ms ease, background 220ms ease;
+  }
+
+  .wt-faq__item[open] {
+    border-color: color-mix(in srgb, var(--wt-accent) 45%, transparent);
+    background: rgb(16 15 56 / 80%);
+  }
+
+  .wt-faq__item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.05rem 1.2rem;
+    color: #fff;
+    font-weight: 700;
+    line-height: 1.45;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .wt-faq__item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .wt-faq__item summary span {
+    position: relative;
+    flex: none;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: rgb(122 60 255 / 18%);
+  }
+
+  .wt-faq__item summary span::before,
+  .wt-faq__item summary span::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.65rem;
+    height: 2px;
+    border-radius: 2px;
+    content: "";
+    background: #fff;
+    transform: translate(-50%, -50%);
+    transition: transform 220ms ease;
+  }
+
+  .wt-faq__item summary span::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  .wt-faq__item[open] summary span::after {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  .wt-faq__item p {
+    padding: 0 1.2rem 1.15rem;
+    color: var(--wt-text);
+    line-height: 1.7;
+  }
+
+  /* ---------------------------------------------------------------- Otras rutas */
+  .wt-others__grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .wt-other {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 1.4rem;
+    border: 1px solid var(--wt-line);
+    border-radius: 1.4rem;
+    color: #fff;
+    background:
+      radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--wt-accent) 16%, transparent), transparent 55%),
+      var(--wt-panel);
+    text-decoration: none;
+    transition: transform 280ms cubic-bezier(0.2, 0.9, 0.2, 1), border-color 280ms ease;
+  }
+
+  .wt-other:hover {
+    transform: translateY(-5px);
+    border-color: color-mix(in srgb, var(--wt-accent) 55%, transparent);
+  }
+
+  .wt-other__code {
+    color: var(--wt-accent);
+    font: 800 0.72rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.1em;
+  }
+
+  .wt-other strong {
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .wt-other__promise {
+    color: rgb(223 245 255 / 64%);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .wt-other__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
+
+  .wt-other__go {
+    display: grid;
+    width: 2.2rem;
+    height: 2.2rem;
+    place-items: center;
+    border-radius: 50%;
+    color: #050507;
+    background: var(--wt-accent);
+    font-weight: 800;
+    transition: transform 260ms ease;
+  }
+
+  .wt-other:hover .wt-other__go {
+    transform: translateX(4px);
+  }
+
+  /* ---------------------------------------------------------------- Barra móvil y aviso */
+  .wt-dock {
+    position: fixed;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    z-index: 40;
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid rgb(185 151 255 / 28%);
+    border-radius: 999px;
+    background: rgb(7 8 28 / 88%);
+    box-shadow: 0 1rem 3rem rgb(0 0 0 / 50%);
+    backdrop-filter: blur(14px);
+  }
+
+  .wt-dock__primary {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.9rem;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(120deg, #6830e4, #8f58ff);
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .wt-dock__pdf {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0 1rem;
+    border-radius: 999px;
+    color: #050507;
+    background: var(--wt-accent);
+    font: 800 0.72rem/1 Menlo, Monaco, Consolas, monospace;
+    text-decoration: none;
+  }
+
+  .wt-toast {
+    position: fixed;
+    bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    left: 50%;
+    z-index: 60;
+    padding: 0.75rem 1.1rem;
+    border: 1px solid rgb(0 240 180 / 45%);
+    border-radius: 999px;
+    color: #7fffdc;
+    background: rgb(4 18 24 / 92%);
+    font-size: 0.86rem;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 1rem);
+    transition: opacity 250ms ease, transform 250ms ease;
+  }
+
+  .wt-toast:empty {
+    display: none;
+  }
+
+  .wt-toast.is-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  /* ---------------------------------------------------------------- Aparición */
+  .wt--animated [data-wt-reveal] {
+    opacity: 0;
+    transform: translateY(1.6rem);
+    transition:
+      opacity 700ms ease var(--wt-delay, 0ms),
+      transform 700ms cubic-bezier(0.2, 0.9, 0.2, 1) var(--wt-delay, 0ms);
+  }
+
+  .wt--animated [data-wt-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @keyframes wt-float {
+    50% { transform: translateY(-6px) rotate(-2deg); }
+  }
+
+  @keyframes wt-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---------------------------------------------------------------- Responsive */
+  @media (min-width: 720px) {
+    .wt-download__card {
+      grid-template-columns: 15rem 1fr;
+    }
+
+    .wt-fit__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .wt-others__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .wt-timeline::before {
+      left: 1.95rem;
+    }
+
+    .wt-step {
+      grid-template-columns: 4rem 1fr;
+      gap: 1.4rem;
+    }
+
+    .wt-step__marker span {
+      width: 4rem;
+      height: 4rem;
+      font-size: 1rem;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .wt-hero__layout {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+    }
+
+    .wt-pass-wrap {
+      justify-self: end;
+    }
+
+    .wt-faq__layout {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      align-items: start;
+    }
+
+    .wt-faq__layout .wt-head {
+      position: sticky;
+      top: 7rem;
+    }
+
+    .wt-others__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .wt-dock {
+      display: none;
+    }
+
+    .wt-toast {
+      bottom: 2rem;
+    }
+  }
+
+  @media (max-width: 719px) {
+    .wt-hero .ai-actions .ai-button {
+      width: 100%;
+    }
+
+    .wt-pass-wrap {
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wt-pass-wrap,
+    .wt-pass-wrap:hover,
+    .wt-other,
+    .wt-step__card,
+    .wt-doc__sheet {
+      transition: none;
+      transform: none;
+    }
+
+    .wt-pass__orbit :global(img),
+    .wt-pass__ring {
+      animation: none;
+    }
+  }
+</style>

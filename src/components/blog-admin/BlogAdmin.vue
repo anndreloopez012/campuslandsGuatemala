@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import BlockEditor from "./BlockEditor.vue";
 import GalleryAdmin from "./GalleryAdmin.vue";
+import AcademyCampus from "./academy/AcademyCampus.vue";
 import { renderBlogBlocks } from "../../lib/blog";
 import {
   BLOG_EDITOR_STORAGE_KEY,
@@ -15,7 +16,7 @@ import {
   type EditorUser,
 } from "../../lib/blog-admin";
 
-type WorkspaceTab = "posts" | "galleries" | "categories" | "settings";
+type WorkspaceTab = "posts" | "galleries" | "categories" | "academy" | "settings";
 type AppState = "checking" | "login" | "workspace";
 type ArticleSearchScope = "all" | "title" | "author" | "category" | "tags";
 type ArticleSortOrder = "recent" | "oldest" | "title-asc" | "title-desc";
@@ -801,9 +802,11 @@ onBeforeUnmount(() => {
           <button :class="{ active: activeTab === 'posts' }" @click="selectTab('posts')"><b>01</b><span>Publicaciones</span><i>{{ articleStats.total }}</i></button>
           <button :class="{ active: activeTab === 'galleries' }" @click="selectTab('galleries')"><b>02</b><span>Galerías</span><i>{{ dashboard.galleries.length }}</i></button>
           <button :class="{ active: activeTab === 'categories' }" @click="selectTab('categories')"><b>03</b><span>Categorías</span><i>{{ dashboard.categories.length }}</i></button>
-          <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>04</b><span>Identidad y SEO</span><i>↗</i></button>
+          <button :class="{ active: activeTab === 'academy' }" @click="selectTab('academy')"><b>04</b><span>AI Academy</span><i>✦</i></button>
+          <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>05</b><span>Identidad y SEO</span><i>↗</i></button>
         </nav>
         <div class="workspace-sidebar__bottom">
+          <a href="/ai-academy/" target="_blank" rel="noopener">Ver AI Academy ↗</a>
           <a href="/blog/" target="_blank" rel="noopener">Ver blog público ↗</a>
           <div><span>{{ user?.username }}</span><small>{{ user?.email }}</small></div>
           <button @click="logout">Cerrar sesión</button>
@@ -816,6 +819,7 @@ onBeforeUnmount(() => {
           <option value="posts">Publicaciones</option>
           <option value="galleries">Galerías</option>
           <option value="categories">Categorías</option>
+          <option value="academy">AI Academy</option>
           <option value="settings">Identidad y SEO</option>
         </select>
         <button aria-label="Cerrar sesión" @click="logout">↪</button>
@@ -1075,6 +1079,13 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </section>
+
+        <AcademyCampus
+          v-else-if="activeTab === 'academy'"
+          :api="api"
+          :cms-url="cmsUrl"
+          @notice="(message, type) => showNotice(message, type)"
+        />
 
         <section v-else>
           <header class="page-heading"><div><p>PULSO / IDENTIDAD Y SEO</p><h1>Lenguaje editorial</h1><span>Todo lo que nombra, explica y posiciona la publicación pública.</span></div><button class="primary-action primary-action--small" :disabled="settingsSaving" @click="saveSettings"><span>{{ settingsSaving ? "Guardando…" : "Guardar cambios" }}</span><b>✓</b></button></header>

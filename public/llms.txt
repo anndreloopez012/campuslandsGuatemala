@@ -7,6 +7,11 @@
 - [Inicio](https://www.campuslands.pro/): presentación del modelo de formación, comunidad y sede.
 - [Sé un Camper](https://www.campuslands.pro/joinUs/): programa de formación y proceso para futuros estudiantes.
 - [AI Academy](https://www.campuslands.pro/ai-academy/): talleres presenciales de inteligencia artificial aplicada a automatizaciones, datos, marketing y finanzas.
+  - [Taller IA de cero a Agentes](https://www.campuslands.pro/ai-academy/taller-ia-0-agentes/): Aprende IA desde cero hasta crear agentes y subagentes con ChatGPT, Claude y Gemini.
+  - [Taller Marketing IA](https://www.campuslands.pro/ai-academy/taller-ia-marketing/): Construye un sistema de marketing con IA: diagnóstico de marca, contenidos, campaña de 7 días y plan de 30 días.
+  - [Taller Finanzas IA](https://www.campuslands.pro/ai-academy/taller-ia-finanzas/): Aplica IA a reportes financieros, escenarios, KPIs y decisiones ejecutivas.
+  - [Taller Análisis de Datos IA](https://www.campuslands.pro/ai-academy/taller-ia-analisis-datos/): Pasa de datos dispersos a hallazgos con IA, Copilot y Excel: KPIs, visualización y narrativa ejecutiva.
+  - [Taller Automatizaciones IA](https://www.campuslands.pro/ai-academy/taller-ia-automatizaciones/): Automatiza procesos con IA, Make, n8n y Zapier sin programar.
 - [Pulso Campuslands](https://www.campuslands.pro/blog/): publicación editorial con artículos de inteligencia artificial, programación, comunidad Camper y empleabilidad, organizados por categorías.
 - [Emplea](https://www.campuslands.pro/emplea/): conexión de empresas con talento tecnológico formado.
 - [Patrocina](https://www.campuslands.pro/patrocina/): opciones para impulsar la formación tecnológica de jóvenes.

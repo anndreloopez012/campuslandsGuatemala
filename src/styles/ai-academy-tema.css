@@ -1,0 +1,223 @@
+/* Tema de AI Academy: lo usan /ai-academy/ y las páginas de cada taller. */
+body.ai-academy-route {
+  --ai-void: #050507;
+  --ai-blue: #000051;
+  --ai-blue-bright: #2c67ba;
+  --ai-purple: #7a3cff;
+  --ai-glow: #b997ff;
+  --ai-ice: #dff5ff;
+  --color-primary: var(--ai-purple);
+  --color-primary-action: #965fff;
+  background:
+    radial-gradient(circle at 80% 4%, rgb(122 60 255 / 15%), transparent 26rem),
+    linear-gradient(155deg, #000051 0%, #030320 45%, #050507 100%);
+}
+
+body.ai-academy-route .site-content-layer {
+  isolation: isolate;
+}
+
+body.ai-academy-route #contenido-principal {
+  gap: 0;
+}
+
+body.ai-academy-route nav.navbar .content-redirects a {
+  padding-inline: clamp(0.55rem, 1vw, 0.9rem);
+}
+
+body.ai-academy-route nav.navbar .content-redirects a.active {
+  color: var(--ai-glow);
+  border-bottom-color: var(--ai-purple);
+}
+
+body.ai-academy-route .experience-progress span {
+  background: linear-gradient(90deg, #2c67ba, #7a3cff 58%, #b997ff);
+  box-shadow: 0 0 18px rgb(122 60 255 / 78%);
+}
+
+body.ai-academy-route .meteor-cursor-trail {
+  filter: hue-rotate(48deg) saturate(1.25);
+}
+
+body.ai-academy-route .code-aurora--aqua {
+  background: var(--ai-purple);
+}
+
+body.ai-academy-route .shooting-stars i {
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 95%),
+    rgb(185 151 255 / 82%) 14%,
+    rgb(122 60 255 / 34%) 52%,
+    transparent
+  );
+  filter: drop-shadow(0 0 6px rgb(122 60 255 / 75%));
+}
+
+body.ai-academy-route .shooting-stars i::before,
+body.ai-academy-route .code-nodes i {
+  box-shadow: 0 0 6px #fff, 0 0 15px #b997ff, 0 0 28px rgb(122 60 255 / 72%);
+}
+
+body.ai-academy-route .stellar-route-transition__surface {
+  background:
+    radial-gradient(circle at 72% 34%, rgb(122 60 255 / 22%), transparent 38%),
+    radial-gradient(circle at 26% 66%, rgb(44 103 186 / 14%), transparent 34%),
+    linear-gradient(112deg, #000051 0%, #09032b 48%, #050507 100%);
+}
+
+body.ai-academy-route .stellar-route-transition__tail {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(122 60 255 / 16%) 24%,
+    rgb(122 60 255 / 78%) 72%,
+    #fff
+  );
+  filter: drop-shadow(0 0 7px rgb(122 60 255 / 74%));
+}
+
+body.ai-academy-route .gradient-text {
+  background-image: linear-gradient(115deg, #57bbff, #b997ff 62%, #7a3cff);
+}
+
+body.ai-academy-route .btn-primary {
+  color: #fff;
+  background: linear-gradient(120deg, #6930e8, #8f58ff);
+  box-shadow: 0 0.9rem 2.5rem rgb(122 60 255 / 24%);
+}
+
+/* Piezas compartidas entre la portada de AI Academy y las páginas de cada taller. */
+
+.ai-page {
+  position: relative;
+  overflow: clip;
+  color: #fff;
+  background:
+    radial-gradient(circle at 10% 26%, rgb(44 103 186 / 15%), transparent 30rem),
+    linear-gradient(180deg, rgb(0 0 81 / 30%), rgb(5 5 7 / 98%) 27%, #050507 100%);
+}
+
+.ai-shell {
+  width: min(100% - 2.25rem, 1200px);
+  margin-inline: auto;
+}
+
+.ai-kicker,
+.ai-section-code {
+  color: rgb(185 151 255 / 88%);
+  font: 700 0.7rem/1.4 Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ai-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+.ai-kicker span {
+  width: 0.55rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ai-purple);
+  box-shadow: 0 0 0 0.32rem rgb(122 60 255 / 13%), 0 0 1.15rem var(--ai-purple);
+  animation: ai-signal 2.4s ease-out infinite;
+}
+
+.ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 2rem;
+}
+
+.ai-button {
+  display: inline-flex;
+  min-height: 3.35rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.35rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease, background 260ms ease;
+}
+
+.ai-button:hover {
+  transform: translateY(-3px);
+}
+
+.ai-button--primary {
+  color: #fff;
+  background: linear-gradient(120deg, #6830e4, #8f58ff);
+  box-shadow: 0 1rem 3rem rgb(122 60 255 / 28%), inset 0 1px rgb(255 255 255 / 20%);
+}
+
+.ai-button--primary:hover {
+  box-shadow: 0 1.25rem 3.5rem rgb(122 60 255 / 42%), inset 0 1px rgb(255 255 255 / 28%);
+}
+
+.ai-button--ghost {
+  color: rgb(223 245 255 / 86%);
+  border-color: rgb(185 151 255 / 28%);
+  background: rgb(7 16 43 / 42%);
+  backdrop-filter: blur(12px);
+}
+
+.ai-button--ghost:hover {
+  border-color: rgb(185 151 255 / 58%);
+  background: rgb(122 60 255 / 12%);
+}
+
+.ai-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  font: 700 0.62rem/1 Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.25s ease;
+}
+
+.ai-status-pill--open {
+  background: rgba(0, 240, 180, 0.12);
+  border: 1px solid rgba(0, 240, 180, 0.38);
+  color: #7fffdc;
+  box-shadow: 0 0 12px rgba(0, 240, 180, 0.15);
+}
+
+.ai-status-pill--upcoming {
+  background: rgba(185, 151, 255, 0.1);
+  border: 1px solid rgba(185, 151, 255, 0.22);
+  color: #d6c6ff;
+}
+
+.ai-status-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+.ai-status-pill--open .ai-status-pill__dot {
+  background: #00f0b4;
+  box-shadow: 0 0 8px #00f0b4;
+  animation: ai-pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes ai-pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.55; }
+}
+
+@keyframes ai-signal {
+  65%, 100% { box-shadow: 0 0 0 0.8rem transparent, 0 0 1.15rem var(--ai-purple); }
+}

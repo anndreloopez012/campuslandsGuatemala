@@ -29,10 +29,61 @@ const pageDetails = {
     ],
     topics: [
       "inteligencia artificial aplicada",
-      "automatizaciones",
-      "análisis de datos",
+      "IA de cero a agentes",
       "marketing",
       "finanzas",
+      "análisis de datos",
+      "automatizaciones",
+    ],
+  },
+  "/ai-academy/taller-ia-0-agentes/": {
+    name: "Taller IA de cero a Agentes",
+    audience: ["estudiantes", "emprendedores", "profesionales"],
+    topics: [
+      "fundamentos de IA",
+      "prompts",
+      "skills",
+      "agentes y subagentes",
+    ],
+  },
+  "/ai-academy/taller-ia-marketing/": {
+    name: "Taller Marketing IA",
+    audience: ["estudiantes", "emprendedores", "profesionales"],
+    topics: [
+      "marketing con IA",
+      "contenidos",
+      "campañas",
+      "métricas",
+    ],
+  },
+  "/ai-academy/taller-ia-finanzas/": {
+    name: "Taller Finanzas IA",
+    audience: ["estudiantes", "emprendedores", "profesionales"],
+    topics: [
+      "finanzas con IA",
+      "reportes",
+      "escenarios",
+      "KPIs",
+    ],
+  },
+  "/ai-academy/taller-ia-analisis-datos/": {
+    name: "Taller Análisis de Datos IA",
+    audience: ["estudiantes", "emprendedores", "profesionales"],
+    topics: [
+      "análisis de datos",
+      "Copilot",
+      "KPIs",
+      "storytelling con datos",
+    ],
+  },
+  "/ai-academy/taller-ia-automatizaciones/": {
+    name: "Taller Automatizaciones IA",
+    audience: ["estudiantes", "emprendedores", "profesionales"],
+    topics: [
+      "automatización",
+      "Make",
+      "n8n",
+      "Zapier",
     ],
   },
   "/blog/": {

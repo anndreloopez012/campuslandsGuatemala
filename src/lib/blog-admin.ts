@@ -91,6 +91,29 @@ export type EditorArticle = {
   updatedAt?: string;
 };
 
+export type EditorWorkshopCurriculum = {
+  id: number;
+  name: string;
+  url: string;
+  size: number;
+  mime: string;
+  updatedAt: string;
+};
+
+export type EditorWorkshop = {
+  key: string;
+  slug: string;
+  code: string;
+  title: string;
+  order: number;
+  isOpen: boolean;
+  startDate: string;
+  updatedAt: string;
+  curriculum: EditorWorkshopCurriculum | null;
+};
+
+export type EditorWorkshopChanges = Partial<{ isOpen: boolean; startDate: string; curriculum: number | null }>;
+
 export type EditorDashboard = {
   articles: EditorArticle[];
   galleries: EditorGallery[];
@@ -112,6 +135,46 @@ export function slugify(value: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 140);
 }
+
+// ------------------------------------------------------------------ campus de AI Academy
+
+export type AcademyFile = { id: number; name: string; mime: string; size: number; url: string };
+
+export type AcademyWorkshop = {
+  id: number;
+  key: string;
+  slug: string;
+  code: string;
+  title: string;
+  order: number;
+  accent: string;
+  description: string;
+  hours: number;
+  isPublic: boolean;
+  isOpen: boolean;
+  startDate: string;
+  counts?: { students: number; diplomas: number; tools: number; videos: number };
+};
+
+export type AcademyPerson = {
+  id: number;
+  email: string;
+  fullName: string;
+  phone: string;
+  blocked: boolean;
+  role: "student" | "admin";
+  isOwner: boolean;
+  mustChangePassword: boolean;
+  createdAt: string;
+  workshops?: { key: string; code: string; title: string; accent: string; enrollmentId: number; status: string }[];
+};
+
+export type AcademyEnrollment = { id: number; cohort: string; status: "inscrito" | "en-curso" | "completado"; enrolledAt: string; student: AcademyPerson };
+export type AcademyDiploma = { id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: "emitido" | "revocado"; studentId: number | null; file: AcademyFile | null };
+export type AcademyTool = { id: number; title: string; url: string; description: string; category: string; order: number };
+export type AcademyVideo = { id: number; title: string; description: string; session: number | null; order: number; source: "archivo" | "enlace"; externalUrl: string; durationSeconds: number | null; file: AcademyFile | null };
+export type AcademyDetail = { workshop: AcademyWorkshop; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
   cmsUrl: string;
@@ -248,6 +311,17 @@ export class BlogAdminApi {
     });
   }
 
+  workshops() {
+    return this.request<EditorWorkshop[]>("/editor/workshops");
+  }
+
+  updateWorkshop(key: string, data: EditorWorkshopChanges) {
+    return this.request<EditorWorkshop>(`/editor/workshops/${encodeURIComponent(key)}`, {
+      method: "PUT",
+      body: JSON.stringify({ data }),
+    });
+  }
+
   async upload(file: File): Promise<EditorMedia> {
     const form = new FormData();
     form.append("files", file);
@@ -263,5 +337,106 @@ export class BlogAdminApi {
     const uploaded = await this.request<EditorMedia[]>("/upload", { method: "POST", body: form });
     if (!Array.isArray(uploaded)) throw new Error("No se recibieron los archivos cargados.");
     return uploaded;
+  }
+
+  // ---------------------------------------------------------------- campus de AI Academy
+  academyOverview() {
+    return this.request<AcademyOverview>("/editor/academy");
+  }
+
+  academyWorkshop(key: string) {
+    return this.request<AcademyDetail>(`/editor/academy/workshops/${encodeURIComponent(key)}`);
+  }
+
+  createAcademyWorkshop(data: Partial<AcademyWorkshop>) {
+    return this.request<AcademyWorkshop>("/editor/academy/workshops", { method: "POST", body: JSON.stringify({ data }) });
+  }
+
+  updateAcademyWorkshop(key: string, data: Partial<AcademyWorkshop>) {
+    return this.request<AcademyWorkshop>(`/editor/academy/workshops/${encodeURIComponent(key)}`, { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  enroll(data: { workshop: string; students: number[]; cohort?: string; status?: string }) {
+    return this.request<{ created: number }>("/editor/academy/enrollments", { method: "POST", body: JSON.stringify({ data }) });
+  }
+
+  updateEnrollment(id: number, data: { cohort?: string; status?: string }) {
+    return this.request<Partial<AcademyEnrollment>>(`/editor/academy/enrollments/${id}`, { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  removeEnrollment(id: number) {
+    return this.request<void>(`/editor/academy/enrollments/${id}`, { method: "DELETE" });
+  }
+
+  saveDiploma(data: Record<string, unknown>, id?: number) {
+    return this.request<AcademyDiploma>(id ? `/editor/academy/diplomas/${id}` : "/editor/academy/diplomas", { method: id ? "PUT" : "POST", body: JSON.stringify({ data }) });
+  }
+
+  removeDiploma(id: number) {
+    return this.request<void>(`/editor/academy/diplomas/${id}`, { method: "DELETE" });
+  }
+
+  saveTool(data: Record<string, unknown>, id?: number) {
+    return this.request<AcademyTool>(id ? `/editor/academy/tools/${id}` : "/editor/academy/tools", { method: id ? "PUT" : "POST", body: JSON.stringify({ data }) });
+  }
+
+  removeTool(id: number) {
+    return this.request<void>(`/editor/academy/tools/${id}`, { method: "DELETE" });
+  }
+
+  saveVideo(data: Record<string, unknown>, id?: number) {
+    return this.request<AcademyVideo>(id ? `/editor/academy/videos/${id}` : "/editor/academy/videos", { method: id ? "PUT" : "POST", body: JSON.stringify({ data }) });
+  }
+
+  removeVideo(id: number) {
+    return this.request<void>(`/editor/academy/videos/${id}`, { method: "DELETE" });
+  }
+
+  reorderAcademy(kind: "tools" | "videos", ids: number[]) {
+    return this.request<{ ok: boolean }>(`/editor/academy/order/${kind}`, { method: "PUT", body: JSON.stringify({ ids }) });
+  }
+
+  academyUsers(role: "student" | "admin") {
+    return this.request<{ canManageAdmins: boolean; users: AcademyPerson[] }>(`/editor/academy/users?role=${role}`);
+  }
+
+  createAcademyUser(data: Record<string, unknown>) {
+    return this.request<{ id: number; email: string; fullName: string; temporaryPassword: string }>("/editor/academy/users", { method: "POST", body: JSON.stringify({ data }) });
+  }
+
+  updateAcademyUser(id: number, data: Record<string, unknown>) {
+    return this.request<AcademyPerson>(`/editor/academy/users/${id}`, { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  resetAcademyPassword(id: number) {
+    return this.request<{ temporaryPassword: string }>(`/editor/academy/users/${id}/password`, { method: "POST" });
+  }
+
+  // Subida al almacén privado con progreso real (los videos pueden pesar cientos de MB).
+  uploadAcademyFile(file: File, kind: "diploma" | "video", onProgress?: (value: number) => void) {
+    return new Promise<AcademyFile>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open("POST", `${this.cmsUrl}/api/editor/academy/files?kind=${kind}`);
+      if (this.token) request.setRequestHeader("Authorization", `Bearer ${this.token}`);
+      request.setRequestHeader("Accept", "application/json");
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
+      };
+      request.onload = () => {
+        let payload: any = null;
+        try { payload = JSON.parse(request.responseText); } catch { /* respuesta vacía */ }
+        if (request.status >= 200 && request.status < 300 && payload?.data) resolve(payload.data as AcademyFile);
+        else if (request.status === 413) reject(new Error("El archivo supera el límite del servidor."));
+        else reject(new Error(payload?.error?.message || "El CMS no aceptó el archivo."));
+      };
+      request.onerror = () => reject(new Error("Se perdió la conexión con el CMS durante la subida."));
+      const form = new FormData();
+      form.append("file", file);
+      request.send(form);
+    });
+  }
+
+  fileUrl(file: Pick<AcademyFile, "url">) {
+    return /^https?:\/\//.test(file.url) ? file.url : `${this.cmsUrl}${file.url}`;
   }
 }

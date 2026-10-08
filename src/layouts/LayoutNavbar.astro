@@ -25,7 +25,7 @@ const {
   structuredData,
 } = Astro.props;
 const currentPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
-const isAiAcademy = currentPath === "/ai-academy";
+const isAiAcademy = currentPath === "/ai-academy" || currentPath.startsWith("/ai-academy/");
 const isBlog = currentPath === "/blog" || currentPath.startsWith("/blog/");
 const isHistoria = currentPath === "/historia";
 const curryear = new Date().getFullYear();

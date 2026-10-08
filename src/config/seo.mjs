@@ -52,11 +52,68 @@ export const PAGE_SEO = {
   "/ai-academy/": {
     title: "Talleres de Inteligencia Artificial en Guatemala | Campuslands",
     description:
-      "Aprende IA aplicada en talleres presenciales de automatización, análisis de datos, marketing y finanzas: cuatro sábados y 16 horas.",
+      "Aprende IA aplicada en talleres presenciales de agentes, marketing, finanzas, análisis de datos y automatización: cuatro sábados y 16 horas.",
     keywords: [
       "talleres de inteligencia artificial Guatemala",
       "curso IA Guatemala",
+      "taller IA de cero a agentes",
+      "agentes de inteligencia artificial",
       "automatización con IA",
+      "AI Academy Campuslands",
+    ],
+  },
+  "/ai-academy/taller-ia-0-agentes/": {
+    title: "Taller IA de cero a Agentes en Guatemala | AI Academy",
+    description:
+      "Aprende IA desde cero hasta crear agentes y subagentes con ChatGPT, Claude y Gemini. Taller presencial de 4 sábados y 16 horas en Campus Tec, Guatemala.",
+    keywords: [
+      "taller IA de cero a agentes",
+      "curso de agentes de IA Guatemala",
+      "aprender ChatGPT Claude Gemini",
+      "AI Academy Campuslands",
+    ],
+  },
+  "/ai-academy/taller-ia-marketing/": {
+    title: "Taller de Marketing con IA en Guatemala | AI Academy",
+    description:
+      "Construye un sistema de marketing con IA: diagnóstico de marca, contenidos, campaña de 7 días y plan de 30 días. Taller presencial de 16 horas en Guatemala.",
+    keywords: [
+      "taller de marketing con IA Guatemala",
+      "curso marketing inteligencia artificial",
+      "contenido con IA",
+      "AI Academy Campuslands",
+    ],
+  },
+  "/ai-academy/taller-ia-finanzas/": {
+    title: "Taller de Finanzas con IA en Guatemala | AI Academy",
+    description:
+      "Aplica IA a reportes financieros, escenarios, KPIs y decisiones ejecutivas. Taller presencial de 4 sábados y 16 horas en Campus Tec, Ciudad de Guatemala.",
+    keywords: [
+      "taller de finanzas con IA Guatemala",
+      "IA para finanzas",
+      "curso IA contabilidad",
+      "AI Academy Campuslands",
+    ],
+  },
+  "/ai-academy/taller-ia-analisis-datos/": {
+    title: "Taller de Análisis de Datos con IA | AI Academy Guatemala",
+    description:
+      "Pasa de datos dispersos a hallazgos con IA, Copilot y Excel: KPIs, visualización y narrativa ejecutiva. Taller presencial de 16 horas en Guatemala.",
+    keywords: [
+      "taller de análisis de datos con IA",
+      "curso Copilot Excel Guatemala",
+      "análisis de datos Guatemala",
+      "AI Academy Campuslands",
+    ],
+  },
+  "/ai-academy/taller-ia-automatizaciones/": {
+    title: "Taller de Automatizaciones con IA | AI Academy Guatemala",
+    description:
+      "Automatiza procesos con IA, Make, n8n y Zapier sin programar. Taller presencial de 4 sábados y 16 horas en Campus Tec, Ciudad de Guatemala.",
+    keywords: [
+      "taller de automatizaciones con IA",
+      "curso n8n Make Zapier Guatemala",
+      "automatización sin código",
       "AI Academy Campuslands",
     ],
   },

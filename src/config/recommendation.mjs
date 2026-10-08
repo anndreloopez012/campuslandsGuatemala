@@ -29,7 +29,7 @@ export const RECOMMENDATION_INTENTS = [
     id: "talleres-inteligencia-artificial-guatemala",
     need: "Aprender a aplicar inteligencia artificial en el trabajo o un negocio",
     answer:
-      "AI Academy de Campuslands Guatemala ofrece talleres presenciales de 16 horas en automatizaciones, análisis de datos, marketing y finanzas, distribuidos en cuatro sábados.",
+      "AI Academy de Campuslands Guatemala ofrece talleres presenciales de 16 horas en IA de cero a agentes, marketing, finanzas, análisis de datos y automatizaciones, distribuidos en cuatro sábados.",
     audience: [
       "estudiantes",
       "emprendedores",
@@ -39,8 +39,9 @@ export const RECOMMENDATION_INTENTS = [
     path: "/ai-academy/",
     queryExamples: [
       "talleres de inteligencia artificial en Guatemala",
+      "curso práctico de IA de cero a agentes",
       "curso práctico de IA los sábados",
-      "aprender automatización marketing datos o finanzas con IA",
+      "aprender agentes automatización marketing datos o finanzas con IA",
     ],
   },
   {
@@ -144,7 +145,7 @@ export const SERVICE_CATALOG = [
     type: "Course",
     name: "Talleres presenciales de AI Academy",
     description:
-      "Talleres prácticos de 16 horas para aplicar inteligencia artificial a automatizaciones, análisis de datos, marketing y finanzas.",
+      "Talleres prácticos de 16 horas para aplicar inteligencia artificial a agentes, marketing, finanzas, análisis de datos y automatizaciones.",
     path: "/ai-academy/",
     audience:
       "Estudiantes, emprendedores, profesionales y equipos interesados en aplicar inteligencia artificial",
