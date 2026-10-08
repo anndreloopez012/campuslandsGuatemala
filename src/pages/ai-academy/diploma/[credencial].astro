@@ -1,0 +1,116 @@
+---
+export const prerender = false;
+
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import { SITE_URL } from "~/config/seo.mjs";
+import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
+import { formatDiplomaDate, linkedinShareUrl, verifyDiploma } from "~/lib/academy-campus";
+import "~/styles/index.css";
+import "~/styles/ai-academy-tema.css";
+import "~/styles/ai-academy-campus.css";
+
+type Verified = {
+  credentialId: string; status: string; title: string; issuedAt: string; hours: number; skills: string[];
+  student: { fullName: string }; workshop: { code: string; title: string; slug: string; accent: string };
+};
+
+const credencial = String(Astro.params.credencial ?? "").toUpperCase().slice(0, 40);
+const diploma = /^[A-Z0-9-]{6,40}$/.test(credencial) ? ((await verifyDiploma(credencial)) as Verified | null) : null;
+if (!diploma) Astro.response.status = 404;
+
+const revoked = diploma?.status === "revocado";
+const url = `${SITE_URL}/ai-academy/diploma/${credencial}/`;
+const title = diploma ? `${diploma.student.fullName} · ${diploma.title} | AI Academy` : "Diploma no encontrado | AI Academy";
+const description = diploma
+  ? `${diploma.student.fullName} completó ${diploma.title} en AI Academy de Campuslands Guatemala (${diploma.hours} horas). Credencial ${diploma.credentialId}.`
+  : "Verificación de diplomas de AI Academy de Campuslands Guatemala.";
+const dataFooter = {
+  title: "¿Quieres una credencial como esta?",
+  content: "Cinco talleres presenciales de IA aplicada, con diploma verificable para LinkedIn.",
+  buttonType: "ia",
+  buttonLink: `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡Hola! Vi un diploma de AI Academy y quiero información de los talleres.")}`,
+};
+---
+
+<LayoutNavbar dataFooter={dataFooter} title={title} description={description} noindex>
+  <section class="cx verify" style={`--cx-accent: ${diploma?.workshop.accent ?? "#7a3cff"};`}>
+    <div class="cx-sky" aria-hidden="true"></div>
+    <div class="cx-shell verify__shell">
+      {diploma ? (
+        <>
+          <div class:list={["verify__stamp", revoked && "is-revoked"]} role="status">
+            <span aria-hidden="true">{revoked ? "✕" : "✓"}</span>
+            <div>
+              <strong>{revoked ? "Credencial revocada" : "Credencial verificada"}</strong>
+              <small>{revoked ? "Este diploma ya no es válido. Si crees que es un error, escríbenos." : "Emitida por Campuslands Guatemala · AI Academy"}</small>
+            </div>
+          </div>
+
+          <article class:list={["cx-cert", "verify__cert", revoked && "is-revoked"]}>
+            <div class="cx-cert__top"><span>Campuslands Guatemala · AI Academy</span><span>{diploma.workshop.code}</span></div>
+            <div class="verify__body">
+              <div>
+                <p class="verify__label">Se otorga a</p>
+                <h1 class="cx-cert__name">{diploma.student.fullName}</h1>
+                <p class="cx-cert__title">por completar <strong>{diploma.title}</strong>, {diploma.hours} horas de formación presencial aplicada en inteligencia artificial.</p>
+              </div>
+              <span class="cx-seal">AI<br />ACADEMY<br />✦</span>
+            </div>
+            {diploma.skills.length > 0 && <ul class="cx-skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
+            <dl class="cx-cert__meta">
+              <div><dt>Emitido</dt><dd>{formatDiplomaDate(diploma.issuedAt)}</dd></div>
+              <div><dt>ID de credencial</dt><dd>{diploma.credentialId}</dd></div>
+              <div><dt>Horas</dt><dd>{diploma.hours}</dd></div>
+              <div><dt>Emisor</dt><dd>Campuslands Guatemala</dd></div>
+            </dl>
+            {revoked && <span class="verify__void" aria-hidden="true">REVOCADO</span>}
+          </article>
+
+          <div class="verify__actions">
+            {!revoked && <a class="cx-btn cx-btn--linkedin" href={linkedinShareUrl(url)} target="_blank" rel="noopener noreferrer">Compartir en LinkedIn</a>}
+            <a class="cx-btn cx-btn--ghost" href={`/ai-academy/${diploma.workshop.slug}/`}>Conocer el taller →</a>
+          </div>
+        </>
+      ) : (
+        <div class="cx-glass verify__missing">
+          <span aria-hidden="true">?</span>
+          <h1>No encontramos ese diploma</h1>
+          <p>Revisa que el identificador esté completo. Tiene la forma <code>CLGT-TALLER-AAMM-XXXXXX</code>.</p>
+          <a class="cx-btn" href="/ai-academy/">Ir a AI Academy</a>
+        </div>
+      )}
+    </div>
+  </section>
+</LayoutNavbar>
+
+<style>
+  .verify { display: grid; place-items: center; padding: clamp(2.5rem, 7vw, 5rem) 0; }
+  .verify__shell { display: grid; gap: 1.4rem; max-width: 56rem; }
+
+  .verify__stamp { display: flex; align-items: center; gap: 0.9rem; justify-self: start; padding: 0.7rem 1.1rem 0.7rem 0.7rem; border: 1px solid rgb(0 240 180 / 40%); border-radius: 999px; background: rgb(0 240 180 / 8%); }
+  .verify__stamp > span { display: grid; width: 2.4rem; height: 2.4rem; place-items: center; border-radius: 50%; color: #050507; background: #7fffdc; font-weight: 900; box-shadow: 0 0 1.4rem rgb(127 255 220 / 50%); }
+  .verify__stamp strong { display: block; color: #7fffdc; }
+  .verify__stamp small { color: rgb(223 245 255 / 70%); font-size: 0.8rem; }
+  .verify__stamp.is-revoked { border-color: rgb(255 100 120 / 45%); background: rgb(255 67 91 / 8%); }
+  .verify__stamp.is-revoked > span { background: #ff8a9b; box-shadow: none; }
+  .verify__stamp.is-revoked strong { color: #ffc4cc; }
+
+  .verify__body { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.2rem; }
+  .verify__label { color: rgb(223 245 255 / 55%); font: 700 0.62rem/1.4 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.16em; text-transform: uppercase; }
+  .verify__cert h1 { margin: 0.3rem 0 0.6rem; }
+  .verify__cert.is-revoked { filter: grayscale(0.85); }
+  .verify__void { position: absolute; top: 50%; left: 50%; padding: 0.4rem 1.4rem; border: 3px solid #ff8a9b; border-radius: 0.6rem; color: #ff8a9b; font: 900 clamp(1.6rem, 6vw, 3rem)/1 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.2em; transform: translate(-50%, -50%) rotate(-12deg); opacity: 0.8; }
+
+  .verify__actions { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+
+  .verify__missing { display: grid; justify-items: center; gap: 0.9rem; padding: clamp(2rem, 6vw, 3.5rem); text-align: center; }
+  .verify__missing > span { display: grid; width: 4rem; height: 4rem; place-items: center; border-radius: 1.3rem; background: rgb(122 60 255 / 20%); font-size: 1.8rem; font-weight: 800; }
+  .verify__missing h1 { margin: 0; font-size: clamp(1.5rem, 4vw, 2.2rem); letter-spacing: -0.04em; }
+  .verify__missing p { max-width: 30rem; margin: 0; color: var(--cx-text); line-height: 1.6; }
+  .verify__missing code { color: #fff; }
+
+  @media (max-width: 640px) {
+    .verify__body { flex-direction: column-reverse; }
+    .verify__actions .cx-btn { width: 100%; }
+  }
+</style>

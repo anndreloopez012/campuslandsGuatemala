@@ -1,0 +1,88 @@
+---
+export const prerender = false;
+
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
+import { campusData, changeStudentPassword } from "~/lib/academy-campus";
+import "~/styles/index.css";
+import "~/styles/ai-academy-tema.css";
+import "~/styles/ai-academy-campus.css";
+
+const data = await campusData(Astro.cookies);
+if (!data) return Astro.redirect("/ai-academy/acceso/", 302);
+
+let error = "";
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const current = String(form.get("current") ?? "");
+  const next = String(form.get("next") ?? "");
+  const confirm = String(form.get("confirm") ?? "");
+  if (next !== confirm) error = "Las contraseñas nuevas no coinciden.";
+  else {
+    const result = await changeStudentPassword(Astro.cookies, current, next);
+    if ("error" in result && result.error) error = result.error;
+    else return Astro.redirect("/ai-academy/campus/?bienvenida=1", 303);
+  }
+}
+
+const firstName = data.student.fullName.split(" ")[0];
+const required = data.student.mustChangePassword;
+const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡Hola! Necesito ayuda con la contraseña de mi campus de AI Academy.")}`;
+---
+
+<LayoutNavbar dataFooter={{ title: "¿Necesitas ayuda con tu acceso?", content: "Escríbenos por WhatsApp.", buttonType: "ia", buttonLink: help }} title="Tu contraseña | Campus AI Academy" description="Crea tu contraseña del campus de AI Academy." noindex>
+  <section class="cx clave" aria-labelledby="clave-titulo">
+    <div class="cx-sky" aria-hidden="true"></div>
+    <form class="cx-glass clave__card" method="post" data-clave>
+      <p class="cx-kicker"><i></i>{required ? "Primer ingreso" : "Seguridad"}</p>
+      <h1 id="clave-titulo">{required ? `¡Bienvenido, ${firstName}!` : "Cambia tu contraseña"}</h1>
+      <p class="clave__lead">{required ? "Antes de entrar, crea tu propia contraseña. La temporal deja de funcionar en cuanto la cambies." : "Usa al menos 8 caracteres, con letras y números."}</p>
+      {error && <p class="cx-alert" role="alert">{error}</p>}
+      <label class="cx-field">Contraseña {required ? "temporal" : "actual"}<input type="password" name="current" autocomplete="current-password" required /></label>
+      <label class="cx-field">Nueva contraseña<input type="password" name="next" autocomplete="new-password" minlength="8" required data-next /></label>
+      <div class="clave__meter" aria-hidden="true"><i data-meter></i></div>
+      <ul class="clave__rules" data-rules>
+        <li data-rule="largo">Al menos 8 caracteres</li>
+        <li data-rule="letras">Letras</li>
+        <li data-rule="numeros">Números</li>
+      </ul>
+      <label class="cx-field">Confirma la nueva contraseña<input type="password" name="confirm" autocomplete="new-password" minlength="8" required /></label>
+      <button type="submit" class="cx-btn">Guardar y entrar <span aria-hidden="true">→</span></button>
+      {!required && <a class="clave__back" href="/ai-academy/campus/">← Volver a mi campus</a>}
+    </form>
+  </section>
+</LayoutNavbar>
+
+<script>
+  function initClave() {
+    const input = document.querySelector<HTMLInputElement>("[data-next]");
+    const meter = document.querySelector<HTMLElement>("[data-meter]");
+    const rules = document.querySelector<HTMLElement>("[data-rules]");
+    if (!input || !meter || !rules) return;
+    input.addEventListener("input", () => {
+      const value = input.value;
+      const checks = { largo: value.length >= 8, letras: /[A-Za-z]/.test(value), numeros: /\d/.test(value) };
+      Object.entries(checks).forEach(([rule, passed]) => rules.querySelector(`[data-rule="${rule}"]`)?.classList.toggle("is-ok", passed));
+      const score = Object.values(checks).filter(Boolean).length + (value.length >= 12 ? 1 : 0) + (/[^A-Za-z0-9]/.test(value) ? 1 : 0);
+      meter.style.width = `${Math.min(100, score * 20)}%`;
+      meter.dataset.level = score >= 4 ? "alto" : score >= 3 ? "medio" : "bajo";
+    });
+  }
+  document.addEventListener("astro:page-load", initClave);
+</script>
+
+<style>
+  .clave { display: grid; place-items: center; padding: clamp(2.5rem, 7vw, 5rem) 1.1rem; }
+  .clave__card { display: grid; gap: 1rem; width: min(100%, 30rem); padding: clamp(1.6rem, 4vw, 2.4rem); }
+  .clave h1 { margin: 0.2rem 0 0; font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing: -0.045em; }
+  .clave__lead { margin: -0.3rem 0 0.2rem; color: var(--cx-text); line-height: 1.6; }
+  .clave__meter { height: 6px; margin-top: -0.4rem; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 8%); }
+  .clave__meter i { display: block; width: 0; height: 100%; border-radius: inherit; background: #ff6478; transition: width 0.25s, background 0.25s; }
+  .clave__meter i[data-level="medio"] { background: #ffc56b; }
+  .clave__meter i[data-level="alto"] { background: #00f0b4; }
+  .clave__rules { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: -0.3rem 0 0; padding: 0; list-style: none; }
+  .clave__rules li { padding: 0.3rem 0.65rem; border: 1px solid rgb(255 255 255 / 12%); border-radius: 999px; color: rgb(223 245 255 / 60%); font-size: 0.75rem; transition: all 0.2s; }
+  .clave__rules li.is-ok { border-color: rgb(0 240 180 / 45%); color: #7fffdc; background: rgb(0 240 180 / 8%); }
+  .clave__rules li.is-ok::before { content: "✓ "; }
+  .clave__back { color: var(--ai-glow, #b997ff); font-size: 0.85rem; text-decoration: none; text-align: center; }
+</style>

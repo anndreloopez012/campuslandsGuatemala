@@ -221,3 +221,38 @@ body.ai-academy-route .btn-primary {
 @keyframes ai-signal {
   65%, 100% { box-shadow: 0 0 0 0.8rem transparent, 0 0 1.15rem var(--ai-purple); }
 }
+
+/* Acceso al campus de estudiantes desde las páginas públicas */
+.ai-campus-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.1rem;
+  padding: 0.55rem 0.95rem 0.55rem 0.75rem;
+  border: 1px solid rgb(185 151 255 / 24%);
+  border-radius: 999px;
+  color: rgb(223 245 255 / 78%);
+  background: rgb(7 8 30 / 55%);
+  font-size: 0.86rem;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+  transition: border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.ai-campus-link strong {
+  color: #fff;
+}
+
+.ai-campus-link:hover {
+  border-color: rgb(185 151 255 / 60%);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.ai-campus-link__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #7fffdc;
+  box-shadow: 0 0 0 0.25rem rgb(127 255 220 / 14%), 0 0 0.8rem #7fffdc;
+}

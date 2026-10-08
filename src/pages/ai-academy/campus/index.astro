@@ -1,0 +1,556 @@
+---
+export const prerender = false;
+
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
+import { SITE_URL } from "~/config/seo.mjs";
+import {
+  campusData, cmsFileUrl, embedUrl, formatDiplomaDate, formatDuration, linkedinAddUrl, linkedinShareUrl,
+  type CampusVideo,
+} from "~/lib/academy-campus";
+import "~/styles/index.css";
+import "~/styles/ai-academy-tema.css";
+import "~/styles/ai-academy-campus.css";
+
+const data = await campusData(Astro.cookies);
+if (!data) return Astro.redirect("/ai-academy/acceso/", 302);
+if (data.student.mustChangePassword) return Astro.redirect("/ai-academy/campus/clave/", 302);
+
+const { student, workshops } = data;
+const firstName = student.fullName.split(" ")[0];
+const requested = Astro.url.searchParams.get("taller");
+const current = workshops.find((item) => item.key === requested) ?? workshops[0];
+const welcome = Astro.url.searchParams.has("bienvenida");
+
+const progressOf = (videos: CampusVideo[]) => (videos.length ? Math.round((videos.filter((video) => video.progress.completed).length / videos.length) * 100) : 0);
+const verifyUrl = (id: string) => `${SITE_URL}/ai-academy/diploma/${id}/`;
+const favicon = (url: string) => {
+  try { return `https://www.google.com/s2/favicons?sz=64&domain=${new URL(url).hostname}`; } catch { return ""; }
+};
+const host = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
+const videos = current?.videos ?? [];
+const sessions = [...videos.reduce((map, video, index) => {
+  const label = video.session ? `Sábado ${video.session}` : "Material complementario";
+  map.set(label, [...(map.get(label) ?? []), { video, index }]);
+  return map;
+}, new Map<string, { video: CampusVideo; index: number }[]>())];
+const resumeIndex = Math.max(0, videos.findIndex((video) => !video.progress.completed));
+const categories = [...new Set((current?.tools ?? []).map((tool) => tool.category).filter(Boolean))];
+const defaultTab = current?.diplomas.length ? "diplomas" : videos.length ? "videos" : "herramientas";
+
+const playerData = videos.map((video) => ({
+  id: video.id,
+  title: video.title,
+  description: video.description,
+  kind: video.source === "enlace" ? (embedUrl(video.externalUrl) ? "embed" : "externo") : "archivo",
+  src: video.source === "enlace" ? embedUrl(video.externalUrl) || video.externalUrl : video.file ? cmsFileUrl(video.file) : "",
+  seconds: video.progress.seconds,
+  completed: video.progress.completed,
+}));
+
+const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡Hola! Soy estudiante de AI Academy y tengo una consulta sobre mi campus.")}`;
+---
+
+<LayoutNavbar dataFooter={{ title: "¿Dudas con tu campus?", content: "Escríbenos y te respondemos el mismo día.", buttonType: "ia", buttonLink: help }} title={`Campus de ${firstName} | AI Academy`} description="Tu campus de AI Academy." noindex>
+  <section class="cx campus" style={`--cx-accent: ${current?.accent ?? "#7a3cff"};`} data-campus data-welcome={welcome ? "1" : undefined}>
+    <div class="cx-sky" aria-hidden="true"></div>
+
+    <div class="cx-shell">
+      <header class="campus__top">
+        <div>
+          <p class="cx-kicker"><i></i>Campus AI Academy</p>
+          <h1>Hola, <span>{firstName}</span>.</h1>
+          <p class="campus__sub">{workshops.length === 1 ? "Este es tu taller." : workshops.length ? `Tienes ${workshops.length} talleres en tu órbita.` : "Tu campus está listo."}</p>
+        </div>
+        <div class="campus__me">
+          <span class="campus__avatar" aria-hidden="true">{student.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span>
+          <span class="campus__who"><strong>{student.fullName}</strong><small>{student.email}</small></span>
+          <a class="cx-btn cx-btn--ghost cx-btn--small" href="/ai-academy/campus/clave/">Contraseña</a>
+          <form method="post" action="/ai-academy/campus/salir/"><button class="cx-btn cx-btn--ghost cx-btn--small" type="submit">Salir</button></form>
+        </div>
+      </header>
+
+      {!current ? (
+        <div class="cx-glass campus__empty">
+          <span aria-hidden="true">🛰</span>
+          <h2>Aún no estás inscrito en un taller</h2>
+          <p>Cuando el equipo te inscriba, aquí aparecerán tus diplomas, herramientas y videos.</p>
+          <a class="cx-btn" href={help} target="_blank" rel="noopener noreferrer">Escribir al equipo ↗</a>
+        </div>
+      ) : (
+        <>
+          {workshops.length > 1 && (
+            <nav class="campus__switch" aria-label="Mis talleres">
+              {workshops.map((item) => {
+                const pct = progressOf(item.videos);
+                return (
+                  <a href={`/ai-academy/campus/?taller=${item.key}`} class:list={["campus__pill", item.key === current.key && "is-active"]} style={`--cx-accent: ${item.accent};`} aria-current={item.key === current.key ? "page" : undefined}>
+                    <span class="campus__ring" style={`--pct: ${pct}`} aria-hidden="true"><b>{pct}%</b></span>
+                    <span><small>{item.code}</small><strong>{item.title}</strong></span>
+                  </a>
+                );
+              })}
+            </nav>
+          )}
+
+          <article class="campus__hero cx-glass">
+            <span class="campus__orb" aria-hidden="true"></span>
+            <div class="campus__hero-copy">
+              <div class="campus__chips">
+                <span class="campus__code">{current.code}</span>
+                {current.enrollment.cohort && <span class="campus__chip">{current.enrollment.cohort}</span>}
+                <span class:list={["campus__chip", current.enrollment.status === "completado" && "is-ok"]}>{current.enrollment.status === "completado" ? "Completado" : current.enrollment.status === "en-curso" ? "En curso" : "Inscrito"}</span>
+              </div>
+              <h2>{current.title}</h2>
+              {current.description && <p>{current.description}</p>}
+            </div>
+            <div class="campus__progress">
+              <span class="campus__ring campus__ring--big" style={`--pct: ${progressOf(videos)}`}><b>{progressOf(videos)}%</b></span>
+              <dl>
+                <div><dt>{current.diplomas.length}</dt><dd>diploma{current.diplomas.length === 1 ? "" : "s"}</dd></div>
+                <div><dt>{current.tools.length}</dt><dd>herramientas</dd></div>
+                <div><dt>{videos.filter((video) => video.progress.completed).length}/{videos.length}</dt><dd>videos vistos</dd></div>
+              </dl>
+            </div>
+          </article>
+
+          <div class="campus__tabs" role="tablist" aria-label="Secciones del taller" data-tabs data-default={defaultTab}>
+            <button type="button" role="tab" data-tab="diplomas"><span aria-hidden="true">🎓</span>Diplomas<i>{current.diplomas.length}</i></button>
+            <button type="button" role="tab" data-tab="herramientas"><span aria-hidden="true">⚙</span>Herramientas<i>{current.tools.length}</i></button>
+            <button type="button" role="tab" data-tab="videos"><span aria-hidden="true">▶</span>Videos<i>{videos.length}</i></button>
+          </div>
+
+          <!-- DIPLOMAS -->
+          <section class="campus__panel" role="tabpanel" data-panel="diplomas" aria-label="Diplomas">
+            {current.diplomas.length ? current.diplomas.map((diploma) => {
+              const url = verifyUrl(diploma.credentialId);
+              return (
+                <div class="campus__diploma">
+                  <div class="cx-cert">
+                    <div class="cx-cert__top"><span>Campuslands Guatemala · AI Academy</span><span>Credencial verificable</span></div>
+                    <div class="campus__cert-body">
+                      <div>
+                        <p class="campus__cert-label">Se otorga a</p>
+                        <p class="cx-cert__name">{student.fullName}</p>
+                        <p class="cx-cert__title">por completar <strong>{diploma.title}</strong>, {diploma.hours} horas de formación presencial aplicada.</p>
+                      </div>
+                      <span class="cx-seal">AI<br />ACADEMY<br />✦</span>
+                    </div>
+                    {diploma.skills.length > 0 && <ul class="cx-skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
+                    <dl class="cx-cert__meta">
+                      <div><dt>Emitido</dt><dd>{formatDiplomaDate(diploma.issuedAt)}</dd></div>
+                      <div><dt>ID de credencial</dt><dd>{diploma.credentialId}</dd></div>
+                      <div><dt>Horas</dt><dd>{diploma.hours}</dd></div>
+                    </dl>
+                  </div>
+                  <div class="campus__diploma-actions">
+                    <a class="cx-btn cx-btn--linkedin" href={linkedinAddUrl(diploma, url)} target="_blank" rel="noopener noreferrer">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z"/></svg>
+                      Agregar a mi perfil de LinkedIn
+                    </a>
+                    <a class="cx-btn cx-btn--ghost" href={linkedinShareUrl(url)} target="_blank" rel="noopener noreferrer">Compartir publicación</a>
+                    {diploma.file && <a class="cx-btn cx-btn--ghost" href={cmsFileUrl(diploma.file)} download>Descargar PDF ↓</a>}
+                    <button type="button" class="cx-btn cx-btn--ghost" data-copy={url}>Copiar enlace de verificación</button>
+                    <a class="campus__verify" href={url} target="_blank" rel="noopener">Ver página de verificación ↗</a>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div class="cx-glass campus__locked">
+                <span class="campus__lock" aria-hidden="true">🔒</span>
+                <h3>Tu diploma se desbloquea al terminar el taller</h3>
+                <p>Cuando el equipo lo emita aparecerá aquí, con su identificador verificable y el botón para agregarlo a LinkedIn.</p>
+                <div class="campus__lock-bar" aria-hidden="true"><i style={`width: ${Math.max(6, progressOf(videos))}%`}></i></div>
+              </div>
+            )}
+          </section>
+
+          <!-- HERRAMIENTAS -->
+          <section class="campus__panel" role="tabpanel" data-panel="herramientas" aria-label="Herramientas" hidden>
+            {current.tools.length ? (
+              <>
+                <div class="campus__tool-bar">
+                  <label class="cx-field campus__search"><span class="sr-only">Buscar herramienta</span><input type="search" placeholder="Buscar herramienta…" data-tool-search /></label>
+                  {categories.length > 1 && (
+                    <div class="campus__cats" data-cats>
+                      <button type="button" class="is-active" data-cat="">Todas</button>
+                      {categories.map((category) => <button type="button" data-cat={category}>{category}</button>)}
+                    </div>
+                  )}
+                </div>
+                <div class="campus__tools">
+                  {current.tools.map((tool) => (
+                    <a class="campus__tool" href={tool.url} target="_blank" rel="noopener noreferrer" data-tool={`${tool.title} ${tool.description} ${tool.category}`.toLowerCase()} data-tool-cat={tool.category}>
+                      {favicon(tool.url) && <img src={favicon(tool.url)} alt="" width="44" height="44" loading="lazy" />}
+                      <span class="campus__tool-body">
+                        <strong>{tool.title}</strong>
+                        <small>{host(tool.url)}</small>
+                        {tool.description && <span>{tool.description}</span>}
+                      </span>
+                      <span class="campus__tool-go" aria-hidden="true">↗</span>
+                      {tool.category && <span class="campus__tool-cat">{tool.category}</span>}
+                    </a>
+                  ))}
+                </div>
+                <p class="campus__none" hidden data-tools-empty>Ninguna herramienta coincide con tu búsqueda.</p>
+              </>
+            ) : (
+              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true">⚙</span><h3>Pronto verás aquí tus herramientas</h3><p>El equipo publicará los enlaces y recursos del taller.</p></div>
+            )}
+          </section>
+
+          <!-- VIDEOS -->
+          <section class="campus__panel" role="tabpanel" data-panel="videos" aria-label="Videos" hidden>
+            {videos.length ? (
+              <div class="campus__cinema">
+                <div class="campus__stage">
+                  <div class="campus__screen" data-screen>
+                    <video controls playsinline preload="metadata" controlslist="nodownload" data-player hidden></video>
+                    <iframe title="Video del taller" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen data-embed hidden></iframe>
+                    <a class="campus__external" target="_blank" rel="noopener noreferrer" data-external hidden>Abrir el video en una pestaña nueva ↗</a>
+                  </div>
+                  <div class="campus__now">
+                    <div>
+                      <p class="cx-kicker"><i></i><span data-now-label>Reproduciendo</span></p>
+                      <h3 data-now-title></h3>
+                      <p data-now-desc></p>
+                    </div>
+                    <button type="button" class="cx-btn cx-btn--ghost cx-btn--small" data-mark>Marcar como visto ✓</button>
+                  </div>
+                </div>
+                <aside class="campus__playlist" aria-label="Lista de videos">
+                  {sessions.map(([label, items]) => (
+                    <div class="campus__session">
+                      <p class="campus__session-label">{label}</p>
+                      {items.map(({ video, index }) => (
+                        <button type="button" class:list={["campus__item", video.progress.completed && "is-done"]} data-video-index={index} aria-label={`Reproducir ${video.title}`}>
+                          <span class="campus__item-state" data-state>{video.progress.completed ? "✓" : "▶"}</span>
+                          <span class="campus__item-body">
+                            <strong>{video.title}</strong>
+                            <small>{video.source === "enlace" ? "Enlace" : "Video"}{video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ""}</small>
+                            <span class="campus__item-bar"><i style={`width: ${video.progress.completed ? 100 : video.durationSeconds ? Math.min(100, Math.round((video.progress.seconds / video.durationSeconds) * 100)) : 0}%`}></i></span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </aside>
+              </div>
+            ) : (
+              <div class="cx-glass campus__locked"><span class="campus__lock" aria-hidden="true">▶</span><h3>Las clases grabadas llegarán pronto</h3><p>Cuando el equipo publique los videos de cada sábado, los verás aquí.</p></div>
+            )}
+          </section>
+          <script type="application/json" data-videos set:html={JSON.stringify({ videos: playerData, resume: resumeIndex })} />
+        </>
+      )}
+    </div>
+    <p class="campus__toast" role="status" aria-live="polite" data-toast></p>
+    <div class="campus__confetti" aria-hidden="true" data-confetti></div>
+  </section>
+</LayoutNavbar>
+
+<script>
+  type PlayerVideo = { id: number; title: string; description: string; kind: "archivo" | "embed" | "externo"; src: string; seconds: number; completed: boolean };
+
+  function initCampus() {
+    const root = document.querySelector<HTMLElement>("[data-campus]");
+    if (!root) return;
+    const toast = root.querySelector<HTMLElement>("[data-toast]");
+    const say = (message: string) => {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+      window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+    };
+
+    // Pestañas (recuerdan la última en la URL)
+    const tabs = root.querySelector<HTMLElement>("[data-tabs]");
+    const show = (name: string, remember = true) => {
+      root.querySelectorAll<HTMLElement>("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== name; });
+      tabs?.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((button) => button.setAttribute("aria-selected", String(button.dataset.tab === name)));
+      if (remember) history.replaceState(history.state, "", `${location.pathname}${location.search}#${name}`);
+    };
+    tabs?.addEventListener("click", (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-tab]");
+      if (button?.dataset.tab) show(button.dataset.tab);
+    });
+    const initial = location.hash.slice(1);
+    show(["diplomas", "herramientas", "videos"].includes(initial) ? initial : tabs?.dataset.default || "diplomas", false);
+
+    // Copiar enlace de verificación
+    root.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((button) => button.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(button.dataset.copy || ""); say("Enlace de verificación copiado."); }
+      catch { window.prompt("Copia el enlace:", button.dataset.copy || ""); }
+    }));
+
+    // Herramientas: búsqueda y categorías
+    const search = root.querySelector<HTMLInputElement>("[data-tool-search]");
+    let category = "";
+    const filterTools = () => {
+      const query = (search?.value || "").trim().toLowerCase();
+      let visible = 0;
+      root.querySelectorAll<HTMLElement>("[data-tool]").forEach((tool) => {
+        const match = (!query || (tool.dataset.tool || "").includes(query)) && (!category || tool.dataset.toolCat === category);
+        tool.hidden = !match;
+        if (match) visible += 1;
+      });
+      const empty = root.querySelector<HTMLElement>("[data-tools-empty]");
+      if (empty) empty.hidden = visible > 0;
+    };
+    search?.addEventListener("input", filterTools);
+    root.querySelector("[data-cats]")?.addEventListener("click", (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-cat]");
+      if (!button) return;
+      category = button.dataset.cat || "";
+      root.querySelectorAll("[data-cat]").forEach((item) => item.classList.toggle("is-active", item === button));
+      filterTools();
+    });
+
+    // Reproductor
+    const payload = root.querySelector<HTMLScriptElement>("[data-videos]");
+    const parsed = payload ? JSON.parse(payload.textContent || "{}") : { videos: [], resume: 0 };
+    const list: PlayerVideo[] = parsed.videos ?? [];
+    const player = root.querySelector<HTMLVideoElement>("[data-player]");
+    const embed = root.querySelector<HTMLIFrameElement>("[data-embed]");
+    const external = root.querySelector<HTMLAnchorElement>("[data-external]");
+    const mark = root.querySelector<HTMLButtonElement>("[data-mark]");
+    let current = -1;
+    let lastSaved = 0;
+
+    const save = (completed = false) => {
+      const video = list[current];
+      if (!video) return;
+      const seconds = player && !player.hidden ? player.currentTime : video.seconds;
+      if (completed) video.completed = true;
+      video.seconds = seconds;
+      const body = JSON.stringify({ videoId: video.id, seconds, completed: video.completed });
+      if (navigator.sendBeacon && document.visibilityState === "hidden") navigator.sendBeacon("/ai-academy/campus/progreso/", new Blob([body], { type: "application/json" }));
+      else void fetch("/ai-academy/campus/progreso/", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
+    };
+
+    const paintItem = (index: number) => {
+      const item = root.querySelector<HTMLElement>(`[data-video-index="${index}"]`);
+      const video = list[index];
+      if (!item || !video) return;
+      const state = item.querySelector<HTMLElement>("[data-state]");
+      if (state) state.textContent = video.completed ? "✓" : "▶";
+      item.classList.toggle("is-done", video.completed);
+    };
+
+    const play = (index: number, autoplay = false) => {
+      const video = list[index];
+      if (!video || !player || !embed || !external) return;
+      if (current >= 0 && current !== index) save();
+      current = index;
+      root.querySelectorAll<HTMLElement>("[data-video-index]").forEach((item) => item.classList.toggle("is-current", Number(item.dataset.videoIndex) === index));
+      root.querySelector("[data-now-title]")!.textContent = video.title;
+      root.querySelector("[data-now-desc]")!.textContent = video.description;
+      root.querySelector("[data-now-label]")!.textContent = video.completed ? "Ya lo viste" : video.seconds > 5 ? "Continúa donde quedaste" : "Reproduciendo";
+      player.hidden = video.kind !== "archivo";
+      embed.hidden = video.kind !== "embed";
+      external.hidden = video.kind !== "externo";
+      player.pause();
+      if (video.kind === "archivo") {
+        player.src = video.src;
+        player.addEventListener("loadedmetadata", () => {
+          if (video.seconds > 5 && !video.completed && video.seconds < player.duration - 5) player.currentTime = video.seconds;
+          if (autoplay) void player.play().catch(() => {});
+        }, { once: true });
+      } else if (video.kind === "embed") {
+        embed.src = video.src;
+        player.removeAttribute("src");
+      } else {
+        external.href = video.src;
+      }
+      if (mark) mark.hidden = video.completed;
+    };
+
+    player?.addEventListener("timeupdate", () => {
+      const video = list[current];
+      if (!video || !player.duration) return;
+      if (!video.completed && player.currentTime / player.duration >= 0.9) {
+        save(true);
+        paintItem(current);
+        if (mark) mark.hidden = true;
+        say("¡Video completado! ✓");
+      } else if (Math.abs(player.currentTime - lastSaved) >= 15) {
+        lastSaved = player.currentTime;
+        save();
+      }
+    });
+    player?.addEventListener("pause", () => save());
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(); });
+    mark?.addEventListener("click", () => {
+      save(true);
+      paintItem(current);
+      mark.hidden = true;
+      say("Marcado como visto ✓");
+    });
+    root.querySelectorAll<HTMLButtonElement>("[data-video-index]").forEach((button) => button.addEventListener("click", () => play(Number(button.dataset.videoIndex), true)));
+    if (list.length) play(Math.min(parsed.resume ?? 0, list.length - 1));
+
+    // Bienvenida después de crear la contraseña
+    const confetti = root.querySelector<HTMLElement>("[data-confetti]");
+    if (root.dataset.welcome && confetti && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const colors = ["#57bbff", "#b997ff", "#7fffdc", "#ffc56b", "#ff7ad9"];
+      for (let index = 0; index < 60; index += 1) {
+        const piece = document.createElement("i");
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.background = colors[index % colors.length];
+        piece.style.animationDelay = `${Math.random() * 0.6}s`;
+        piece.style.setProperty("--x", `${(Math.random() - 0.5) * 240}px`);
+        piece.style.setProperty("--r", `${Math.random() * 720}deg`);
+        confetti.append(piece);
+      }
+      window.setTimeout(() => confetti.replaceChildren(), 3600);
+      say("¡Listo! Tu contraseña quedó guardada.");
+      history.replaceState(history.state, "", location.pathname + location.hash);
+    }
+  }
+
+  document.addEventListener("astro:page-load", initCampus);
+</script>
+
+<style>
+  .campus { padding: clamp(2rem, 5vw, 3.5rem) 0 4rem; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  .campus__top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.8rem; }
+  .campus__top h1 { margin: 0.6rem 0 0; font-size: clamp(2.4rem, 7vw, 4.4rem); font-weight: 800; line-height: 0.98; letter-spacing: -0.06em; }
+  .campus__top h1 span { color: transparent; background: linear-gradient(110deg, #57bbff, #dff5ff 40%, var(--cx-accent) 75%, #7a3cff); background-clip: text; }
+  .campus__sub { margin-top: 0.6rem; color: var(--cx-text); }
+  .campus__me { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+  .campus__avatar { display: grid; width: 2.8rem; height: 2.8rem; place-items: center; border-radius: 0.95rem; color: #050507; background: linear-gradient(135deg, var(--cx-accent), #57bbff); font-weight: 800; }
+  .campus__who { display: grid; margin-right: 0.4rem; }
+  .campus__who strong { font-size: 0.95rem; }
+  .campus__who small { color: rgb(223 245 255 / 55%); font-size: 0.78rem; }
+
+  .campus__switch { display: flex; gap: 0.7rem; margin-bottom: 1.2rem; padding-bottom: 0.3rem; overflow-x: auto; scrollbar-width: thin; }
+  .campus__pill { display: flex; flex: none; align-items: center; gap: 0.8rem; padding: 0.7rem 1rem 0.7rem 0.7rem; border: 1px solid var(--cx-line); border-radius: 1.2rem; color: #fff; background: rgb(10 11 38 / 70%); text-decoration: none; transition: border-color 0.25s, transform 0.25s, background 0.25s; }
+  .campus__pill:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cx-accent) 50%, transparent); }
+  .campus__pill.is-active { border-color: var(--cx-accent); background: color-mix(in srgb, var(--cx-accent) 14%, rgb(10 11 38)); }
+  .campus__pill small { display: block; color: var(--cx-accent); font: 800 0.62rem/1.4 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.08em; }
+  .campus__pill strong { font-size: 0.92rem; }
+
+  .campus__ring { position: relative; display: grid; width: 2.8rem; aspect-ratio: 1; flex: none; place-items: center; }
+  .campus__ring::before { position: absolute; inset: 0; border-radius: 50%; content: ""; background: conic-gradient(var(--cx-accent) calc(var(--pct) * 1%), rgb(255 255 255 / 10%) 0); -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%); mask: radial-gradient(circle, transparent 60%, #000 62%); }
+  .campus__ring--big::before { filter: drop-shadow(0 0 0.8rem color-mix(in srgb, var(--cx-accent) 45%, transparent)); }
+  .campus__ring b { position: relative; color: #fff; font: 800 0.6rem/1 Menlo, Monaco, Consolas, monospace; }
+  .campus__ring--big { width: 7.5rem; }
+  .campus__ring--big b { font-size: 1.3rem; }
+
+  .campus__hero { position: relative; display: grid; gap: 1.6rem; padding: clamp(1.5rem, 4vw, 2.4rem); overflow: hidden; isolation: isolate; }
+  .campus__orb { position: absolute; top: -40%; right: -10%; z-index: -1; width: 55%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--cx-accent) 30%, transparent), transparent 65%); }
+  .campus__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .campus__code { padding: 0.32rem 0.7rem; border-radius: 999px; color: #050507; background: var(--cx-accent); font: 800 0.66rem/1 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.06em; }
+  .campus__chip { padding: 0.32rem 0.7rem; border: 1px solid rgb(223 245 255 / 18%); border-radius: 999px; color: rgb(223 245 255 / 82%); font: 700 0.62rem/1 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+  .campus__chip.is-ok { border-color: rgb(0 240 180 / 45%); color: #7fffdc; }
+  .campus__hero h2 { margin: 0.8rem 0 0; font-size: clamp(1.8rem, 4.6vw, 3rem); line-height: 1.04; letter-spacing: -0.045em; }
+  .campus__hero-copy p { max-width: 40rem; margin-top: 0.7rem; color: var(--cx-text); line-height: 1.65; }
+  .campus__progress { display: flex; flex-wrap: wrap; align-items: center; gap: 1.6rem; }
+  .campus__progress dl { display: grid; grid-template-columns: repeat(3, auto); gap: 1.6rem; margin: 0; }
+  .campus__progress dt { font: 800 1.7rem/1 Menlo, Monaco, Consolas, monospace; }
+  .campus__progress dd { margin: 0.35rem 0 0; color: rgb(223 245 255 / 58%); font-size: 0.8rem; }
+
+  .campus__tabs { position: sticky; top: 5.2rem; z-index: 6; display: flex; gap: 0.4rem; margin: 1.4rem 0; padding: 0.4rem; overflow-x: auto; border: 1px solid var(--cx-line); border-radius: 1.2rem; background: rgb(7 8 28 / 86%); backdrop-filter: blur(14px); }
+  .campus__tabs button { display: inline-flex; flex: 1 0 auto; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.9rem; padding: 0 1.1rem; border: 0; border-radius: 0.85rem; color: rgb(223 245 255 / 70%); background: transparent; font: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer; transition: background 0.2s, color 0.2s; }
+  .campus__tabs button[aria-selected="true"] { color: #050507; background: var(--cx-accent); }
+  .campus__tabs i { padding: 0.15rem 0.45rem; border-radius: 999px; background: rgb(255 255 255 / 12%); font: 700 0.7rem/1.2 Menlo, Monaco, Consolas, monospace; font-style: normal; }
+  .campus__tabs button[aria-selected="true"] i { background: rgb(5 5 7 / 15%); }
+
+  .campus__panel { display: grid; gap: 1.4rem; }
+  .campus__panel[hidden] { display: none; }
+  .campus__diploma { display: grid; gap: 1.2rem; }
+  .campus__cert-body { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.2rem; }
+  .campus__cert-label { color: rgb(223 245 255 / 55%); font: 700 0.62rem/1.4 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.16em; text-transform: uppercase; }
+  .campus__diploma-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+  .campus__verify { color: var(--ai-glow, #b997ff); font-size: 0.85rem; font-weight: 700; text-decoration: none; }
+  .campus__verify:hover { color: #fff; }
+
+  .campus__locked, .campus__empty { display: grid; justify-items: center; gap: 0.8rem; padding: clamp(2rem, 6vw, 3.5rem); text-align: center; }
+  .campus__locked h3, .campus__empty h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.7rem); letter-spacing: -0.03em; }
+  .campus__locked p, .campus__empty p { max-width: 30rem; margin: 0; color: var(--cx-text); line-height: 1.6; }
+  .campus__lock, .campus__empty > span { display: grid; width: 4rem; height: 4rem; place-items: center; border-radius: 1.3rem; background: color-mix(in srgb, var(--cx-accent) 20%, transparent); font-size: 1.6rem; }
+  .campus__lock-bar { width: min(100%, 18rem); height: 8px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 8%); }
+  .campus__lock-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #57bbff, var(--cx-accent)); }
+
+  .campus__tool-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
+  .campus__search { flex: 1; min-width: 14rem; }
+  .campus__cats { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .campus__cats button { min-height: 2.3rem; padding: 0 0.9rem; border: 1px solid var(--cx-line); border-radius: 999px; color: rgb(223 245 255 / 75%); background: transparent; font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+  .campus__cats button.is-active { border-color: var(--cx-accent); color: #050507; background: var(--cx-accent); }
+  .campus__tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: 0.9rem; }
+  .campus__tool { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 0.9rem; padding: 1.1rem; border: 1px solid var(--cx-line); border-radius: 1.3rem; color: #fff; background: var(--cx-panel); text-decoration: none; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; }
+  .campus__tool:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--cx-accent) 55%, transparent); box-shadow: 0 1.2rem 3rem rgb(0 0 0 / 35%); }
+  .campus__tool img { width: 2.75rem; height: 2.75rem; padding: 0.45rem; border-radius: 0.85rem; background: #fff; }
+  .campus__tool-body { display: grid; gap: 0.25rem; min-width: 0; }
+  .campus__tool-body strong { font-size: 1rem; }
+  .campus__tool-body small { color: color-mix(in srgb, var(--cx-accent) 70%, white); font-size: 0.75rem; }
+  .campus__tool-body span { color: var(--cx-text); font-size: 0.84rem; line-height: 1.5; }
+  .campus__tool-go { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; color: #050507; background: var(--cx-accent); font-weight: 800; transition: transform 0.25s; }
+  .campus__tool:hover .campus__tool-go { transform: rotate(45deg); }
+  .campus__tool-cat { position: absolute; right: 1.1rem; bottom: 0.9rem; color: rgb(223 245 255 / 45%); font: 700 0.6rem/1 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+  .campus__tool[hidden] { display: none; }
+  .campus__none { color: var(--cx-text); text-align: center; }
+
+  .campus__cinema { display: grid; gap: 1.2rem; }
+  .campus__stage { display: grid; gap: 1rem; }
+  .campus__screen { position: relative; display: grid; aspect-ratio: 16 / 9; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--cx-accent) 35%, transparent); border-radius: 1.4rem; background: #000; box-shadow: 0 2rem 5rem rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 4%) inset; }
+  .campus__screen video, .campus__screen iframe { width: 100%; height: 100%; border: 0; }
+  .campus__screen [hidden] { display: none; }
+  .campus__external { color: #fff; font-weight: 700; }
+  .campus__now { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 1rem; }
+  .campus__now h3 { margin: 0.5rem 0 0; font-size: clamp(1.25rem, 3vw, 1.7rem); letter-spacing: -0.03em; }
+  .campus__now p:not(.cx-kicker) { max-width: 44rem; margin-top: 0.4rem; color: var(--cx-text); line-height: 1.6; }
+  .campus__now [hidden] { display: none; }
+  .campus__playlist { display: grid; align-content: start; gap: 1rem; padding: 1rem; border: 1px solid var(--cx-line); border-radius: 1.4rem; background: rgb(7 8 28 / 70%); }
+  .campus__session-label { margin: 0 0 0.5rem; color: var(--cx-accent); font: 800 0.66rem/1.4 Menlo, Monaco, Consolas, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+  .campus__item { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.8rem; width: 100%; height: auto; min-height: 0; padding: 0.75rem; line-height: 1.3; border: 1px solid transparent; border-radius: 1rem; color: #fff; background: transparent; font: inherit; text-align: left; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+  .campus__item:hover { background: rgb(255 255 255 / 4%); }
+  .campus__item.is-current { border-color: color-mix(in srgb, var(--cx-accent) 50%, transparent); background: color-mix(in srgb, var(--cx-accent) 12%, transparent); }
+  .campus__item-state { display: grid; width: 2.1rem; height: 2.1rem; place-items: center; border-radius: 0.7rem; background: rgb(255 255 255 / 8%); font-size: 0.8rem; }
+  .campus__item.is-done .campus__item-state { color: #050507; background: #7fffdc; }
+  .campus__item-body { display: grid; gap: 0.25rem; min-width: 0; }
+  .campus__item-body strong { overflow: hidden; font-size: 0.9rem; text-overflow: ellipsis; white-space: nowrap; }
+  .campus__item-body small { color: rgb(223 245 255 / 55%); font-size: 0.75rem; }
+  .campus__item-bar { height: 4px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 8%); }
+  .campus__item-bar i { display: block; height: 100%; background: var(--cx-accent); }
+
+  .campus__toast { position: fixed; bottom: 1.5rem; left: 50%; z-index: 60; padding: 0.8rem 1.2rem; border: 1px solid rgb(0 240 180 / 45%); border-radius: 999px; color: #7fffdc; background: rgb(4 18 24 / 94%); font-weight: 700; opacity: 0; pointer-events: none; transform: translate(-50%, 1rem); transition: opacity 0.25s, transform 0.25s; }
+  .campus__toast:empty { display: none; }
+  .campus__toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+  .campus__confetti { position: fixed; inset: 0; z-index: 70; overflow: hidden; pointer-events: none; }
+  .campus__confetti :global(i) { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; animation: campus-fall 3s cubic-bezier(0.2, 0.6, 0.4, 1) forwards; }
+
+  @keyframes campus-fall {
+    to { transform: translate(var(--x), 105vh) rotate(var(--r)); opacity: 0.6; }
+  }
+
+  @media (min-width: 960px) {
+    .campus__hero { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+    .campus__cinema { grid-template-columns: minmax(0, 1fr) 22rem; align-items: start; }
+    .campus__playlist { position: sticky; top: 10rem; max-height: calc(100vh - 12rem); overflow: auto; }
+  }
+
+  @media (max-width: 640px) {
+    .campus__progress { flex-wrap: nowrap; gap: 1rem; }
+    .campus__ring--big { width: 4.6rem; }
+    .campus__ring--big b { font-size: 0.9rem; }
+    .campus__progress dl { flex: 1; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: 0.6rem; }
+    .campus__progress dt { font-size: 1.3rem; }
+    .campus__progress dd { font-size: 0.7rem; }
+    .campus__tabs { top: 4.6rem; gap: 0.2rem; overflow: visible; }
+    .campus__tabs button { flex: 1 1 0; gap: 0.35rem; min-width: 0; padding: 0 0.4rem; font-size: 0.82rem; }
+    .campus__tabs button > span { display: none; }
+    .campus__cert-body { flex-direction: column-reverse; }
+    .campus__diploma-actions .cx-btn { width: 100%; }
+    .campus__me { width: 100%; }
+    .campus__who { flex: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .campus__pill, .campus__tool, .campus__tool-go { transition: none; }
+  }
+</style>

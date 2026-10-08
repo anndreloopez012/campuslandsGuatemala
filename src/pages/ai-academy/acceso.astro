@@ -1,0 +1,302 @@
+---
+export const prerender = false;
+
+import { Image } from "astro:assets";
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import orbitAI from "~/assets/img/ai-academy/orbit-ai-academy.png";
+import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
+import { campusData, loginStudent, setCampusSession } from "~/lib/academy-campus";
+import "~/styles/index.css";
+import "~/styles/ai-academy-tema.css";
+import "~/styles/ai-academy-campus.css";
+
+let error = "";
+let email = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  email = String(form.get("email") ?? "").slice(0, 160);
+  const password = String(form.get("password") ?? "");
+  if (!email || !password) {
+    error = "Escribe tu correo y tu contraseña.";
+  } else {
+    const result = await loginStudent(email, password);
+    if ("error" in result) {
+      error = result.error ?? "No pudimos iniciar tu sesión.";
+    } else {
+      setCampusSession(Astro.cookies, result.token);
+      return Astro.redirect(result.data.student.mustChangePassword ? "/ai-academy/campus/clave/" : "/ai-academy/campus/", 303);
+    }
+  }
+} else if (await campusData(Astro.cookies)) {
+  return Astro.redirect("/ai-academy/campus/", 302);
+}
+
+const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡Hola! Soy estudiante de AI Academy y necesito ayuda para ingresar a mi campus.")}`;
+const dataFooter = {
+  title: "¿Problemas para ingresar a tu campus?",
+  content: "Escríbenos por WhatsApp y te ayudamos a recuperar tu acceso.",
+  buttonType: "ia",
+  buttonLink: help,
+};
+---
+
+<LayoutNavbar dataFooter={dataFooter} title="Campus de estudiantes | AI Academy Campuslands" description="Ingresa a tu campus de AI Academy para ver tus diplomas, herramientas y videos." noindex>
+  <section class="cx acceso" aria-labelledby="acceso-titulo">
+    <div class="cx-sky" aria-hidden="true"></div>
+    <div class="cx-shell acceso__layout">
+      <div class="acceso__copy">
+        <p class="cx-kicker"><i></i>AI Academy · Campus de estudiantes</p>
+        <h1 id="acceso-titulo">Tu órbita de <span>aprendizaje.</span></h1>
+        <p class="acceso__lead">Tus diplomas listos para LinkedIn, las herramientas de cada taller y las clases grabadas, en un solo lugar.</p>
+        <ul class="acceso__features">
+          <li><b>🎓</b><span><strong>Diplomas verificables</strong>Agrégalos a tu perfil de LinkedIn con un clic.</span></li>
+          <li><b>⚙</b><span><strong>Herramientas</strong>Los enlaces y recursos de cada taller.</span></li>
+          <li><b>▶</b><span><strong>Videos</strong>Repasa cada sesión y continúa donde quedaste.</span></li>
+        </ul>
+        <div class="cx-orbit acceso__orbit" aria-hidden="true">
+          <span class="cx-orbit__ring"></span>
+          <span class="cx-orbit__ring cx-orbit__ring--b"></span>
+          <Image src={orbitAI} alt="" format="avif" widths={[240, 360, 480]} sizes="(max-width: 959px) 60vw, 320px" loading="eager" />
+        </div>
+      </div>
+
+      <form class="cx-glass acceso__card" method="post" novalidate data-acceso>
+        <div class="acceso__card-top">
+          <span class="acceso__badge">ACCESO SEGURO</span>
+          <span class="acceso__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        </div>
+        <h2>Ingresa a tu campus</h2>
+        <p class="acceso__hint">Usa el correo y la contraseña que te envió el equipo de AI Academy.</p>
+
+        {error && <p class="cx-alert" role="alert">{error}</p>}
+
+        <label class="cx-field">
+          Correo
+          <input type="email" name="email" value={email} autocomplete="username" required autofocus={!email} inputmode="email" />
+        </label>
+        <label class="cx-field">
+          Contraseña
+          <span class="cx-input">
+            <input type="password" name="password" autocomplete="current-password" required autofocus={Boolean(email)} data-password />
+            <button type="button" class="cx-eye" data-eye aria-label="Mostrar contraseña">Ver</button>
+          </span>
+        </label>
+
+        <button type="submit" class="cx-btn acceso__submit" data-submit>
+          <span data-submit-label>Entrar al campus</span>
+          <span aria-hidden="true">→</span>
+        </button>
+
+        <div class="acceso__foot">
+          <a href={help} target="_blank" rel="noopener noreferrer">¿Olvidaste tu contraseña? Escríbenos ↗</a>
+          <a href="/ai-academy/">← Volver a AI Academy</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</LayoutNavbar>
+
+<script>
+  function initAcceso() {
+    const form = document.querySelector<HTMLFormElement>("[data-acceso]");
+    if (!form) return;
+    const input = form.querySelector<HTMLInputElement>("[data-password]");
+    const eye = form.querySelector<HTMLButtonElement>("[data-eye]");
+    eye?.addEventListener("click", () => {
+      if (!input) return;
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      eye.textContent = show ? "Ocultar" : "Ver";
+      eye.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+    });
+    form.addEventListener("submit", () => {
+      const label = form.querySelector<HTMLElement>("[data-submit-label]");
+      form.querySelector<HTMLButtonElement>("[data-submit]")?.setAttribute("aria-busy", "true");
+      if (label) label.textContent = "Ingresando…";
+    });
+  }
+  document.addEventListener("astro:page-load", initAcceso);
+</script>
+
+<style>
+  .acceso {
+    display: grid;
+    place-items: center;
+    padding: clamp(2.5rem, 7vw, 5rem) 0;
+  }
+
+  .acceso__layout {
+    display: grid;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .acceso h1 {
+    max-width: 12ch;
+    margin: 1rem 0 0;
+    font-size: clamp(2.6rem, 8vw, 5rem);
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.06em;
+  }
+
+  .acceso h1 span {
+    color: transparent;
+    background: linear-gradient(110deg, #57bbff, #dff5ff 40%, #b997ff 70%, #7a3cff);
+    background-clip: text;
+  }
+
+  .acceso__lead {
+    max-width: 34rem;
+    margin-top: 1.2rem;
+    color: var(--cx-text);
+    font-size: 1.08rem;
+    line-height: 1.7;
+  }
+
+  .acceso__features {
+    display: grid;
+    gap: 0.7rem;
+    margin: 1.6rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .acceso__features li {
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+    color: var(--cx-text);
+    font-size: 0.9rem;
+  }
+
+  .acceso__features b {
+    display: grid;
+    width: 2.6rem;
+    height: 2.6rem;
+    flex: none;
+    place-items: center;
+    border: 1px solid rgb(185 151 255 / 26%);
+    border-radius: 0.9rem;
+    background: rgb(122 60 255 / 12%);
+    font-size: 1.05rem;
+  }
+
+  .acceso__features strong {
+    display: block;
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  .acceso__orbit {
+    display: none;
+  }
+
+  .acceso__card {
+    display: grid;
+    gap: 1rem;
+    width: min(100%, 28rem);
+    justify-self: center;
+    padding: clamp(1.5rem, 4vw, 2.3rem);
+  }
+
+  .acceso__card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .acceso__badge {
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgb(0 240 180 / 35%);
+    border-radius: 999px;
+    color: #7fffdc;
+    background: rgb(0 240 180 / 8%);
+    font: 700 0.6rem/1 Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.14em;
+  }
+
+  .acceso__dots {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .acceso__dots i {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: rgb(185 151 255 / 40%);
+  }
+
+  .acceso__dots i:first-child {
+    background: #7fffdc;
+    box-shadow: 0 0 10px #7fffdc;
+  }
+
+  .acceso__card h2 {
+    margin: 0.3rem 0 0;
+    font-size: clamp(1.6rem, 4vw, 2rem);
+    letter-spacing: -0.04em;
+  }
+
+  .acceso__hint {
+    margin: -0.4rem 0 0.3rem;
+    color: var(--cx-text);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .acceso__submit {
+    width: 100%;
+    margin-top: 0.3rem;
+  }
+
+  .acceso__submit[aria-busy="true"] {
+    opacity: 0.75;
+    pointer-events: none;
+  }
+
+  .acceso__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cx-line);
+    font-size: 0.82rem;
+  }
+
+  .acceso__foot a {
+    color: var(--ai-glow, #b997ff);
+    text-decoration: none;
+  }
+
+  .acceso__foot a:hover {
+    color: #fff;
+  }
+
+  @media (min-width: 960px) {
+    .acceso__layout {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    }
+
+    .acceso__copy {
+      position: relative;
+    }
+
+    .acceso__orbit {
+      position: absolute;
+      top: 52%;
+      right: -2rem;
+      display: grid;
+      width: 15rem;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .acceso__card {
+      justify-self: end;
+    }
+  }
+</style>
