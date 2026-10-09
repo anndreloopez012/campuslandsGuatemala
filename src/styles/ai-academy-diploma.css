@@ -24,7 +24,7 @@
   container-type: inline-size;
   border-radius: clamp(0.4rem, 1.4cqw, 1rem);
   color: #231f20;
-  background: #fff url("/img/ai-academy/diploma-fondo.jpg") center / 100% 100% no-repeat;
+  background: #fff url("/img/ai-academy/diploma-fondo.jpg?v=2") center / 100% 100% no-repeat;
   box-shadow: 0 1.6rem 4rem rgb(0 0 0 / 42%), 0 0 0 1px rgb(255 255 255 / 8%);
   font-family: "Open Sans Diploma", "Open Sans", "Segoe UI", system-ui, sans-serif;
   isolation: isolate;
