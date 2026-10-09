@@ -14,7 +14,7 @@ import "~/styles/ai-academy-campus.css";
 type Verified = {
   credentialId: string; status: string; title: string; issuedAt: string; hours: number; skills: string[];
   student: { fullName: string }; workshop: { code: string; title: string; slug: string; accent: string };
-  design?: { signer: string; signerRole: string; place: string } | null;
+  design?: { issuer?: string; place: string; signer: string; signerRole: string } | null;
 };
 
 const credencial = String(Astro.params.credencial ?? "").toUpperCase().slice(0, 40);

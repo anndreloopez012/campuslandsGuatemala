@@ -1,8 +1,8 @@
 // Contenido y posiciones del diploma oficial de AI Academy para la réplica web (campus, verificación y admin).
 // El PDF lo genera el CMS (src/api/academy/diploma-pdf.ts) con estas mismas medidas en puntos Carta horizontal.
 
-export type DiplomaDesign = { signer: string; signerRole: string; place: string };
-export const DEFAULT_DIPLOMA_DESIGN: DiplomaDesign = { signer: "Cesar Agusto Fajardo de León", signerRole: "Director General", place: "Campus Tec, Zona 4" };
+export type DiplomaDesign = { issuer?: string; place: string; signer: string; signerRole: string };
+export const DEFAULT_DIPLOMA_DESIGN: DiplomaDesign = { issuer: "Campuslands GT", place: "Campus Tec, Zona 4", signer: "Jorge Alberto Matamoros Galindo", signerRole: "Director Ejecutivo" };
 
 export type DiplomaData = { fullName: string; title: string; hours: number; issuedAt: string; credentialId: string; verifyUrl: string };
 export type DiplomaLine = { key: string; text: string; y: number; s: number; w?: number; min?: number; strong?: boolean; className?: string; wrap?: boolean };
@@ -22,8 +22,9 @@ export function diplomaLines(data: DiplomaData, design: DiplomaDesign = DEFAULT_
     { key: "course", text: "Cursó y aprobó la formación en", y: 357.96, s: 13.6 },
     { key: "title", text: data.title, y: 316.96, s: 32, w: 640, min: 22, strong: true, className: "dpl__title", wrap: true },
     { key: "hours", text: `Con intensidad horaria de ${data.hours} horas`, y: 289.96, s: 13.5 },
-    { key: "place", text: `Se expide en ${design.place}`, y: 245.96, s: 13.6 },
-    { key: "date", text: diplomaDate(data.issuedAt), y: 225.06, s: 13.6 },
+    { key: "issuer", text: `Emitido por ${design.issuer || DEFAULT_DIPLOMA_DESIGN.issuer}`, y: 252, s: 13.6 },
+    { key: "place", text: `Sede ${design.place}`, y: 231.1, s: 13.6 },
+    { key: "date", text: diplomaDate(data.issuedAt), y: 210.2, s: 13.6 },
     { key: "signer", text: design.signer, y: 99.86, s: 13.6, strong: true },
     { key: "role", text: design.signerRole, y: 83.66, s: 11.6 },
     { key: "verify", text: `Verifica su autenticidad en ${data.verifyUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}`, y: 32, s: 7.5, w: 760, className: "dpl__verify" },

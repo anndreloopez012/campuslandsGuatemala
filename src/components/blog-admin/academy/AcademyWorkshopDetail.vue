@@ -275,6 +275,25 @@ async function downloadZip() {
   }
 }
 
+// Vuelve a generar los PDF (todos los listados o los elegidos) con el diseño y los textos vigentes,
+// por ejemplo después de cambiar el firmante. Conserva el ID, la fecha y el título de cada diploma.
+async function regenerateMany() {
+  const targets = picked.value.length ? downloadable.value.filter((diploma) => picked.value.includes(diploma.id)) : downloadable.value;
+  const students = targets.map((diploma) => diploma.studentId).filter((id): id is number => Boolean(id));
+  if (!students.length) return;
+  if (!window.confirm(`¿Regenerar ${students.length} ${students.length === 1 ? "diploma" : "diplomas"} con el diseño y los textos actuales? Se conservan su ID y su fecha.`)) return;
+  zipping.value = true;
+  try {
+    const result = await props.api.generateDiplomas({ workshop: props.workshopKey, students, overwrite: true });
+    say(`${result.updated} ${result.updated === 1 ? "diploma regenerado" : "diplomas regenerados"} con el diseño actual.`, result.failed ? "error" : "success");
+    await load(true);
+  } catch (value) {
+    say(problem(value, "No se pudieron regenerar los diplomas."), "error");
+  } finally {
+    zipping.value = false;
+  }
+}
+
 async function regenerate(diploma: AcademyDiploma) {
   const message = isGeneratedDiploma(diploma)
     ? "¿Volver a generar el PDF con los datos actuales (nombre, taller, fecha)?"
@@ -771,6 +790,7 @@ onMounted(async () => {
               <option v-for="block in blocks" :key="block.id" :value="block.id">{{ block.name }}</option>
             </select>
             <span class="dl-bar__count">{{ downloadable.length }} {{ downloadable.length === 1 ? "diploma emitido" : "diplomas emitidos" }}</span>
+            <button type="button" class="ghost-action ghost-action--small dl-bar__regen" :disabled="zipping || !downloadable.length" @click="regenerateMany">{{ picked.length ? `Regenerar seleccionados (${picked.length})` : "Regenerar todos" }}</button>
             <button type="button" class="primary-action primary-action--small dl-bar__zip" :disabled="zipping || !downloadable.length" @click="downloadZip">
               <AcademyIcon name="bajar" :size="15" />
               {{ zipping ? "Preparando ZIP…" : picked.length ? `Descargar seleccionados (${picked.length})` : `Descargar todos (${downloadable.length})` }}
@@ -1085,7 +1105,8 @@ onMounted(async () => {
 .dl-bar__all { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
 .dl-bar__all input, .row__pick { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }
 .dl-bar__count { color: var(--muted); font-size: 12px; }
-.dl-bar__zip { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.dl-bar__regen { margin-left: auto; }
+.dl-bar__zip { display: inline-flex; align-items: center; gap: 8px; }
 .row--pickable { grid-template-columns: auto auto minmax(0, 1fr) auto; }
 .row__pick { cursor: pointer; }
 .row__pick--empty { display: inline-block; }

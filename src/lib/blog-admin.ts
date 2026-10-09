@@ -186,7 +186,7 @@ export type AcademyGenerateResult = {
 };
 // Los diplomas con el diseño oficial se reconocen por el nombre del archivo.
 export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) => Boolean(diploma.file?.name.startsWith("Diploma AI Academy - "));
-export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: { signer: string; signerRole: string; place: string }; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: { issuer?: string; place: string; signer: string; signerRole: string }; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
