@@ -4,6 +4,7 @@ import type { AcademyBlock, AcademyDetail, AcademyDiploma, AcademyEnrollment, Ac
 import AcademyAdmin from "../AcademyAdmin.vue";
 import AcademyIcon from "./AcademyIcon.vue";
 import DiplomaReplica from "./DiplomaReplica.vue";
+import { DEFAULT_DIPLOMA_DESIGN, type DiplomaDesign } from "../../../lib/academy-diploma";
 import { isGeneratedDiploma, type AcademyGenerateResult } from "../../../lib/blog-admin";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
@@ -13,7 +14,7 @@ const emit = defineEmits<{
   (e: "notice", message: string, type?: "success" | "error"): void;
 }>();
 
-type Tab = "bloques" | "estudiantes" | "diplomas" | "herramientas" | "videos" | "publicacion" | "ajustes";
+type Tab = "bloques" | "estudiantes" | "diplomas" | "textos" | "herramientas" | "videos" | "publicacion" | "ajustes";
 const tab = ref<Tab>("bloques");
 const loading = ref(true);
 const error = ref("");
@@ -185,7 +186,9 @@ const autoCandidates = computed(() => (detail.value?.enrollments ?? [])
 const pendingIds = computed(() => autoCandidates.value.filter((item) => !item.diploma?.file).map((item) => item.enrollment.student.id));
 const selectPending = () => { auto.selected = [...pendingIds.value]; };
 watch(() => [auto.block, detail.value?.diplomas.length, detail.value?.enrollments.length], selectPending);
-const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-MUESTRA`);
+// Código de ejemplo con el mismo formato que los reales (CLGT-TALLER-AAMM-XXXXXX); el real se asigna al emitir.
+const sampleSuffix = Array.from(crypto.getRandomValues(new Uint8Array(3)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-${today().slice(2, 4)}${today().slice(5, 7)}-${sampleSuffix}`);
 const previewPerson = computed(() => autoCandidates.value.find((item) => auto.selected.includes(item.enrollment.student.id))?.enrollment.student
   ?? autoCandidates.value[0]?.enrollment.student ?? null);
 const previewData = computed(() => ({
@@ -601,9 +604,76 @@ async function saveSettings() {
   }
 }
 
+// ---------------------------------------------------------------- textos del diploma
+// Son los mismos para todos los talleres. La vista previa cambia mientras se escribe; el PDF real se
+// puede revisar antes de guardar. Al guardar se ofrece aplicar los textos a los diplomas ya emitidos.
+const DESIGN_FIELDS: { key: keyof DiplomaDesign; label: string; hint: string }[] = [
+  { key: "intro", label: "Frase de apertura", hint: "Va arriba del nombre del estudiante." },
+  { key: "credentialLabel", label: "Etiqueta del número de credencial", hint: "Va antes del código, por ejemplo CLGT-IA01-2610-95561C." },
+  { key: "courseLabel", label: "Frase antes del nombre del taller", hint: "Va justo arriba del nombre del taller." },
+  { key: "issuerLine", label: "Línea del emisor", hint: "Quién emite el diploma." },
+  { key: "placeLine", label: "Línea de la sede", hint: "Debajo va la fecha de emisión." },
+  { key: "signer", label: "Nombre de quien firma", hint: "Va bajo la línea de firma." },
+  { key: "signerRole", label: "Cargo de quien firma", hint: "Va debajo del nombre de quien firma." },
+];
+const designForm = reactive<DiplomaDesign>({ ...DEFAULT_DIPLOMA_DESIGN });
+const designSaved = ref<DiplomaDesign>({ ...DEFAULT_DIPLOMA_DESIGN });
+const designLoaded = ref(false);
+const designSaving = ref(false);
+const designDirty = computed(() => DESIGN_FIELDS.some(({ key }) => designForm[key].trim() !== designSaved.value[key]));
+const designPreview = computed(() => ({ ...previewData.value, issuedAt: today() }));
+
+async function loadDesign() {
+  try {
+    const result = await props.api.diplomaDesign();
+    Object.assign(designForm, result.design);
+    designSaved.value = { ...result.design };
+    designLoaded.value = true;
+  } catch (value) {
+    say(problem(value, "No se pudieron cargar los textos del diploma."), "error");
+  }
+}
+
+async function saveDesign() {
+  designSaving.value = true;
+  try {
+    const result = await props.api.saveDiplomaDesign({ ...designForm });
+    Object.assign(designForm, result.design);
+    designSaved.value = { ...result.design };
+    if (detail.value) detail.value.diplomaDesign = { ...result.design };
+    say("Textos del diploma guardados. Los diplomas nuevos ya salen así.");
+    if (window.confirm("¿Aplicar ahora los textos nuevos a todos los diplomas ya emitidos (de todos los talleres)? Conservan su código y su fecha.")) {
+      const regenerated = await props.api.regenerateAllDiplomas();
+      say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"} con los textos nuevos.`, regenerated.failed ? "error" : "success");
+      await load(true);
+    }
+  } catch (value) {
+    say(problem(value, "No se pudieron guardar los textos."), "error");
+  } finally {
+    designSaving.value = false;
+  }
+}
+
+function resetDesign() {
+  Object.assign(designForm, DEFAULT_DIPLOMA_DESIGN);
+}
+
+async function previewDesign() {
+  const win = window.open("", "_blank");
+  try {
+    const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, design: { ...designForm } });
+    const url = URL.createObjectURL(blob);
+    if (win) win.location.href = url; else window.location.assign(url);
+  } catch (value) {
+    win?.close();
+    say(problem(value, "No se pudo generar la vista previa."), "error");
+  }
+}
+
 function selectTab(next: Tab) {
   tab.value = next;
   if (next === "ajustes") fillSettings();
+  if (next === "textos" && !designLoaded.value) void loadDesign();
   if (next === "diplomas" && !issue.title) resetIssue();
 }
 
@@ -641,7 +711,7 @@ onMounted(async () => {
       </header>
 
       <nav class="tabs" aria-label="Secciones del taller">
-        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
+        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
       </nav>
 
       <!-- BLOQUES -->
@@ -943,6 +1013,32 @@ onMounted(async () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- TEXTOS DEL DIPLOMA -->
+      <section v-else-if="tab === 'textos'" class="panel">
+        <div class="panel__head">
+          <div><h3>Textos del diploma</h3><p>Edita las frases fijas del diploma y mira el resultado en vivo. Aplican a los diplomas de todos los talleres.</p></div>
+        </div>
+        <div class="auto">
+          <div class="auto__stage">
+            <DiplomaReplica :data="designPreview" :design="designForm" />
+            <div class="auto__stage-foot">
+              <span><AcademyIcon name="destello" :size="13" fill /> Vista previa en vivo · {{ previewPerson ? previewPerson.fullName : "ejemplo" }}</span>
+              <button type="button" class="ghost-action ghost-action--small" @click="previewDesign">Ver el PDF real ↗</button>
+            </div>
+          </div>
+          <form class="auto__form" @submit.prevent="saveDesign">
+            <label v-for="field in DESIGN_FIELDS" :key="field.key" class="field">{{ field.label }}
+              <input v-model="designForm[field.key]" maxlength="120" :placeholder="DEFAULT_DIPLOMA_DESIGN[field.key]" />
+              <small>{{ field.hint }} Si lo dejas vacío vuelve a “{{ DEFAULT_DIPLOMA_DESIGN[field.key] }}”.</small>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="ghost-action" @click="resetDesign">Restablecer textos originales</button>
+              <button type="submit" class="primary-action" :disabled="designSaving || !designLoaded || !designDirty">{{ designSaving ? "Guardando…" : designDirty ? "Guardar textos" : "Sin cambios" }}</button>
+            </div>
+          </form>
         </div>
       </section>
 
