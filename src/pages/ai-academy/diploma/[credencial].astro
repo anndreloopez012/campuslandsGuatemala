@@ -3,6 +3,7 @@ export const prerender = false;
 
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
 import DiplomaReplica from "~/components/ai-academy/DiplomaReplica.astro";
+import type { DiplomaDesign } from "~/lib/academy-diploma";
 import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
 import { SITE_URL } from "~/config/seo.mjs";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
@@ -14,7 +15,7 @@ import "~/styles/ai-academy-campus.css";
 type Verified = {
   credentialId: string; status: string; title: string; issuedAt: string; hours: number; skills: string[];
   student: { fullName: string }; workshop: { code: string; title: string; slug: string; accent: string };
-  design?: { issuer?: string; place: string; signer: string; signerRole: string } | null;
+  design?: Partial<DiplomaDesign> | null;
 };
 
 const credencial = String(Astro.params.credencial ?? "").toUpperCase().slice(0, 40);
