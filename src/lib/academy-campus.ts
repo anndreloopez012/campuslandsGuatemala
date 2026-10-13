@@ -1,3 +1,4 @@
+import type { DiplomaDesign } from "./academy-diploma";
 import type { AstroCookies } from "astro";
 
 // Sesión del campus de estudiantes de AI Academy. El token vive en una cookie httpOnly y todas
@@ -12,7 +13,7 @@ const MAX_AGE = 60 * 60 * 24 * 7;
 export type CampusFile = { id: number; name: string; mime: string; size: number };
 export type CampusDiploma = {
   id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null;
-  design?: { issuer?: string; place: string; signer: string; signerRole: string } | null;
+  design?: Partial<DiplomaDesign> | null;
 };
 export type CampusTool = { id: number; title: string; url: string; description: string; category: string };
 export type CampusVideo = {

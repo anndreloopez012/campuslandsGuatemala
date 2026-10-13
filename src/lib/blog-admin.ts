@@ -1,3 +1,4 @@
+import type { DiplomaDesign } from "./academy-diploma";
 export const BLOG_EDITOR_STORAGE_KEY = "campuslands_blog_editor_session";
 
 export type EditorUser = {
@@ -186,7 +187,7 @@ export type AcademyGenerateResult = {
 };
 // Los diplomas con el diseño oficial se reconocen por el nombre del archivo.
 export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) => Boolean(diploma.file?.name.startsWith("Diploma AI Academy - "));
-export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: { issuer?: string; place: string; signer: string; signerRole: string }; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: Partial<DiplomaDesign>; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
@@ -422,7 +423,20 @@ export class BlogAdminApi {
     return response.blob();
   }
 
-  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string }) {
+  // Textos fijos del diploma (aplican a todos los talleres).
+  diplomaDesign() {
+    return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>("/editor/academy/diploma-design");
+  }
+
+  saveDiplomaDesign(data: DiplomaDesign) {
+    return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>("/editor/academy/diploma-design", { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  regenerateAllDiplomas() {
+    return this.request<{ updated: number; failed: number }>("/editor/academy/diploma-design/regenerate", { method: "POST" });
+  }
+
+  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string; design?: DiplomaDesign }) {
     const headers = new Headers({ Accept: "application/pdf", "Content-Type": "application/json" });
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
     const response = await fetch(`${this.cmsUrl}/api/editor/academy/diplomas/preview`, { method: "POST", headers, body: JSON.stringify({ data }) });
