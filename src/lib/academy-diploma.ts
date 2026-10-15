@@ -15,6 +15,18 @@ export const DEFAULT_DIPLOMA_DESIGN: DiplomaDesign = {
   signerRole: "Director Ejecutivo",
 };
 
+// Sello estampado sobre el diploma: posición y tamaño en puntos PDF (centro) y su dibujo SVG, que genera el CMS.
+export type DiplomaSeal = { x: number; y: number; size: number; svg: string };
+
+// Posición del sello en porcentajes del diploma (misma hoja Carta horizontal de 792 × 612 que el PDF).
+export function sealStyle(seal: Pick<DiplomaSeal, "x" | "y" | "size">) {
+  return {
+    left: `${((seal.x - seal.size / 2) / 792) * 100}%`,
+    top: `${((612 - seal.y - seal.size / 2) / 612) * 100}%`,
+    width: `${(seal.size / 792) * 100}%`,
+  };
+}
+
 export type DiplomaData = { fullName: string; title: string; hours: number; issuedAt: string; credentialId: string; verifyUrl: string };
 export type DiplomaLine = { key: string; text: string; y: number; s: number; w?: number; min?: number; strong?: boolean; className?: string; wrap?: boolean };
 
