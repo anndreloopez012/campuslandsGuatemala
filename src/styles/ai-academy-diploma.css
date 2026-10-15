@@ -77,6 +77,39 @@
   background: #231f20;
 }
 
+/* Sello: tinta sobre el papel. En el admin se puede arrastrar. */
+.dpl__seal {
+  position: absolute;
+  aspect-ratio: 1;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.dpl__seal svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dpl__seal--drag {
+  pointer-events: auto;
+  cursor: grab;
+  border-radius: 50%;
+  outline: 2px dashed transparent;
+  outline-offset: 0.6cqw;
+  touch-action: none;
+  transition: outline-color 0.2s;
+}
+
+.dpl__seal--drag:hover,
+.dpl__seal--drag.is-dragging {
+  outline-color: #ff8a00;
+}
+
+.dpl__seal--drag.is-dragging {
+  cursor: grabbing;
+}
+
 .dpl__verify {
   color: #736e8c;
 }
