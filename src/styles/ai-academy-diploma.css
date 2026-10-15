@@ -110,6 +110,38 @@
   cursor: grabbing;
 }
 
+/* Firma: imagen PNG centrada en su punto, como tinta sobre el papel. En el admin se puede arrastrar. */
+.dpl__sig {
+  position: absolute;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  transform: translate(-50%, 50%);
+}
+
+.dpl__sig img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.dpl__sig--drag {
+  pointer-events: auto;
+  cursor: grab;
+  outline: 2px dashed transparent;
+  outline-offset: 0.6cqw;
+  touch-action: none;
+  transition: outline-color 0.2s;
+}
+
+.dpl__sig--drag:hover,
+.dpl__sig--drag.is-dragging {
+  outline-color: #ff8a00;
+}
+
+.dpl__sig--drag.is-dragging {
+  cursor: grabbing;
+}
+
 .dpl__verify {
   color: #736e8c;
 }

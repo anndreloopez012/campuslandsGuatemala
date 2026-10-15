@@ -7,7 +7,7 @@ import DiplomaReplica from "~/components/ai-academy/DiplomaReplica.astro";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
 import { SITE_URL } from "~/config/seo.mjs";
 import {
-  campusData, campusFileUrl, embedUrl, formatDiplomaDate, formatDuration, linkedinAddUrl, linkedinShareUrl,
+  campusData, campusFileUrl, diplomaSignatureFor, embedUrl, formatDiplomaDate, formatDuration, linkedinAddUrl, linkedinShareUrl,
   type CampusVideo, type CampusWorkshop,
 } from "~/lib/academy-campus";
 import "~/styles/index.css";
@@ -146,7 +146,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
               const url = verifyUrl(diploma.credentialId);
               return (
                 <div class="campus__diploma">
-                  <DiplomaReplica fullName={student.fullName} title={diploma.title} hours={diploma.hours} issuedAt={diploma.issuedAt} credentialId={diploma.credentialId} verifyUrl={url} design={diploma.design} seal={diploma.seal} />
+                  <DiplomaReplica fullName={student.fullName} title={diploma.title} hours={diploma.hours} issuedAt={diploma.issuedAt} credentialId={diploma.credentialId} verifyUrl={url} design={diploma.design} seal={diploma.seal} signature={diplomaSignatureFor(diploma.signature)} />
                   {diploma.skills.length > 0 && <ul class="cx-skills campus__skills">{diploma.skills.map((skill) => <li>{skill}</li>)}</ul>}
                   <div class="campus__diploma-actions">
                     <a class="cx-btn cx-btn--linkedin" href={linkedinAddUrl(diploma, url)} target="_blank" rel="noopener noreferrer">

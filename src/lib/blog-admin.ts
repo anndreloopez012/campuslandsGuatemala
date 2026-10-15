@@ -2,6 +2,9 @@ import type { DiplomaDesign } from "./academy-diploma";
 
 // Sello del diploma: textos, posición (centro, en puntos PDF), tamaño, inclinación y desgaste.
 export type DiplomaSealConfig = { enabled: boolean; topText: string; bottomText: string; x: number; y: number; size: number; rotation: number; wear: number };
+// Firma del diploma: posición y ancho en puntos PDF; `studentDownload` = el PDF del campus va firmado.
+export type DiplomaSignatureConfig = { enabled: boolean; x: number; y: number; width: number; studentDownload: boolean };
+export type DiplomaSignatureState = DiplomaSignatureConfig & { hasImage: boolean; imageUrl: string | null; imageWidth: number | null; imageHeight: number | null };
 export const BLOG_EDITOR_STORAGE_KEY = "campuslands_blog_editor_session";
 
 export type EditorUser = {
@@ -142,7 +145,7 @@ export function slugify(value: string) {
 
 // ------------------------------------------------------------------ campus de AI Academy
 
-export type AcademyFile = { id: number; name: string; mime: string; size: number; url: string; downloadUrl?: string };
+export type AcademyFile = { id: number; name: string; mime: string; size: number; url: string; downloadUrl?: string; signedUrl?: string; signedDownloadUrl?: string };
 
 export type AcademyWorkshop = {
   id: number;
@@ -190,7 +193,7 @@ export type AcademyGenerateResult = {
 };
 // Los diplomas con el diseño oficial se reconocen por el nombre del archivo.
 export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) => Boolean(diploma.file?.name.startsWith("Diploma AI Academy - "));
-export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: Partial<DiplomaDesign>; diplomaSeal?: DiplomaSealConfig; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: Partial<DiplomaDesign>; diplomaSeal?: DiplomaSealConfig; diplomaSignature?: DiplomaSignatureState; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
@@ -415,7 +418,7 @@ export class BlogAdminApi {
   }
 
   // Descarga en conjunto (ZIP): todos los emitidos del taller, los de un bloque o los elegidos.
-  async downloadDiplomasZip(data: { workshop: string; ids?: number[]; block?: number }) {
+  async downloadDiplomasZip(data: { workshop: string; ids?: number[]; block?: number; signature?: boolean }) {
     const headers = new Headers({ Accept: "application/zip", "Content-Type": "application/json" });
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
     const response = await fetch(`${this.cmsUrl}/api/editor/academy/diplomas/zip`, { method: "POST", headers, body: JSON.stringify({ data }) });
@@ -433,6 +436,30 @@ export class BlogAdminApi {
 
   saveDiplomaSeal(data: DiplomaSealConfig) {
     return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>("/editor/academy/diploma-seal", { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  // ---------------------------------------------------------------- firma del diploma
+  diplomaSignature() {
+    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>("/editor/academy/diploma-signature");
+  }
+
+  saveDiplomaSignature(data: Partial<DiplomaSignatureConfig>) {
+    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>("/editor/academy/diploma-signature", { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  async uploadDiplomaSignature(file: File) {
+    const body = new FormData();
+    body.append("file", file, file.name);
+    const headers = new Headers();
+    if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-signature/image`, { method: "POST", headers, body });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload?.error?.message || "No se pudo subir la firma.");
+    return payload.data as { signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig };
+  }
+
+  removeDiplomaSignature() {
+    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>("/editor/academy/diploma-signature/image", { method: "DELETE" });
   }
 
   // Dibujo del sello con una configuración en borrador, para verlo en vivo mientras se edita.
@@ -457,7 +484,7 @@ export class BlogAdminApi {
     return this.request<{ updated: number; failed: number }>("/editor/academy/diploma-design/regenerate", { method: "POST" });
   }
 
-  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string; design?: DiplomaDesign; seal?: DiplomaSealConfig }) {
+  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string; design?: DiplomaDesign; seal?: DiplomaSealConfig; signature?: DiplomaSignatureConfig; withSignature?: boolean }) {
     const headers = new Headers({ Accept: "application/pdf", "Content-Type": "application/json" });
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
     const response = await fetch(`${this.cmsUrl}/api/editor/academy/diplomas/preview`, { method: "POST", headers, body: JSON.stringify({ data }) });
