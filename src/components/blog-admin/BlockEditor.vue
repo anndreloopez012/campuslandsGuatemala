@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { EditorMedia } from "../../lib/blog-admin";
 import { renderBlogBlocks } from "../../lib/blog";
+import { askConfirm, askText } from "../../lib/dialogs";
 
 type BlockType = "paragraph" | "heading" | "quote" | "list" | "code" | "image" | "gallery" | "callout" | "button" | "video" | "embed" | "table" | "divider";
 type EditorBlock = {
@@ -386,14 +387,15 @@ function wrapSelection(block: EditorBlock, prefix: string, suffix = prefix) {
   nextTick(() => { field.focus(); field.setSelectionRange(start + prefix.length, start + prefix.length + selected.length); });
 }
 
-function insertLink(block: EditorBlock) {
+async function insertLink(block: EditorBlock) {
   const field = textareaRefs.get(block.id);
   if (!field) return;
-  const selected = block.text.slice(field.selectionStart, field.selectionEnd) || "texto del enlace";
-  const target = window.prompt("URL del enlace", "https://");
-  if (!target) return;
   const start = field.selectionStart;
-  block.text = `${block.text.slice(0, start)}[${selected}](${target})${block.text.slice(field.selectionEnd)}`;
+  const end = field.selectionEnd;
+  const selected = block.text.slice(start, end) || "texto del enlace";
+  const target = await askText({ title: "URL del enlace", value: "https://", inputType: "url", confirmText: "Insertar" });
+  if (!target) return;
+  block.text = `${block.text.slice(0, start)}[${selected}](${target})${block.text.slice(end)}`;
   publishValue();
 }
 
@@ -481,9 +483,9 @@ const templates: Record<string, any[]> = {
   ],
 };
 
-function applyTemplate(key: keyof typeof templates) {
+async function applyTemplate(key: keyof typeof templates) {
   const hasWriting = toContent().some((block: any) => block.type !== "paragraph" || block.children?.some((child: any) => child.text?.trim()));
-  if (hasWriting && !window.confirm("Esta plantilla reemplazará los bloques actuales. ¿Continuar?")) return;
+  if (hasWriting && !await askConfirm({ title: "¿Aplicar la plantilla?", text: "Reemplazará los bloques actuales.", confirmText: "Aplicar" })) return;
   blocks.value = fromContent(templates[key]);
   publishValue();
 }

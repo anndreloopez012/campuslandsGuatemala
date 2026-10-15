@@ -6,6 +6,7 @@ import AcademyCampus from "./academy/AcademyCampus.vue";
 import AcademyIcon from "./academy/AcademyIcon.vue";
 import AcademyUsersPage from "./academy/AcademyUsersPage.vue";
 import { renderBlogBlocks } from "../../lib/blog";
+import { askConfirm } from "../../lib/dialogs";
 import {
   BLOG_EDITOR_STORAGE_KEY,
   BlogAdminApi,
@@ -650,7 +651,7 @@ async function quickPublish(article: EditorArticle) {
 }
 
 async function quickUnpublish(article: EditorArticle) {
-  if (!window.confirm(`¿Retirar “${article.title}” del blog público? El contenido seguirá guardado como borrador.`)) return;
+  if (!await askConfirm({ title: `¿Retirar “${article.title}” del blog?`, text: "El contenido seguirá guardado como borrador.", confirmText: "Retirar" })) return;
   try {
     await api.unpublishArticle(article.documentId);
     await loadDashboard(true);
@@ -661,7 +662,7 @@ async function quickUnpublish(article: EditorArticle) {
 }
 
 async function removeArticle(article: EditorArticle) {
-  if (!window.confirm(`Eliminar definitivamente “${article.title}”? Esta acción no se puede deshacer.`)) return;
+  if (!await askConfirm({ title: `¿Eliminar definitivamente “${article.title}”?`, text: "Esta acción no se puede deshacer.", confirmText: "Eliminar", tone: "danger" })) return;
   try {
     await api.deleteArticle(article.documentId);
     await loadDashboard(true);
@@ -695,7 +696,7 @@ async function saveCategory(category: Partial<EditorCategory>, create = false) {
 }
 
 async function removeCategory(category: EditorCategory) {
-  if (!window.confirm(`¿Eliminar la categoría “${category.name}”?`)) return;
+  if (!await askConfirm({ title: `¿Eliminar la categoría “${category.name}”?`, confirmText: "Eliminar", tone: "danger" })) return;
   try {
     await api.deleteCategory(category.documentId);
     await loadDashboard(true);

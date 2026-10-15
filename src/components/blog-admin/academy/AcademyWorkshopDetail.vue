@@ -6,6 +6,7 @@ import AcademyIcon from "./AcademyIcon.vue";
 import DiplomaReplica from "./DiplomaReplica.vue";
 import { DEFAULT_DIPLOMA_DESIGN, type DiplomaDesign } from "../../../lib/academy-diploma";
 import { isGeneratedDiploma, type AcademyGenerateResult, type DiplomaSealConfig } from "../../../lib/blog-admin";
+import { askConfirm, showCopy } from "../../../lib/dialogs";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
 const emit = defineEmits<{
@@ -91,7 +92,7 @@ async function setSession(block: AcademyBlock, session: number) {
   await patchBlock(block, { currentSession: next }, `${block.name} quedó ${label} (${Math.round((next / block.totalSessions) * 100)} %). Sus alumnos ya lo ven.`);
   // Al llegar al último sábado se ofrece emitir de una vez los diplomas del bloque.
   const pending = pendingOf(block.id);
-  if (next === block.totalSessions && pending.length && window.confirm(`${block.name} terminó. ¿Emitir ahora los diplomas de sus ${pending.length} ${pending.length === 1 ? "alumno" : "alumnos"} con fecha de hoy?`)) {
+  if (next === block.totalSessions && pending.length && await askConfirm({ title: `${block.name} terminó`, text: `¿Emitir ahora los diplomas de sus ${pending.length} ${pending.length === 1 ? "alumno" : "alumnos"} con fecha de hoy?`, confirmText: "Emitir diplomas" })) {
     await emitDiplomas(pending, today());
   }
 }
@@ -102,7 +103,7 @@ const pendingOf = (blockId: number) => (detail.value?.enrollments ?? [])
   .map((item) => item.student.id);
 
 async function deleteBlock(block: AcademyBlock) {
-  if (!window.confirm(`¿Eliminar "${block.name}"? Sus videos y herramientas exclusivos pasarán a ser de todos los bloques.`)) return;
+  if (!await askConfirm({ title: `¿Eliminar "${block.name}"?`, text: "Sus videos y herramientas exclusivos pasarán a ser de todos los bloques.", confirmText: "Eliminar", tone: "danger" })) return;
   try {
     await props.api.removeBlock(block.id);
     say("Bloque eliminado.");
@@ -160,7 +161,7 @@ async function updateEnrollment(item: AcademyEnrollment, change: { block?: numbe
 }
 
 async function unenroll(item: AcademyEnrollment) {
-  if (!window.confirm(`¿Quitar a ${item.student.fullName} de este taller? Dejará de ver su contenido.`)) return;
+  if (!await askConfirm({ title: `¿Quitar a ${item.student.fullName} de este taller?`, text: "Dejará de ver su contenido.", confirmText: "Quitar", tone: "danger" })) return;
   try {
     await props.api.removeEnrollment(item.id);
     say("Inscripción eliminada.");
@@ -263,10 +264,10 @@ async function emitDiplomas(students: number[], issuedAt = auto.issuedAt) {
   }
 }
 
-function runAuto() {
+async function runAuto() {
   const count = auto.selected.length;
   if (!count) return;
-  if (!window.confirm(`¿Emitir ${count} ${count === 1 ? "diploma" : "diplomas"} con fecha ${dateLabel(auto.issuedAt)}? Cada estudiante lo verá al instante en su campus.`)) return;
+  if (!await askConfirm({ title: `¿Emitir ${count} ${count === 1 ? "diploma" : "diplomas"} con fecha ${dateLabel(auto.issuedAt)}?`, text: "Cada estudiante lo verá al instante en su campus.", confirmText: "Emitir" })) return;
   void emitDiplomas([...auto.selected]);
 }
 
@@ -315,7 +316,7 @@ async function regenerateMany() {
   const targets = picked.value.length ? downloadable.value.filter((diploma) => picked.value.includes(diploma.id)) : downloadable.value;
   const students = targets.map((diploma) => diploma.studentId).filter((id): id is number => Boolean(id));
   if (!students.length) return;
-  if (!window.confirm(`¿Regenerar ${students.length} ${students.length === 1 ? "diploma" : "diplomas"} con el diseño y los textos actuales? Cada uno conserva su código y su fecha de emisión.`)) return;
+  if (!await askConfirm({ title: `¿Regenerar ${students.length} ${students.length === 1 ? "diploma" : "diplomas"}?`, text: "Se vuelven a generar con el diseño y los textos actuales. Cada uno conserva su código y su fecha de emisión.", confirmText: "Regenerar" })) return;
   zipping.value = true;
   try {
     const result = await props.api.generateDiplomas({ workshop: props.workshopKey, students, overwrite: true });
@@ -329,10 +330,10 @@ async function regenerateMany() {
 }
 
 async function regenerate(diploma: AcademyDiploma) {
-  const message = isGeneratedDiploma(diploma)
-    ? "¿Volver a generar el PDF con los datos actuales (nombre, taller, fecha)?"
-    : "¿Reemplazar el PDF subido por uno con el diseño oficial?";
-  if (!window.confirm(message)) return;
+  const confirmed = isGeneratedDiploma(diploma)
+    ? await askConfirm({ title: "¿Volver a generar el PDF?", text: "Se genera con los datos actuales: nombre, taller y fecha de emisión guardada.", confirmText: "Regenerar" })
+    : await askConfirm({ title: "¿Reemplazar el PDF subido?", text: "Se sustituye por uno con el diseño oficial.", confirmText: "Reemplazar" });
+  if (!confirmed) return;
   try {
     await props.api.regenerateDiploma(diploma.id);
     say("PDF del diploma generado con el diseño oficial.");
@@ -442,7 +443,7 @@ async function saveDiploma() {
 
 async function toggleRevoke(diploma: AcademyDiploma) {
   const next = diploma.status === "emitido" ? "revocado" : "emitido";
-  if (next === "revocado" && !window.confirm("¿Revocar este diploma? La página de verificación lo mostrará como revocado.")) return;
+  if (next === "revocado" && !await askConfirm({ title: "¿Revocar este diploma?", text: "La página de verificación lo mostrará como revocado.", confirmText: "Revocar", tone: "danger" })) return;
   try {
     await props.api.saveDiploma({ status: next }, diploma.id);
     diploma.status = next;
@@ -453,7 +454,7 @@ async function toggleRevoke(diploma: AcademyDiploma) {
 }
 
 async function deleteDiploma(diploma: AcademyDiploma) {
-  if (!window.confirm("¿Eliminar el diploma y su PDF? El enlace de verificación dejará de existir.")) return;
+  if (!await askConfirm({ title: "¿Eliminar el diploma y su PDF?", text: "El enlace de verificación dejará de existir.", confirmText: "Eliminar", tone: "danger" })) return;
   try {
     await props.api.removeDiploma(diploma.id);
     say("Diploma eliminado.");
@@ -465,7 +466,7 @@ async function deleteDiploma(diploma: AcademyDiploma) {
 
 const verifyUrl = (diploma: AcademyDiploma) => `${window.location.origin}/ai-academy/diploma/${diploma.credentialId}/`;
 async function copy(textValue: string, message: string) {
-  try { await navigator.clipboard.writeText(textValue); } catch { window.prompt("Copia el enlace:", textValue); return; }
+  try { await navigator.clipboard.writeText(textValue); } catch { await showCopy({ title: "Copia el enlace", value: textValue }); return; }
   say(message);
 }
 
@@ -532,7 +533,7 @@ async function saveTool() {
   }
 }
 async function deleteTool(tool: AcademyTool) {
-  if (!window.confirm(`¿Quitar "${tool.title}"?`)) return;
+  if (!await askConfirm({ title: `¿Quitar "${tool.title}"?`, confirmText: "Quitar", tone: "danger" })) return;
   await props.api.removeTool(tool.id).catch((value) => say(problem(value, "No se pudo quitar."), "error"));
   await load(true);
 }
@@ -612,7 +613,7 @@ async function saveVideo() {
 }
 
 async function deleteVideo(video: AcademyVideo) {
-  if (!window.confirm(`¿Eliminar "${video.title}"? También se borra el archivo y el progreso de los estudiantes.`)) return;
+  if (!await askConfirm({ title: `¿Eliminar "${video.title}"?`, text: "También se borra el archivo y el progreso de los estudiantes.", confirmText: "Eliminar", tone: "danger" })) return;
   await props.api.removeVideo(video.id).catch((value) => say(problem(value, "No se pudo eliminar."), "error"));
   await load(true);
 }
@@ -673,7 +674,7 @@ async function saveDesign() {
     designSaved.value = { ...result.design };
     if (detail.value) detail.value.diplomaDesign = { ...result.design };
     say("Textos del diploma guardados. Los diplomas nuevos ya salen así.");
-    if (window.confirm("¿Aplicar ahora los textos nuevos a todos los diplomas ya emitidos (de todos los talleres)? Conservan su código y su fecha.")) {
+    if (await askConfirm({ title: "¿Aplicar los textos a los diplomas ya emitidos?", text: "Se regeneran los de todos los talleres. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
       const regenerated = await props.api.regenerateAllDiplomas();
       say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"} con los textos nuevos.`, regenerated.failed ? "error" : "success");
       await load(true);
@@ -774,7 +775,7 @@ async function saveSeal() {
     sealSaved.value = { ...result.seal };
     if (detail.value) detail.value.diplomaSeal = { ...result.seal };
     say(result.seal.enabled ? "Sello guardado. Los diplomas nuevos ya salen con él." : "Sello guardado. Los diplomas nuevos saldrán sin sello.");
-    if (window.confirm(`¿Aplicar ahora el ${result.seal.enabled ? "sello" : "cambio"} a todos los diplomas ya emitidos (de todos los talleres)? Conservan su código y su fecha.`)) {
+    if (await askConfirm({ title: `¿Aplicar el ${result.seal.enabled ? "sello" : "cambio"} a los diplomas ya emitidos?`, text: "Se regeneran los de todos los talleres. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
       const regenerated = await props.api.regenerateAllDiplomas();
       say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"}.`, regenerated.failed ? "error" : "success");
       await load(true);
