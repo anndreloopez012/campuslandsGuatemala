@@ -7,6 +7,7 @@ import DiplomaReplica from "./DiplomaReplica.vue";
 import { DEFAULT_DIPLOMA_DESIGN, type DiplomaDesign } from "../../../lib/academy-diploma";
 import { isGeneratedDiploma, type AcademyGenerateResult, type DiplomaSealConfig } from "../../../lib/blog-admin";
 import { askConfirm, showCopy } from "../../../lib/dialogs";
+import { startBusy, withBusy } from "../../../lib/busy";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
 const emit = defineEmits<{
@@ -248,6 +249,7 @@ async function emitDiplomas(students: number[], issuedAt = auto.issuedAt) {
   if (!students.length) return;
   autoRunning.value = true;
   autoResult.value = null;
+  const wait = startBusy("Generando diplomas", `${students.length} ${students.length === 1 ? "diploma con el diseño oficial" : "diplomas con el diseño oficial"}…`);
   try {
     const result = await props.api.generateDiplomas({ workshop: props.workshopKey, students, issuedAt, skills: auto.skills });
     autoResult.value = result;
@@ -260,6 +262,7 @@ async function emitDiplomas(students: number[], issuedAt = auto.issuedAt) {
   } catch (value) {
     say(problem(value, "No se pudieron emitir los diplomas."), "error");
   } finally {
+    wait.done();
     autoRunning.value = false;
   }
 }
@@ -298,6 +301,7 @@ async function downloadZip() {
   const ids = picked.value.length ? [...picked.value] : downloadable.value.map((diploma) => diploma.id);
   if (!ids.length) return;
   zipping.value = true;
+  const wait = startBusy("Preparando el ZIP", `${ids.length} ${ids.length === 1 ? "diploma" : "diplomas"}…`);
   try {
     const blob = await props.api.downloadDiplomasZip({ workshop: props.workshopKey, ids });
     const scope = picked.value.length ? "seleccion" : listBlock.value ? blockName(listBlock.value) : "todos";
@@ -306,6 +310,7 @@ async function downloadZip() {
   } catch (value) {
     say(problem(value, "No se pudieron descargar los diplomas."), "error");
   } finally {
+    wait.done();
     zipping.value = false;
   }
 }
@@ -318,6 +323,7 @@ async function regenerateMany() {
   if (!students.length) return;
   if (!await askConfirm({ title: `¿Regenerar ${students.length} ${students.length === 1 ? "diploma" : "diplomas"}?`, text: "Se vuelven a generar con el diseño y los textos actuales. Cada uno conserva su código y su fecha de emisión.", confirmText: "Regenerar" })) return;
   zipping.value = true;
+  const wait = startBusy("Regenerando diplomas", `${students.length} ${students.length === 1 ? "diploma" : "diplomas"} con el diseño actual…`);
   try {
     const result = await props.api.generateDiplomas({ workshop: props.workshopKey, students, overwrite: true });
     say(`${result.updated} ${result.updated === 1 ? "diploma regenerado" : "diplomas regenerados"} con el diseño actual.`, result.failed ? "error" : "success");
@@ -325,6 +331,7 @@ async function regenerateMany() {
   } catch (value) {
     say(problem(value, "No se pudieron regenerar los diplomas."), "error");
   } finally {
+    wait.done();
     zipping.value = false;
   }
 }
@@ -334,12 +341,15 @@ async function regenerate(diploma: AcademyDiploma) {
     ? await askConfirm({ title: "¿Volver a generar el PDF?", text: "Se genera con los datos actuales: nombre, taller y fecha de emisión guardada.", confirmText: "Regenerar" })
     : await askConfirm({ title: "¿Reemplazar el PDF subido?", text: "Se sustituye por uno con el diseño oficial.", confirmText: "Reemplazar" });
   if (!confirmed) return;
+  const wait = startBusy("Regenerando el diploma", diploma.credentialId);
   try {
     await props.api.regenerateDiploma(diploma.id);
     say("PDF del diploma generado con el diseño oficial.");
     await load(true);
   } catch (value) {
     say(problem(value, "No se pudo generar el PDF."), "error");
+  } finally {
+    wait.done();
   }
 }
 
@@ -361,12 +371,14 @@ async function attachIssuePdf(file: File | undefined | null) {
   if (!file.name.toLowerCase().endsWith(".pdf")) { issueError.value = "El diploma debe ser un PDF."; return; }
   issueError.value = "";
   issue.uploading = 0;
+  const wait = startBusy("Subiendo el PDF", file.name);
   try {
-    const uploaded = await props.api.uploadAcademyFile(file, "diploma", (value) => { issue.uploading = value; });
+    const uploaded = await props.api.uploadAcademyFile(file, "diploma", (value) => { issue.uploading = value; wait.update(`${file.name} · ${value}%`); });
     issue.file = { id: uploaded.id, name: uploaded.name, size: uploaded.size };
   } catch (value) {
     issueError.value = problem(value, "No se pudo subir el PDF.");
   } finally {
+    wait.done();
     issue.uploading = null;
   }
 }
@@ -412,12 +424,14 @@ async function attachDiplomaPdf(file: File | undefined | null) {
   if (!draft || !file) return;
   if (!file.name.toLowerCase().endsWith(".pdf")) return say("El diploma debe ser un PDF.", "error");
   draft.uploading = 0;
+  const wait = startBusy("Subiendo el PDF", file.name);
   try {
-    const uploaded = await props.api.uploadAcademyFile(file, "diploma", (value) => { draft.uploading = value; });
+    const uploaded = await props.api.uploadAcademyFile(file, "diploma", (value) => { draft.uploading = value; wait.update(`${file.name} · ${value}%`); });
     draft.file = { id: uploaded.id, name: uploaded.name, size: uploaded.size };
   } catch (value) {
     say(problem(value, "No se pudo subir el PDF."), "error");
   } finally {
+    wait.done();
     draft.uploading = null;
   }
 }
@@ -491,8 +505,12 @@ function addBulk(files: FileList | File[] | null | undefined) {
 }
 async function runBulk() {
   busy.value = true;
-  for (const item of bulk.value.filter((entry) => entry.student && entry.state === "pendiente")) {
+  const queue = bulk.value.filter((entry) => entry.student && entry.state === "pendiente");
+  const wait = startBusy("Subiendo diplomas", `0 de ${queue.length}`);
+  let done = 0;
+  for (const item of queue) {
     item.state = "subiendo";
+    wait.update(`${++done} de ${queue.length} · ${item.file.name}`);
     try {
       const uploaded = await props.api.uploadAcademyFile(item.file, "diploma");
       const existing = diplomaOf(item.student!.id);
@@ -505,9 +523,10 @@ async function runBulk() {
       item.message = problem(value, "No se pudo emitir.");
     }
   }
+  wait.done();
   busy.value = false;
-  const done = bulk.value.filter((entry) => entry.state === "listo").length;
-  say(`${done} diplomas emitidos en lote.`);
+  const ready = bulk.value.filter((entry) => entry.state === "listo").length;
+  say(`${ready} diplomas emitidos en lote.`);
   await load(true);
 }
 
@@ -588,12 +607,14 @@ async function attachVideo(file: File | undefined | null) {
   if (!videoForm.title) videoForm.title = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
   videoForm.durationSeconds = await readDuration(file);
   videoUpload.value = 0;
+  const wait = startBusy("Subiendo el video", file.name);
   try {
-    const uploaded = await props.api.uploadAcademyFile(file, "video", (value) => { videoUpload.value = value; });
+    const uploaded = await props.api.uploadAcademyFile(file, "video", (value) => { videoUpload.value = value; wait.update(`${file.name} · ${value}%`); });
     videoForm.file = { id: uploaded.id, name: uploaded.name, size: uploaded.size };
   } catch (value) {
     say(problem(value, "No se pudo subir el video."), "error");
   } finally {
+    wait.done();
     videoUpload.value = null;
   }
 }
@@ -675,7 +696,7 @@ async function saveDesign() {
     if (detail.value) detail.value.diplomaDesign = { ...result.design };
     say("Textos del diploma guardados. Los diplomas nuevos ya salen así.");
     if (await askConfirm({ title: "¿Aplicar los textos a los diplomas ya emitidos?", text: "Se regeneran los de todos los talleres. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
-      const regenerated = await props.api.regenerateAllDiplomas();
+      const regenerated = await withBusy("Aplicando los textos a los diplomas emitidos", () => props.api.regenerateAllDiplomas(), "Se regeneran los PDF de todos los talleres…");
       say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"} con los textos nuevos.`, regenerated.failed ? "error" : "success");
       await load(true);
     }
@@ -776,7 +797,7 @@ async function saveSeal() {
     if (detail.value) detail.value.diplomaSeal = { ...result.seal };
     say(result.seal.enabled ? "Sello guardado. Los diplomas nuevos ya salen con él." : "Sello guardado. Los diplomas nuevos saldrán sin sello.");
     if (await askConfirm({ title: `¿Aplicar el ${result.seal.enabled ? "sello" : "cambio"} a los diplomas ya emitidos?`, text: "Se regeneran los de todos los talleres. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
-      const regenerated = await props.api.regenerateAllDiplomas();
+      const regenerated = await withBusy("Aplicando el sello a los diplomas emitidos", () => props.api.regenerateAllDiplomas(), "Se regeneran los PDF de todos los talleres…");
       say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"}.`, regenerated.failed ? "error" : "success");
       await load(true);
     }
