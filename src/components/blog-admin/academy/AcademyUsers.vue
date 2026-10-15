@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import type { AcademyPerson, AcademyWorkshop, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyIcon from "./AcademyIcon.vue";
 import { askConfirm, showCopy } from "../../../lib/dialogs";
+import { startBusy } from "../../../lib/busy";
 
 const props = defineProps<{ api: BlogAdminApi; workshops: AcademyWorkshop[] }>();
 const emit = defineEmits<{
@@ -75,6 +76,7 @@ async function create() {
   formError.value = passwordProblem(form.password);
   if (formError.value) return;
   busy.value = true;
+  const wait = startBusy("Creando la cuenta", form.fullName);
   try {
     const result = await props.api.createAcademyUser({ ...form, role: role.value });
     created.value = { fullName: result.fullName, email: result.email, password: result.temporaryPassword, phone: form.phone, active: result.active };
@@ -84,6 +86,7 @@ async function create() {
   } catch (value) {
     formError.value = problem(value, "No se pudo crear la cuenta.");
   } finally {
+    wait.done();
     busy.value = false;
   }
 }
@@ -116,6 +119,7 @@ async function saveEdit() {
   const moved = editForm.workshops.filter((key) => editOriginal.value[key] && editForm.blocks[key] && editForm.blocks[key] !== editOriginal.value[key].blockId);
   if (removed.length && !await askConfirm({ title: `¿Quitar a ${editing.value.fullName} de ${removed.length === 1 ? "un taller" : `${removed.length} talleres`}?`, text: "Dejará de ver su contenido; sus diplomas se conservan.", confirmText: "Quitar", tone: "danger" })) return;
   busy.value = true;
+  const wait = startBusy("Guardando la cuenta", "Si cambió el nombre, sus diplomas se regeneran…");
   try {
     const id = editing.value.id;
     await props.api.updateAcademyUser(id, { fullName: editForm.fullName, phone: editForm.phone });
@@ -135,6 +139,7 @@ async function saveEdit() {
   } catch (value) {
     say(problem(value, "No se pudo guardar."), "error");
   } finally {
+    wait.done();
     busy.value = false;
   }
 }
