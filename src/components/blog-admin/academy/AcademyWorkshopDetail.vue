@@ -191,8 +191,13 @@ watch(() => [auto.block, detail.value?.diplomas.length, detail.value?.enrollment
 const nextNumber = computed(() => Math.max(0, ...(detail.value?.diplomas ?? []).map((item) => item.number ?? 0)) + 1);
 const sampleKey = Array.from(crypto.getRandomValues(new Uint8Array(3)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-${auto.issuedAt.slice(2, 4)}${auto.issuedAt.slice(5, 7)}-${sampleKey}-${String(nextNumber.value).padStart(3, "0")}`);
+// Se muestra al primer seleccionado; si no hay, al primer pendiente; si no, a cualquiera de la lista.
 const previewPerson = computed(() => autoCandidates.value.find((item) => auto.selected.includes(item.enrollment.student.id))?.enrollment.student
+  ?? autoCandidates.value.find((item) => !item.diploma?.file)?.enrollment.student
   ?? autoCandidates.value[0]?.enrollment.student ?? null);
+// Si la persona mostrada ya tiene diploma, la vista previa enseña ese diploma tal cual se guardó (su fecha y su código),
+// no uno de ejemplo con la fecha de hoy: al regenerar se conserva lo guardado.
+const previewSaved = computed(() => (previewPerson.value ? diplomaOf(previewPerson.value.id) : undefined));
 // Sello en la vista previa de Diplomas: el guardado, con el bloque del estudiante que se muestra.
 const previewBlockName = computed(() => autoCandidates.value.find((item) => item.enrollment.student.id === previewPerson.value?.id)?.enrollment.block?.name
   || blocks.value[0]?.name || workshop.value?.code || "");
@@ -208,16 +213,25 @@ watch(() => [detail.value?.diplomaSeal, previewBlockName.value] as const, async 
     autoSealSvg.value = "";
   }
 }, { immediate: true, deep: true });
-const previewData = computed(() => ({
-  fullName: previewPerson.value?.fullName || "Nombre del estudiante",
-  title: workshop.value?.title || "",
-  hours: workshop.value?.hours || 16,
-  issuedAt: auto.issuedAt || today(),
-  credentialId: sampleId.value,
-  verifyUrl: `${window.location.origin}/ai-academy/diploma/${sampleId.value}/`,
-}));
+const previewData = computed(() => {
+  const saved = previewSaved.value;
+  const credentialId = saved?.credentialId || sampleId.value;
+  return {
+    fullName: previewPerson.value?.fullName || "Nombre del estudiante",
+    title: saved?.title || workshop.value?.title || "",
+    hours: saved?.hours || workshop.value?.hours || 16,
+    issuedAt: saved?.issuedAt || auto.issuedAt || today(),
+    credentialId,
+    verifyUrl: `${window.location.origin}/ai-academy/diploma/${credentialId}/`,
+  };
+});
 
 async function openPreview() {
+  // Con diploma guardado se abre su PDF real; si no, el CMS genera una muestra con la fecha elegida.
+  if (previewSaved.value?.file) {
+    window.open(props.api.fileUrl(previewSaved.value.file), "_blank", "noopener");
+    return;
+  }
   const win = window.open("", "_blank");
   try {
     const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, issuedAt: auto.issuedAt });
@@ -301,7 +315,7 @@ async function regenerateMany() {
   const targets = picked.value.length ? downloadable.value.filter((diploma) => picked.value.includes(diploma.id)) : downloadable.value;
   const students = targets.map((diploma) => diploma.studentId).filter((id): id is number => Boolean(id));
   if (!students.length) return;
-  if (!window.confirm(`¿Regenerar ${students.length} ${students.length === 1 ? "diploma" : "diplomas"} con el diseño y los textos actuales? Se conservan su ID y su fecha.`)) return;
+  if (!window.confirm(`¿Regenerar ${students.length} ${students.length === 1 ? "diploma" : "diplomas"} con el diseño y los textos actuales? Cada uno conserva su código y su fecha de emisión.`)) return;
   zipping.value = true;
   try {
     const result = await props.api.generateDiplomas({ workshop: props.workshopKey, students, overwrite: true });
@@ -923,8 +937,9 @@ onMounted(async () => {
             <div class="auto__stage">
               <DiplomaReplica :data="previewData" :design="detail.diplomaDesign" :seal="autoSeal" />
               <div class="auto__stage-foot">
-                <span><AcademyIcon name="destello" :size="13" fill /> Vista previa en vivo · {{ previewPerson ? previewPerson.fullName : "ejemplo" }}</span>
-                <button type="button" class="ghost-action ghost-action--small" @click="openPreview">Ver el PDF real ↗</button>
+                <span v-if="previewSaved"><AcademyIcon name="diploma" :size="13" /> Diploma emitido · {{ previewPerson?.fullName }} · {{ dateLabel(previewSaved.issuedAt) }}</span>
+                <span v-else><AcademyIcon name="destello" :size="13" fill /> Vista previa en vivo · {{ previewPerson ? previewPerson.fullName : "ejemplo" }}</span>
+                <button type="button" class="ghost-action ghost-action--small" @click="openPreview">{{ previewSaved?.file ? "Abrir su PDF ↗" : "Ver el PDF real ↗" }}</button>
               </div>
             </div>
             <form class="auto__form" @submit.prevent="runAuto">
@@ -935,7 +950,7 @@ onMounted(async () => {
                     <option v-for="block in blocks" :key="block.id" :value="block.id">{{ block.name }} · {{ block.progress }}%</option>
                   </select>
                 </label>
-                <label class="field">Fecha de emisión<input v-model="auto.issuedAt" type="date" required /></label>
+                <label class="field">Fecha de emisión<input v-model="auto.issuedAt" type="date" required /><small>Solo para los diplomas nuevos. Al regenerar, cada diploma conserva la fecha con la que se emitió.</small></label>
               </div>
               <label class="field">Competencias (opcional)<input v-model="auto.skills" placeholder="Prompts, Agentes, Automatización" /><small>Se muestran en el campus junto al diploma.</small></label>
               <div class="auto__head">
