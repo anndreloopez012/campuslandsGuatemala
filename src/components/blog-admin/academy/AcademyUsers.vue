@@ -88,24 +88,48 @@ async function create() {
 }
 
 const editing = ref<AcademyPerson | null>(null);
-const editForm = reactive({ fullName: "", phone: "", password: "" });
+// Talleres del estudiante: marcar inscribe (en el bloque elegido), desmarcar quita la inscripción,
+// cambiar el bloque la mueve. Así una misma cuenta puede tomar más talleres después.
+const editForm = reactive({ fullName: "", phone: "", password: "", workshops: [] as string[], blocks: {} as Record<string, number> });
+const editOriginal = ref<Record<string, { enrollmentId: number; blockId: number }>>({});
 const editError = ref("");
+const newestBlock = (key: string) => props.workshops.find((item) => item.key === key)?.blocks?.[0]?.id ?? 0;
 function openEdit(person: AcademyPerson) {
   editing.value = person;
   editError.value = "";
   showPassword.value = false;
-  Object.assign(editForm, { fullName: person.fullName, phone: person.phone, password: "" });
+  const current = person.workshops ?? [];
+  editOriginal.value = Object.fromEntries(current.map((item) => [item.key, { enrollmentId: item.enrollmentId, blockId: item.block?.id ?? 0 }]));
+  Object.assign(editForm, {
+    fullName: person.fullName, phone: person.phone, password: "",
+    workshops: current.map((item) => item.key),
+    blocks: Object.fromEntries(props.workshops.map((item) => [item.key, current.find((entry) => entry.key === item.key)?.block?.id ?? newestBlock(item.key)])),
+  });
 }
 async function saveEdit() {
   if (!editing.value) return;
   editError.value = passwordProblem(editForm.password);
   if (editError.value) return;
+  const added = editForm.workshops.filter((key) => !editOriginal.value[key]);
+  const removed = Object.keys(editOriginal.value).filter((key) => !editForm.workshops.includes(key));
+  const moved = editForm.workshops.filter((key) => editOriginal.value[key] && editForm.blocks[key] && editForm.blocks[key] !== editOriginal.value[key].blockId);
+  if (removed.length && !window.confirm(`¿Quitar a ${editing.value.fullName} de ${removed.length === 1 ? "un taller" : `${removed.length} talleres`}? Dejará de ver su contenido; sus diplomas se conservan.`)) return;
   busy.value = true;
   try {
-    await props.api.updateAcademyUser(editing.value.id, { fullName: editForm.fullName, phone: editForm.phone });
-    if (editForm.password) await props.api.resetAcademyPassword(editing.value.id, editForm.password);
+    const id = editing.value.id;
+    await props.api.updateAcademyUser(id, { fullName: editForm.fullName, phone: editForm.phone });
+    if (editForm.password) await props.api.resetAcademyPassword(id, editForm.password);
+    for (const key of added) await props.api.enroll({ workshop: key, students: [id], block: editForm.blocks[key] || undefined });
+    for (const key of removed) await props.api.removeEnrollment(editOriginal.value[key].enrollmentId);
+    for (const key of moved) await props.api.updateEnrollment(editOriginal.value[key].enrollmentId, { block: editForm.blocks[key] });
     editing.value = null;
-    say(editForm.password ? "Datos y contraseña actualizados: la cuenta queda activa con la nueva contraseña." : "Datos actualizados.");
+    const parts = ["Datos actualizados"];
+    if (editForm.password) parts.push("contraseña nueva (cuenta activa)");
+    if (added.length) parts.push(`${added.length === 1 ? "1 taller asignado" : `${added.length} talleres asignados`}`);
+    if (removed.length) parts.push(`${removed.length === 1 ? "1 taller quitado" : `${removed.length} talleres quitados`}`);
+    if (moved.length) parts.push(`${moved.length === 1 ? "1 cambio de bloque" : `${moved.length} cambios de bloque`}`);
+    say(`${parts.join(" · ")}.`);
+    emit("changed");
     await load();
   } catch (value) {
     say(problem(value, "No se pudo guardar."), "error");
@@ -293,6 +317,19 @@ onMounted(load);
               <button type="button" class="ghost-action ghost-action--small" @click="editForm.password = generatePassword(); showPassword = true">Generar</button>
             </div>
             <small>Si la escribes, reemplaza la actual y la cuenta queda activa sin pedir cambio.</small>
+          </div>
+          <div v-if="editing.role === 'student'" class="field" style="margin-top: 14px">Talleres
+            <div class="wpick">
+              <label v-for="workshop in workshops" :key="workshop.key" class="wpick__item" :class="{ active: editForm.workshops.includes(workshop.key) }" :style="{ '--accent': workshop.accent }">
+                <input v-model="editForm.workshops" type="checkbox" :value="workshop.key" />
+                <span class="chip">{{ workshop.code }}</span>
+                <span>{{ workshop.title }}</span>
+                <select v-if="editForm.workshops.includes(workshop.key) && workshop.blocks?.length" v-model.number="editForm.blocks[workshop.key]" class="wpick__block" aria-label="Bloque" @click.stop>
+                  <option v-for="block in workshop.blocks" :key="block.id" :value="block.id">{{ block.name }}</option>
+                </select>
+              </label>
+            </div>
+            <small class="wpick__hint">Marca un taller para inscribirlo en el bloque que elijas; desmárcalo para quitarlo. Con la misma cuenta puede tomar todos los talleres que quiera.</small>
           </div>
           <p v-if="editError" class="error" style="margin-top: 12px">{{ editError }}</p>
           <div class="form-actions">
