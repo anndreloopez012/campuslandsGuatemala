@@ -3,7 +3,7 @@ import type { DiplomaDesign } from "./academy-diploma";
 // Sello del diploma: textos, posición (centro, en puntos PDF), tamaño, inclinación y desgaste.
 export type DiplomaSealConfig = { enabled: boolean; topText: string; bottomText: string; x: number; y: number; size: number; rotation: number; wear: number };
 // Firma del diploma: posición y ancho en puntos PDF; `studentDownload` = el PDF del campus va firmado.
-export type DiplomaSignatureConfig = { enabled: boolean; x: number; y: number; width: number; studentDownload: boolean };
+export type DiplomaSignatureConfig = { enabled: boolean; x: number; y: number; width: number; rotation: number; studentDownload: boolean };
 export type DiplomaSignatureState = DiplomaSignatureConfig & { hasImage: boolean; imageUrl: string | null; imageWidth: number | null; imageHeight: number | null };
 export const BLOG_EDITOR_STORAGE_KEY = "campuslands_blog_editor_session";
 
@@ -456,6 +456,15 @@ export class BlogAdminApi {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload?.error?.message || "No se pudo subir la firma.");
     return payload.data as { signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig };
+  }
+
+  // Imagen de la firma para el panel (esté o no activada), como objeto local para mostrarla al instante.
+  async diplomaSignatureImage(version: string | number) {
+    const headers = new Headers();
+    if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-signature/image?v=${encodeURIComponent(String(version))}`, { headers });
+    if (!response.ok) throw new Error("No se pudo cargar la imagen de la firma.");
+    return URL.createObjectURL(await response.blob());
   }
 
   removeDiplomaSignature() {
