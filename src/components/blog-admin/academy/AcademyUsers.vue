@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import type { AcademyPerson, AcademyWorkshop, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyIcon from "./AcademyIcon.vue";
+import { askConfirm, showCopy } from "../../../lib/dialogs";
 
 const props = defineProps<{ api: BlogAdminApi; workshops: AcademyWorkshop[] }>();
 const emit = defineEmits<{
@@ -113,7 +114,7 @@ async function saveEdit() {
   const added = editForm.workshops.filter((key) => !editOriginal.value[key]);
   const removed = Object.keys(editOriginal.value).filter((key) => !editForm.workshops.includes(key));
   const moved = editForm.workshops.filter((key) => editOriginal.value[key] && editForm.blocks[key] && editForm.blocks[key] !== editOriginal.value[key].blockId);
-  if (removed.length && !window.confirm(`¿Quitar a ${editing.value.fullName} de ${removed.length === 1 ? "un taller" : `${removed.length} talleres`}? Dejará de ver su contenido; sus diplomas se conservan.`)) return;
+  if (removed.length && !await askConfirm({ title: `¿Quitar a ${editing.value.fullName} de ${removed.length === 1 ? "un taller" : `${removed.length} talleres`}?`, text: "Dejará de ver su contenido; sus diplomas se conservan.", confirmText: "Quitar", tone: "danger" })) return;
   busy.value = true;
   try {
     const id = editing.value.id;
@@ -140,7 +141,7 @@ async function saveEdit() {
 
 async function toggleBlock(person: AcademyPerson) {
   const next = !person.blocked;
-  if (next && !window.confirm(`¿Bloquear a ${person.fullName}? No podrá iniciar sesión hasta que lo desbloquees.`)) return;
+  if (next && !await askConfirm({ title: `¿Bloquear a ${person.fullName}?`, text: "No podrá iniciar sesión hasta que lo desbloquees.", confirmText: "Bloquear", tone: "danger" })) return;
   try {
     await props.api.updateAcademyUser(person.id, { blocked: next });
     person.blocked = next;
@@ -151,7 +152,7 @@ async function toggleBlock(person: AcademyPerson) {
 }
 
 async function resetPassword(person: AcademyPerson) {
-  if (!window.confirm(`¿Generar una contraseña temporal nueva para ${person.fullName}? La actual dejará de funcionar.`)) return;
+  if (!await askConfirm({ title: `¿Nueva contraseña temporal para ${person.fullName}?`, text: "La contraseña actual dejará de funcionar.", confirmText: "Generar" })) return;
   try {
     const result = await props.api.resetAcademyPassword(person.id);
     created.value = { fullName: person.fullName, email: person.email, password: result.temporaryPassword, phone: person.phone, reset: true };
@@ -178,7 +179,7 @@ const whatsappLink = computed(() => {
 });
 async function copyWelcome() {
   try { await navigator.clipboard.writeText(welcome.value); say("Mensaje copiado. Pégalo en WhatsApp o en un correo."); }
-  catch { window.prompt("Copia el mensaje:", welcome.value); }
+  catch { await showCopy({ title: "Copia el mensaje", value: welcome.value }); }
 }
 
 onMounted(load);

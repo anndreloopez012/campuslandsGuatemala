@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { AI_ACADEMY_DEFAULT_STATE, AI_ACADEMY_WORKSHOPS } from "../../content/aiAcademy";
 import type { BlogAdminApi, EditorWorkshop, EditorWorkshopChanges, EditorWorkshopCurriculum } from "../../lib/blog-admin";
 import AcademyIcon from "./academy/AcademyIcon.vue";
+import { showCopy } from "../../lib/dialogs";
 
 const props = defineProps<{
   api: BlogAdminApi;
@@ -250,7 +251,7 @@ async function copyLink(card: Card) {
   try {
     await navigator.clipboard.writeText(url);
   } catch {
-    window.prompt("Copia el enlace del taller:", url);
+    await showCopy({ title: "Copia el enlace del taller", value: url });
   }
   card.copied = true;
   window.setTimeout(() => { card.copied = false; }, 2200);
