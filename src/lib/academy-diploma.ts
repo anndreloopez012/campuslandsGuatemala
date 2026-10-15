@@ -28,14 +28,16 @@ export function sealStyle(seal: Pick<DiplomaSeal, "x" | "y" | "size">) {
 }
 
 // Firma montada sobre la línea de firma: centro y ancho en puntos PDF; `url` es la imagen PNG (absoluta).
-export type DiplomaSignature = { x: number; y: number; width: number; url: string };
+export type DiplomaSignature = { x: number; y: number; width: number; rotation?: number; url: string };
 
-// La imagen se centra en (x, y) con transform: translate(-50%, 50%); la altura la da la proporción del PNG.
-export function signatureStyle(signature: Pick<DiplomaSignature, "x" | "y" | "width">) {
+// La imagen se centra en (x, y) con transform: translate(-50%, 50%) y gira sobre su centro; la altura la da la
+// proporción del PNG. El giro del PDF es antihorario y el de CSS horario, por eso se invierte el signo.
+export function signatureStyle(signature: Pick<DiplomaSignature, "x" | "y" | "width" | "rotation">) {
   return {
     left: `${(signature.x / 792) * 100}%`,
     bottom: `${(signature.y / 612) * 100}%`,
     width: `${(signature.width / 792) * 100}%`,
+    "--rot": `${-(signature.rotation ?? 0)}deg`,
   };
 }
 

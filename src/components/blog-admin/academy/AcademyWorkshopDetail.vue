@@ -824,7 +824,7 @@ async function previewSealPdf() {
 // Una imagen PNG de la firma, igual para todos los talleres. Va en la versión digital del diploma (campus y
 // verificación). El PDF guardado nunca la lleva: se estampa al descargar solo si se pide (casilla «Con firma»
 // del administrador, o la opción para el estudiante). Se arrastra sobre el diploma como el sello.
-const SIGNATURE_FALLBACK: DiplomaSignatureConfig = { enabled: false, x: 396, y: 136, width: 150, studentDownload: false };
+const SIGNATURE_FALLBACK: DiplomaSignatureConfig = { enabled: false, x: 396, y: 136, width: 150, rotation: 0, studentDownload: false };
 const signatureKeys = Object.keys(SIGNATURE_FALLBACK) as (keyof DiplomaSignatureConfig)[];
 const signatureForm = reactive<DiplomaSignatureConfig>({ ...SIGNATURE_FALLBACK });
 const signatureSaved = ref<DiplomaSignatureConfig>({ ...SIGNATURE_FALLBACK });
@@ -834,30 +834,37 @@ const signatureLoaded = ref(false);
 const signatureSaving = ref(false);
 const signatureUploading = ref(false);
 const signatureDirty = computed(() => signatureKeys.some((key) => String(signatureForm[key]) !== String(signatureSaved.value[key])));
-const signaturePreview = computed(() => (signatureForm.enabled && signatureImage.value ? { x: signatureForm.x, y: signatureForm.y, width: signatureForm.width, url: signatureImage.value.url } : null));
+const signaturePreview = computed(() => (signatureForm.enabled && signatureImage.value ? { x: signatureForm.x, y: signatureForm.y, width: signatureForm.width, rotation: signatureForm.rotation, url: signatureImage.value.url } : null));
 // La firma guardada (la que ven los alumnos y la verificación): se muestra en la vista previa de Diplomas.
 const savedSignature = computed(() => {
   const saved = detail.value?.diplomaSignature;
-  return saved?.enabled && saved.hasImage && saved.imageUrl ? { x: saved.x, y: saved.y, width: saved.width, url: props.api.fileUrl({ url: saved.imageUrl }) } : null;
+  return saved?.enabled && saved.hasImage && saved.imageUrl ? { x: saved.x, y: saved.y, width: saved.width, rotation: saved.rotation, url: props.api.fileUrl({ url: saved.imageUrl }) } : null;
 });
 const signatureReady = computed(() => Boolean(savedSignature.value));
 // Descargas del administrador con la firma estampada (casilla de la barra de descargas).
 const withSignature = ref(false);
 
-function applySignature(result: { signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }) {
+// La imagen se pide con la sesión del panel (la ruta pública solo la sirve si la firma está activada y guardada),
+// así se ve al instante al subirla. Se guarda como objeto local y se libera al reemplazarla.
+let signatureImageVersion = "";
+async function applySignature(result: { signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }) {
   const config = Object.fromEntries(signatureKeys.map((key) => [key, result.signature[key]])) as DiplomaSignatureConfig;
   Object.assign(signatureForm, config);
   signatureSaved.value = { ...config };
   signatureDefaults.value = { ...result.defaults };
-  signatureImage.value = result.signature.hasImage && result.signature.imageUrl
-    ? { url: props.api.fileUrl({ url: result.signature.imageUrl }), width: result.signature.imageWidth, height: result.signature.imageHeight }
-    : null;
   if (detail.value) detail.value.diplomaSignature = { ...result.signature };
+  const version = result.signature.hasImage && result.signature.imageUrl ? result.signature.imageUrl.split("v=")[1] || "1" : "";
+  if (version === signatureImageVersion) return;
+  if (signatureImage.value?.url.startsWith("blob:")) URL.revokeObjectURL(signatureImage.value.url);
+  signatureImageVersion = version;
+  signatureImage.value = version
+    ? { url: await props.api.diplomaSignatureImage(version), width: result.signature.imageWidth, height: result.signature.imageHeight }
+    : null;
 }
 
 async function loadSignature() {
   try {
-    applySignature(await props.api.diplomaSignature());
+    await applySignature(await props.api.diplomaSignature());
     signatureLoaded.value = true;
   } catch (value) {
     say(problem(value, "No se pudo cargar la firma."), "error");
@@ -872,7 +879,7 @@ async function uploadSignature(event: Event) {
   signatureUploading.value = true;
   const wait = startBusy("Subiendo la firma", file.name);
   try {
-    applySignature(await props.api.uploadDiplomaSignature(file));
+    await applySignature(await props.api.uploadDiplomaSignature(file));
     if (!signatureForm.enabled) signatureForm.enabled = true;
     say("Firma subida. Colócala sobre el diploma y guarda.");
   } catch (value) {
@@ -887,7 +894,7 @@ async function uploadSignature(event: Event) {
 async function removeSignatureImage() {
   if (!await askConfirm({ title: "¿Quitar la imagen de la firma?", text: "El diploma dejará de mostrar la firma en el campus y en la verificación.", confirmText: "Quitar", tone: "danger" })) return;
   try {
-    applySignature(await props.api.removeDiplomaSignature());
+    await applySignature(await props.api.removeDiplomaSignature());
     say("Imagen de la firma eliminada.");
   } catch (value) {
     say(problem(value, "No se pudo quitar la firma."), "error");
@@ -909,10 +916,14 @@ function resetSignature() {
   Object.assign(signatureForm, signatureDefaults.value, { enabled: signatureForm.enabled, studentDownload: signatureForm.studentDownload });
 }
 
+function straightenSignature() {
+  signatureForm.rotation = 0;
+}
+
 async function saveSignature() {
   signatureSaving.value = true;
   try {
-    applySignature(await props.api.saveDiplomaSignature({ ...signatureForm }));
+    await applySignature(await props.api.saveDiplomaSignature({ ...signatureForm }));
     say(signatureForm.enabled
       ? (signatureImage.value ? "Firma guardada. Ya se ve en el campus y en la página de verificación." : "Firma guardada. Sube la imagen PNG para que se muestre.")
       : "Firma guardada. Los diplomas se muestran sin firma.");
@@ -1381,6 +1392,7 @@ onMounted(async () => {
               <small>PNG con fondo transparente, hasta 3 MB. Se recortan los bordes vacíos para que la posición corresponda al trazo.</small>
             </div>
             <label class="field seal__range">Ancho <output>{{ signatureForm.width }} pt</output><input v-model.number="signatureForm.width" type="range" min="40" max="420" step="2" /></label>
+            <label class="field seal__range">Giro <output>{{ signatureForm.rotation }}°</output><input v-model.number="signatureForm.rotation" type="range" min="-45" max="45" step="1" /><small>Gira sobre su centro: negativo hacia la derecha, positivo hacia la izquierda. <button type="button" class="link-action" @click="straightenSignature">Enderezar</button></small></label>
             <div class="field">Posición
               <div class="seal__pos">
                 <label>X <input v-model.number="signatureForm.x" class="mini-input" type="number" min="40" max="752" /></label>
