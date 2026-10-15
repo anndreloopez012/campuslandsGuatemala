@@ -181,7 +181,7 @@ export type AcademyBlock = {
 };
 export type AcademyBlockRef = { id: number; name: string } | null;
 export type AcademyEnrollment = { id: number; block: AcademyBlockRef; cohort: string; status: "inscrito" | "en-curso" | "completado"; enrolledAt: string; student: AcademyPerson };
-export type AcademyDiploma = { id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: "emitido" | "revocado"; studentId: number | null; file: AcademyFile | null };
+export type AcademyDiploma = { id: number; credentialId: string; number: number | null; title: string; issuedAt: string; hours: number; skills: string[]; status: "emitido" | "revocado"; studentId: number | null; file: AcademyFile | null };
 export type AcademyTool = { id: number; title: string; url: string; description: string; category: string; order: number; block: AcademyBlockRef };
 export type AcademyVideo = { id: number; title: string; description: string; session: number | null; order: number; source: "archivo" | "enlace"; externalUrl: string; durationSeconds: number | null; file: AcademyFile | null; block: AcademyBlockRef };
 export type AcademyGenerateResult = {
