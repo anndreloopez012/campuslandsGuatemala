@@ -7,6 +7,8 @@ import AcademyIcon from "./academy/AcademyIcon.vue";
 import AcademyUsersPage from "./academy/AcademyUsersPage.vue";
 import { renderBlogBlocks } from "../../lib/blog";
 import { askConfirm } from "../../lib/dialogs";
+import BusyOverlay from "./BusyOverlay.vue";
+import { startBusy } from "../../lib/busy";
 import {
   BLOG_EDITOR_STORAGE_KEY,
   BlogAdminApi,
@@ -588,6 +590,7 @@ async function saveArticle(publish: boolean) {
   editorError.value = validateArticle();
   if (editorError.value) return;
   editorSaving.value = true;
+  const wait = startBusy(publish ? "Publicando el artículo" : "Guardando el artículo", "Subiendo imágenes y archivos…");
   try {
     let cover = articleForm.coverImage;
     if (coverFile.value) cover = await api.upload(coverFile.value);
@@ -636,6 +639,7 @@ async function saveArticle(publish: boolean) {
   } catch (error) {
     editorError.value = error instanceof Error ? error.message : "No fue posible guardar la publicación.";
   } finally {
+    wait.done();
     editorSaving.value = false;
   }
 }
@@ -754,6 +758,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="editor-app">
+    <BusyOverlay />
     <div class="editor-atmosphere" aria-hidden="true"><span></span><span></span><span></span></div>
 
     <section v-if="state === 'checking'" class="state-screen" aria-live="polite">

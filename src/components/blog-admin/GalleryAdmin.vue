@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { askConfirm } from "../../lib/dialogs";
+import { startBusy } from "../../lib/busy";
 import {
   BlogAdminApi,
   mediaUrl,
@@ -227,6 +228,7 @@ async function save(publish: boolean) {
   errorMessage.value = validate(publish);
   if (errorMessage.value) return;
   saving.value = true;
+  const wait = startBusy(publish ? "Publicando la galería" : "Guardando la galería", `Subiendo ${images.value.filter((image) => image.file).length} imágenes…`);
   try {
     const resolved = await Promise.all(images.value.map(async (image) => ({
       ...image,
@@ -257,6 +259,7 @@ async function save(publish: boolean) {
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : "No se pudo guardar la galería.";
   } finally {
+    wait.done();
     saving.value = false;
   }
 }
