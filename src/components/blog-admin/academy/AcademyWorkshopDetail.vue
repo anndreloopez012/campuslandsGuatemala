@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import type { AcademyBlock, AcademyDetail, AcademyDiploma, AcademyEnrollment, AcademyPerson, AcademyTool, AcademyVideo, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyAdmin from "../AcademyAdmin.vue";
 import AcademyIcon from "./AcademyIcon.vue";
 import DiplomaReplica from "./DiplomaReplica.vue";
 import { DEFAULT_DIPLOMA_DESIGN, type DiplomaDesign } from "../../../lib/academy-diploma";
-import { isGeneratedDiploma, type AcademyGenerateResult } from "../../../lib/blog-admin";
+import { isGeneratedDiploma, type AcademyGenerateResult, type DiplomaSealConfig } from "../../../lib/blog-admin";
 
 const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
 const emit = defineEmits<{
@@ -14,7 +14,7 @@ const emit = defineEmits<{
   (e: "notice", message: string, type?: "success" | "error"): void;
 }>();
 
-type Tab = "bloques" | "estudiantes" | "diplomas" | "textos" | "herramientas" | "videos" | "publicacion" | "ajustes";
+type Tab = "bloques" | "estudiantes" | "diplomas" | "textos" | "sello" | "herramientas" | "videos" | "publicacion" | "ajustes";
 const tab = ref<Tab>("bloques");
 const loading = ref(true);
 const error = ref("");
@@ -670,10 +670,107 @@ async function previewDesign() {
   }
 }
 
+// ---------------------------------------------------------------- sello
+// El sello es el mismo para todos los talleres. Se arrastra sobre el diploma y su posición se guarda en
+// puntos PDF, así que donde se ve es donde se imprime. El dibujo lo hace el CMS y se pide al cambiar los textos.
+const SEAL_FALLBACK: DiplomaSealConfig = { enabled: false, topText: "AI ACADEMY", bottomText: "CAMPUSLANDS GUATEMALA", x: 596, y: 150, size: 132, rotation: -8, wear: 55 };
+const sealForm = reactive<DiplomaSealConfig>({ ...SEAL_FALLBACK });
+const sealSaved = ref<DiplomaSealConfig>({ ...SEAL_FALLBACK });
+const sealDefaults = ref<DiplomaSealConfig>({ ...SEAL_FALLBACK });
+const sealLoaded = ref(false);
+const sealSaving = ref(false);
+const sealDrawing = ref(false);
+const sealSvg = ref("");
+const sealKeys = Object.keys(SEAL_FALLBACK) as (keyof DiplomaSealConfig)[];
+const sealDirty = computed(() => sealKeys.some((key) => String(sealForm[key]).trim() !== String(sealSaved.value[key])));
+const sealCenter = computed(() => blocks.value[0]?.name || workshop.value?.code || "");
+const sealPreview = computed(() => (sealForm.enabled && sealSvg.value ? { x: sealForm.x, y: sealForm.y, size: sealForm.size, svg: sealSvg.value } : null));
+let sealTimer = 0;
+
+async function drawSeal() {
+  sealDrawing.value = true;
+  try {
+    sealSvg.value = await props.api.sealSvg({ workshop: props.workshopKey, seal: { topText: sealForm.topText, bottomText: sealForm.bottomText, rotation: sealForm.rotation, wear: sealForm.wear }, centerText: sealCenter.value });
+  } catch (value) {
+    say(problem(value, "No se pudo dibujar el sello."), "error");
+  } finally {
+    sealDrawing.value = false;
+  }
+}
+
+function scheduleSeal() {
+  window.clearTimeout(sealTimer);
+  sealTimer = window.setTimeout(drawSeal, 250);
+}
+watch(() => [sealForm.topText, sealForm.bottomText, sealForm.rotation, sealForm.wear], () => { if (sealLoaded.value) scheduleSeal(); });
+onBeforeUnmount(() => window.clearTimeout(sealTimer));
+
+async function loadSeal() {
+  try {
+    const result = await props.api.diplomaSeal();
+    Object.assign(sealForm, result.seal);
+    sealSaved.value = { ...result.seal };
+    sealDefaults.value = { ...result.defaults };
+    sealLoaded.value = true;
+    await drawSeal();
+  } catch (value) {
+    say(problem(value, "No se pudo cargar el sello."), "error");
+  }
+}
+
+function moveSeal(position: { x: number; y: number }) {
+  sealForm.x = position.x;
+  sealForm.y = position.y;
+}
+
+function placeSeal(where: "derecha" | "izquierda") {
+  const half = sealForm.size / 2;
+  sealForm.x = where === "derecha" ? Math.min(792 - half, 596) : Math.max(half, 196);
+  sealForm.y = Math.max(half, 150);
+}
+
+function resetSeal() {
+  const keep = sealForm.enabled;
+  Object.assign(sealForm, sealDefaults.value, { enabled: keep });
+}
+
+async function saveSeal() {
+  sealSaving.value = true;
+  try {
+    const result = await props.api.saveDiplomaSeal({ ...sealForm });
+    Object.assign(sealForm, result.seal);
+    sealSaved.value = { ...result.seal };
+    if (detail.value) detail.value.diplomaSeal = { ...result.seal };
+    say(result.seal.enabled ? "Sello guardado. Los diplomas nuevos ya salen con él." : "Sello guardado. Los diplomas nuevos saldrán sin sello.");
+    if (window.confirm(`¿Aplicar ahora el ${result.seal.enabled ? "sello" : "cambio"} a todos los diplomas ya emitidos (de todos los talleres)? Conservan su código y su fecha.`)) {
+      const regenerated = await props.api.regenerateAllDiplomas();
+      say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"}.`, regenerated.failed ? "error" : "success");
+      await load(true);
+    }
+  } catch (value) {
+    say(problem(value, "No se pudo guardar el sello."), "error");
+  } finally {
+    sealSaving.value = false;
+  }
+}
+
+async function previewSealPdf() {
+  const win = window.open("", "_blank");
+  try {
+    const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, seal: { ...sealForm } });
+    const url = URL.createObjectURL(blob);
+    if (win) win.location.href = url; else window.location.assign(url);
+  } catch (value) {
+    win?.close();
+    say(problem(value, "No se pudo generar la vista previa."), "error");
+  }
+}
+
 function selectTab(next: Tab) {
   tab.value = next;
   if (next === "ajustes") fillSettings();
   if (next === "textos" && !designLoaded.value) void loadDesign();
+  if (next === "sello" && !sealLoaded.value) void loadSeal();
   if (next === "diplomas" && !issue.title) resetIssue();
 }
 
@@ -711,7 +808,7 @@ onMounted(async () => {
       </header>
 
       <nav class="tabs" aria-label="Secciones del taller">
-        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
+        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['sello', 'Sello'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
       </nav>
 
       <!-- BLOQUES -->
@@ -1042,6 +1139,47 @@ onMounted(async () => {
         </div>
       </section>
 
+      <!-- SELLO -->
+      <section v-else-if="tab === 'sello'" class="panel">
+        <div class="panel__head">
+          <div><h3>Sello del diploma</h3><p>Un sello de tinta sobre el diploma. Arrástralo hasta donde quieras que se imprima; el texto del centro es el nombre del bloque de cada alumno.</p></div>
+          <label class="toggle seal__toggle"><input v-model="sealForm.enabled" type="checkbox" /> {{ sealForm.enabled ? "Sello activado" : "Sello desactivado" }}</label>
+        </div>
+        <div class="auto">
+          <div class="auto__stage">
+            <DiplomaReplica :data="designPreview" :design="detail.diplomaDesign" :seal="sealPreview" draggable @move="moveSeal" />
+            <div class="auto__stage-foot">
+              <span v-if="sealForm.enabled"><AcademyIcon name="destello" :size="13" fill /> {{ sealDrawing ? "Dibujando el sello…" : "Arrastra el sello con el cursor o muévelo con las flechas del teclado." }}</span>
+              <span v-else>Activa el sello para verlo sobre el diploma.</span>
+              <button type="button" class="ghost-action ghost-action--small" :disabled="!sealForm.enabled" @click="previewSealPdf">Ver el PDF real ↗</button>
+            </div>
+          </div>
+          <form class="auto__form" @submit.prevent="saveSeal">
+            <label class="field">Texto de arriba<input v-model="sealForm.topText" maxlength="40" placeholder="AI ACADEMY" /><small>En arco, en la parte superior. Siempre en mayúsculas.</small></label>
+            <label class="field">Texto de abajo<input v-model="sealForm.bottomText" maxlength="40" placeholder="CAMPUSLANDS GUATEMALA" /><small>En arco, en la parte inferior.</small></label>
+            <div class="field">Texto del centro
+              <div class="seal__center"><strong>{{ sealCenter || "Nombre del bloque" }}</strong><small>Sale solo del bloque en el que está inscrito cada alumno. En esta vista se usa el bloque más reciente del taller.</small></div>
+            </div>
+            <label class="field seal__range">Tamaño <output>{{ sealForm.size }} pt</output><input v-model.number="sealForm.size" type="range" min="70" max="260" step="2" /></label>
+            <label class="field seal__range">Inclinación <output>{{ sealForm.rotation }}°</output><input v-model.number="sealForm.rotation" type="range" min="-45" max="45" step="1" /></label>
+            <label class="field seal__range">Desgaste de la tinta <output>{{ sealForm.wear }}%</output><input v-model.number="sealForm.wear" type="range" min="0" max="100" step="5" /></label>
+            <div class="field">Posición
+              <div class="seal__pos">
+                <label>X <input v-model.number="sealForm.x" class="mini-input" type="number" min="40" max="752" /></label>
+                <label>Y <input v-model.number="sealForm.y" class="mini-input" type="number" min="40" max="572" /></label>
+                <button type="button" class="ghost-action ghost-action--small" @click="placeSeal('derecha')">Junto a la firma, derecha</button>
+                <button type="button" class="ghost-action ghost-action--small" @click="placeSeal('izquierda')">Junto a la firma, izquierda</button>
+              </div>
+              <small>En puntos de la hoja, desde la esquina inferior izquierda. Lo que ves aquí es lo que se imprime.</small>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="ghost-action" @click="resetSeal">Restablecer</button>
+              <button type="submit" class="primary-action" :disabled="sealSaving || !sealLoaded || !sealDirty">{{ sealSaving ? "Guardando…" : sealDirty ? "Guardar sello" : "Sin cambios" }}</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <!-- PUBLICACIÓN -->
       <AcademyAdmin v-else-if="tab === 'publicacion'" :api="api" :cms-url="cmsUrl" :only-key="workshopKey" embedded @notice="(message, type) => emit('notice', message, type)" />
 
@@ -1197,6 +1335,16 @@ onMounted(async () => {
 <style scoped src="./academy-admin.css"></style>
 <style scoped>
 .detail { padding-bottom: 80px; }
+.seal__toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.seal__center { display: grid; gap: 4px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.seal__center strong { font: 800 15px/1.2 ui-monospace, monospace; letter-spacing: 0.04em; }
+.seal__center small { color: var(--muted); font-size: 11px; }
+.seal__range { position: relative; }
+.seal__range output { position: absolute; top: 0; right: 0; color: var(--accent); font: 700 12px/1.4 ui-monospace, monospace; }
+.seal__range input[type="range"] { width: 100%; min-height: 0; padding: 0; margin-top: 6px; border: 0; background: transparent; accent-color: var(--accent); }
+.seal__pos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.seal__pos label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.seal__pos .mini-input { width: 76px; }
 .dl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; background: rgba(2, 9, 34, 0.45); }
 .dl-bar__all { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
 .dl-bar__all input, .row__pick { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }

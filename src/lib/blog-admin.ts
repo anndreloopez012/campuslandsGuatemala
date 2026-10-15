@@ -1,4 +1,7 @@
 import type { DiplomaDesign } from "./academy-diploma";
+
+// Sello del diploma: textos, posición (centro, en puntos PDF), tamaño, inclinación y desgaste.
+export type DiplomaSealConfig = { enabled: boolean; topText: string; bottomText: string; x: number; y: number; size: number; rotation: number; wear: number };
 export const BLOG_EDITOR_STORAGE_KEY = "campuslands_blog_editor_session";
 
 export type EditorUser = {
@@ -187,7 +190,7 @@ export type AcademyGenerateResult = {
 };
 // Los diplomas con el diseño oficial se reconocen por el nombre del archivo.
 export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) => Boolean(diploma.file?.name.startsWith("Diploma AI Academy - "));
-export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: Partial<DiplomaDesign>; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
+export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: Partial<DiplomaDesign>; diplomaSeal?: DiplomaSealConfig; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
 export class BlogAdminApi {
@@ -423,6 +426,24 @@ export class BlogAdminApi {
     return response.blob();
   }
 
+  // Sello del diploma (aplica a todos los talleres).
+  diplomaSeal() {
+    return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>("/editor/academy/diploma-seal");
+  }
+
+  saveDiplomaSeal(data: DiplomaSealConfig) {
+    return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>("/editor/academy/diploma-seal", { method: "PUT", body: JSON.stringify({ data }) });
+  }
+
+  // Dibujo del sello con una configuración en borrador, para verlo en vivo mientras se edita.
+  async sealSvg(data: { workshop: string; seal: Partial<DiplomaSealConfig>; centerText?: string }) {
+    const headers = new Headers({ Accept: "image/svg+xml", "Content-Type": "application/json" });
+    if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-seal/svg`, { method: "POST", headers, body: JSON.stringify({ data }) });
+    if (!response.ok) throw new Error("No se pudo dibujar el sello.");
+    return response.text();
+  }
+
   // Textos fijos del diploma (aplican a todos los talleres).
   diplomaDesign() {
     return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>("/editor/academy/diploma-design");
@@ -436,7 +457,7 @@ export class BlogAdminApi {
     return this.request<{ updated: number; failed: number }>("/editor/academy/diploma-design/regenerate", { method: "POST" });
   }
 
-  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string; design?: DiplomaDesign }) {
+  async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string; design?: DiplomaDesign; seal?: DiplomaSealConfig }) {
     const headers = new Headers({ Accept: "application/pdf", "Content-Type": "application/json" });
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
     const response = await fetch(`${this.cmsUrl}/api/editor/academy/diplomas/preview`, { method: "POST", headers, body: JSON.stringify({ data }) });
