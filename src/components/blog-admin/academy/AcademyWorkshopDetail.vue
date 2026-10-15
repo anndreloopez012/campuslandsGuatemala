@@ -193,6 +193,21 @@ const sampleKey = Array.from(crypto.getRandomValues(new Uint8Array(3)), (byte) =
 const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-${auto.issuedAt.slice(2, 4)}${auto.issuedAt.slice(5, 7)}-${sampleKey}-${String(nextNumber.value).padStart(3, "0")}`);
 const previewPerson = computed(() => autoCandidates.value.find((item) => auto.selected.includes(item.enrollment.student.id))?.enrollment.student
   ?? autoCandidates.value[0]?.enrollment.student ?? null);
+// Sello en la vista previa de Diplomas: el guardado, con el bloque del estudiante que se muestra.
+const previewBlockName = computed(() => autoCandidates.value.find((item) => item.enrollment.student.id === previewPerson.value?.id)?.enrollment.block?.name
+  || blocks.value[0]?.name || workshop.value?.code || "");
+const autoSealSvg = ref("");
+const autoSeal = computed(() => (detail.value?.diplomaSeal?.enabled && autoSealSvg.value
+  ? { x: detail.value.diplomaSeal.x, y: detail.value.diplomaSeal.y, size: detail.value.diplomaSeal.size, svg: autoSealSvg.value }
+  : null));
+watch(() => [detail.value?.diplomaSeal, previewBlockName.value] as const, async ([seal, center]) => {
+  if (!seal?.enabled || !center) { autoSealSvg.value = ""; return; }
+  try {
+    autoSealSvg.value = await props.api.sealSvg({ workshop: props.workshopKey, seal, centerText: center });
+  } catch {
+    autoSealSvg.value = "";
+  }
+}, { immediate: true, deep: true });
 const previewData = computed(() => ({
   fullName: previewPerson.value?.fullName || "Nombre del estudiante",
   title: workshop.value?.title || "",
@@ -906,7 +921,7 @@ onMounted(async () => {
           </div>
           <div class="auto">
             <div class="auto__stage">
-              <DiplomaReplica :data="previewData" :design="detail.diplomaDesign" />
+              <DiplomaReplica :data="previewData" :design="detail.diplomaDesign" :seal="autoSeal" />
               <div class="auto__stage-foot">
                 <span><AcademyIcon name="destello" :size="13" fill /> Vista previa en vivo · {{ previewPerson ? previewPerson.fullName : "ejemplo" }}</span>
                 <button type="button" class="ghost-action ghost-action--small" @click="openPreview">Ver el PDF real ↗</button>
