@@ -1,0 +1,98 @@
+/* Diálogos (SweetAlert2) con el tema del sitio: tarjeta oscura, tipografía Poppins y botones del panel. */
+.dlg.swal2-container { z-index: 1200; padding: 16px; background: rgb(3 11 40 / 72%); backdrop-filter: blur(6px); }
+
+.dlg .dlg__popup {
+  width: min(440px, 100%);
+  padding: 28px 26px 22px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 20px;
+  color: #f7f9ff;
+  background: linear-gradient(180deg, #0b1748, #071235);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 55%), inset 0 1px 0 rgb(255 255 255 / 6%);
+  font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
+}
+
+.dlg .dlg__icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  place-items: center;
+  border: 0;
+  border-radius: 18px;
+  color: #50c8ff;
+  background: rgb(80 200 255 / 12%);
+}
+
+.dlg .dlg__icon svg { width: 28px; height: 28px; }
+.dlg .dlg__icon .swal2-icon-content { display: contents; }
+.dlg .dlg__popup--danger .dlg__icon { color: #ff8a9b; background: rgb(255 100 120 / 12%); }
+.dlg .dlg__popup--success .dlg__icon { color: #7fffdc; background: rgb(0 217 164 / 12%); }
+.dlg .dlg__popup--error .dlg__icon { color: #ff8a9b; background: rgb(255 100 120 / 12%); }
+.dlg .dlg__popup--question .dlg__icon { color: #b997ff; background: rgb(122 60 255 / 16%); }
+
+.dlg .dlg__title { margin: 0; padding: 0; color: #fff; font-size: 18px; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; }
+.dlg .dlg__text { margin: 10px 0 0; padding: 0; color: rgb(223 245 255 / 72%); font-size: 13.5px; line-height: 1.6; }
+
+.dlg .dlg__input {
+  width: 100%;
+  min-height: 46px;
+  margin: 16px 0 0;
+  padding: 0 14px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 12px;
+  color: #fff;
+  background: rgb(3 11 40 / 70%);
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.dlg .dlg__input:focus { border-color: #50c8ff; box-shadow: 0 0 0 3px rgb(80 200 255 / 18%); outline: none; }
+.dlg .dlg__validation { margin: 10px 0 0; border-radius: 10px; color: #ffc4cc; background: rgb(255 67 91 / 10%); font-size: 12.5px; }
+.dlg .dlg__validation::before { background: #ff6478; }
+
+.dlg .dlg__actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; width: 100%; margin: 22px 0 0; }
+
+.dlg .dlg__btn {
+  display: inline-flex;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.dlg .dlg__btn--confirm { color: #021a21; background: linear-gradient(90deg, #50c8ff, #00d9a4); box-shadow: 0 12px 26px rgb(0 217 164 / 16%); }
+.dlg .dlg__btn--confirm:hover { transform: translateY(-1px); box-shadow: 0 16px 32px rgb(0 217 164 / 24%); }
+.dlg .dlg__btn--danger { color: #fff; background: linear-gradient(90deg, #ff5c7a, #e5485f); box-shadow: 0 12px 26px rgb(229 72 95 / 22%); }
+.dlg .dlg__btn--danger:hover { box-shadow: 0 16px 32px rgb(229 72 95 / 30%); }
+.dlg .dlg__btn--cancel { color: rgb(223 245 255 / 80%); border-color: rgb(255 255 255 / 14%); background: rgb(255 255 255 / 4%); }
+.dlg .dlg__btn--cancel:hover { background: rgb(255 255 255 / 9%); }
+.dlg .dlg__btn:focus-visible { outline: 2px solid #50c8ff; outline-offset: 2px; box-shadow: none; }
+
+@keyframes dlg-pop-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes dlg-pop-out { to { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@keyframes dlg-fade-in { from { opacity: 0; } }
+@keyframes dlg-fade-out { to { opacity: 0; } }
+.dlg__pop-in { animation: dlg-pop-in 0.22s ease-out; }
+.dlg__pop-out { animation: dlg-pop-out 0.16s ease-in forwards; }
+.dlg__fade-in { animation: dlg-fade-in 0.2s ease-out; }
+.dlg__fade-out { animation: dlg-fade-out 0.16s ease-in forwards; }
+
+@media (max-width: 480px) {
+  .dlg .dlg__popup { padding: 24px 18px 18px; }
+  .dlg .dlg__actions { flex-direction: column-reverse; }
+  .dlg .dlg__btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dlg__pop-in, .dlg__pop-out, .dlg__fade-in, .dlg__fade-out { animation: none; }
+}

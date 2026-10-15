@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { askConfirm } from "../../lib/dialogs";
 import {
   BlogAdminApi,
   mediaUrl,
@@ -269,7 +270,7 @@ async function quickPublish(gallery: EditorGallery) {
 }
 
 async function quickUnpublish(gallery: EditorGallery) {
-  if (!window.confirm(`¿Retirar “${gallery.title}” del blog público?`)) return;
+  if (!await askConfirm({ title: `¿Retirar “${gallery.title}” del blog?`, text: "La galería seguirá guardada como borrador.", confirmText: "Retirar" })) return;
   try {
     await props.api.unpublishGallery(gallery.documentId);
     emit("refresh");
@@ -278,7 +279,7 @@ async function quickUnpublish(gallery: EditorGallery) {
 }
 
 async function removeGallery(gallery: EditorGallery) {
-  if (!window.confirm(`¿Eliminar definitivamente “${gallery.title}”?`)) return;
+  if (!await askConfirm({ title: `¿Eliminar definitivamente “${gallery.title}”?`, text: "Esta acción no se puede deshacer.", confirmText: "Eliminar", tone: "danger" })) return;
   try {
     await props.api.deleteGallery(gallery.documentId);
     emit("refresh");

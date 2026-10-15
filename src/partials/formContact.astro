@@ -81,6 +81,7 @@ import CamperPhotoFrame from '../components/camperPhotoFrame.vue';
 </style>
 
 <script>
+  import { showAlert } from "~/lib/dialogs";
 // Cliente-side JavaScript
 document.addEventListener('astro:page-load', () => {
   const form = document.getElementById('contactFormFields');
@@ -111,10 +112,10 @@ document.addEventListener('astro:page-load', () => {
         form.reset();
         
         // Opcional: Mostrar mensaje de éxito
-        alert('Mensaje enviado con éxito');
+        await showAlert({ title: 'Mensaje enviado', text: 'Gracias por escribirnos. Te responderemos pronto.', tone: 'success' });
       } catch (error) {
         console.error('Error al enviar el formulario:', error);
-        alert('Hubo un error al enviar el mensaje');
+        await showAlert({ title: 'No se pudo enviar el mensaje', text: 'Inténtalo de nuevo en unos minutos.', tone: 'error' });
       }
     });
   }

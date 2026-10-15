@@ -268,6 +268,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
 </LayoutNavbar>
 
 <script>
+  import { showCopy } from "~/lib/dialogs";
   type PlayerVideo = { id: number; title: string; description: string; kind: "archivo" | "embed" | "externo"; src: string; seconds: number; completed: boolean };
 
   function initCampus() {
@@ -298,7 +299,7 @@ const help = `https://wa.me/${AI_ACADEMY_WHATSAPP}?text=${encodeURIComponent("¡
     // Copiar enlace de verificación
     root.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((button) => button.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(button.dataset.copy || ""); say("Enlace de verificación copiado."); }
-      catch { window.prompt("Copia el enlace:", button.dataset.copy || ""); }
+      catch { await showCopy({ title: "Copia el enlace", value: button.dataset.copy || "" }); }
     }));
 
     // Herramientas: búsqueda y categorías
