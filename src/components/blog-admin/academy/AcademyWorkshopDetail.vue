@@ -187,8 +187,10 @@ const pendingIds = computed(() => autoCandidates.value.filter((item) => !item.di
 const selectPending = () => { auto.selected = [...pendingIds.value]; };
 watch(() => [auto.block, detail.value?.diplomas.length, detail.value?.enrollments.length], selectPending);
 // Código de ejemplo con el mismo formato que los reales (CLGT-TALLER-AAMM-XXXXXX); el real se asigna al emitir.
-const sampleSuffix = Array.from(crypto.getRandomValues(new Uint8Array(3)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
-const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-${today().slice(2, 4)}${today().slice(5, 7)}-${sampleSuffix}`);
+// El correlativo real lo asigna el CMS al emitir; aquí se muestra el siguiente número del taller.
+const nextNumber = computed(() => Math.max(0, ...(detail.value?.diplomas ?? []).map((item) => item.number ?? 0)) + 1);
+const sampleKey = Array.from(crypto.getRandomValues(new Uint8Array(3)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+const sampleId = computed(() => `CLGT-${(workshop.value?.code ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()}-${auto.issuedAt.slice(2, 4)}${auto.issuedAt.slice(5, 7)}-${sampleKey}-${String(nextNumber.value).padStart(3, "0")}`);
 const previewPerson = computed(() => autoCandidates.value.find((item) => auto.selected.includes(item.enrollment.student.id))?.enrollment.student
   ?? autoCandidates.value[0]?.enrollment.student ?? null);
 const previewData = computed(() => ({
@@ -973,6 +975,7 @@ onMounted(async () => {
                 <strong>{{ item.student.fullName }}</strong>
                 <span v-if="diplomaOf(item.student.id)">
                   <span class="chip" :class="diplomaOf(item.student.id)!.status === 'emitido' ? 'chip--ok' : 'chip--bad'">{{ diplomaOf(item.student.id)!.status === "emitido" ? "Emitido" : "Revocado" }}</span>
+                  <b v-if="diplomaOf(item.student.id)!.number" class="row__num">N.º {{ String(diplomaOf(item.student.id)!.number).padStart(3, "0") }}</b>
                   {{ diplomaOf(item.student.id)!.credentialId }} · {{ dateLabel(diplomaOf(item.student.id)!.issuedAt) }}{{ diplomaOf(item.student.id)!.file ? (isGeneratedDiploma(diplomaOf(item.student.id)!) ? " · diseño oficial" : " · PDF subido") : " · sin PDF" }}
                 </span>
                 <span v-else>Sin diploma todavía</span>
@@ -1350,6 +1353,7 @@ onMounted(async () => {
 .dl-bar__all input, .row__pick { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }
 .dl-bar__count { color: var(--muted); font-size: 12px; }
 .dl-bar__regen { margin-left: auto; }
+.row__num { margin-right: 4px; color: var(--accent); font: 800 11px/1 ui-monospace, monospace; letter-spacing: 0.04em; }
 .dl-bar__zip { display: inline-flex; align-items: center; gap: 8px; }
 .row--pickable { grid-template-columns: auto auto minmax(0, 1fr) auto; }
 .row__pick { cursor: pointer; }

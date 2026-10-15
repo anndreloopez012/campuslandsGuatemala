@@ -12,7 +12,7 @@ const MAX_AGE = 60 * 60 * 24 * 7;
 
 export type CampusFile = { id: number; name: string; mime: string; size: number };
 export type CampusDiploma = {
-  id: number; credentialId: string; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null;
+  id: number; credentialId: string; number?: number | null; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null;
   design?: Partial<DiplomaDesign> | null;
   seal?: DiplomaSeal | null;
 };
