@@ -704,7 +704,8 @@ function scheduleSeal() {
   window.clearTimeout(sealTimer);
   sealTimer = window.setTimeout(drawSeal, 250);
 }
-watch(() => [sealForm.topText, sealForm.bottomText, sealForm.rotation, sealForm.wear], () => { if (sealLoaded.value) scheduleSeal(); });
+// Se redibuja al cambiar los textos, la inclinación, el desgaste o el nombre del bloque (texto del centro).
+watch(() => [sealForm.topText, sealForm.bottomText, sealForm.rotation, sealForm.wear, sealCenter.value], () => { if (sealLoaded.value) scheduleSeal(); });
 onBeforeUnmount(() => window.clearTimeout(sealTimer));
 
 async function loadSeal() {
