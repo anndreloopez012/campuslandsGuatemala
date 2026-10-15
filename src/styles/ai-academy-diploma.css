@@ -115,7 +115,7 @@
   position: absolute;
   mix-blend-mode: multiply;
   pointer-events: none;
-  transform: translate(-50%, 50%);
+  transform: translate(-50%, 50%) rotate(var(--rot, 0deg));
 }
 
 .dpl__sig img {
