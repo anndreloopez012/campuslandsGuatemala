@@ -1,4 +1,4 @@
-import type { DiplomaDesign, DiplomaSeal } from "./academy-diploma";
+import type { DiplomaDesign, DiplomaSeal, DiplomaSignature } from "./academy-diploma";
 import type { AstroCookies } from "astro";
 
 // Sesión del campus de estudiantes de AI Academy. El token vive en una cookie httpOnly y todas
@@ -15,6 +15,7 @@ export type CampusDiploma = {
   id: number; credentialId: string; number?: number | null; title: string; issuedAt: string; hours: number; skills: string[]; status: string; file: CampusFile | null;
   design?: Partial<DiplomaDesign> | null;
   seal?: DiplomaSeal | null;
+  signature?: DiplomaSignature | null;
 };
 export type CampusTool = { id: number; title: string; url: string; description: string; category: string };
 export type CampusVideo = {
@@ -37,6 +38,9 @@ export type CampusWorkshop = {
 export type CampusData = { student: { id: number; email: string; fullName: string; mustChangePassword: boolean }; workshops: CampusWorkshop[] };
 
 // Los archivos del campus solo se abren con la sesión del estudiante dueño (ver campus/archivo/[id].ts).
+// La firma del diploma se sirve desde el CMS; la réplica necesita la URL completa.
+export const diplomaSignatureFor = (signature: DiplomaSignature | null | undefined) => (signature ? { ...signature, url: `${CMS_URL}${signature.url}` } : null);
+
 export const campusFileUrl = (file: Pick<CampusFile, "id">, download = false) => `/ai-academy/campus/archivo/${file.id}/${download ? "?dl=1" : ""}`;
 
 export function setCampusSession(cookies: AstroCookies, token: string) {
