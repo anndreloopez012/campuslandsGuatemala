@@ -27,6 +27,18 @@ export function sealStyle(seal: Pick<DiplomaSeal, "x" | "y" | "size">) {
   };
 }
 
+// Firma montada sobre la línea de firma: centro y ancho en puntos PDF; `url` es la imagen PNG (absoluta).
+export type DiplomaSignature = { x: number; y: number; width: number; url: string };
+
+// La imagen se centra en (x, y) con transform: translate(-50%, 50%); la altura la da la proporción del PNG.
+export function signatureStyle(signature: Pick<DiplomaSignature, "x" | "y" | "width">) {
+  return {
+    left: `${(signature.x / 792) * 100}%`,
+    bottom: `${(signature.y / 612) * 100}%`,
+    width: `${(signature.width / 792) * 100}%`,
+  };
+}
+
 export type DiplomaData = { fullName: string; title: string; hours: number; issuedAt: string; credentialId: string; verifyUrl: string };
 export type DiplomaLine = { key: string; text: string; y: number; s: number; w?: number; min?: number; strong?: boolean; className?: string; wrap?: boolean };
 

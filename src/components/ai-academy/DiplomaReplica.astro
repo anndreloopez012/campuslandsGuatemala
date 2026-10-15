@@ -1,15 +1,16 @@
 ---
-import { diplomaLines, sealStyle, DEFAULT_DIPLOMA_DESIGN, type DiplomaData, type DiplomaDesign, type DiplomaSeal } from "~/lib/academy-diploma";
+import { diplomaLines, sealStyle, signatureStyle, DEFAULT_DIPLOMA_DESIGN, type DiplomaData, type DiplomaDesign, type DiplomaSeal, type DiplomaSignature } from "~/lib/academy-diploma";
 import "~/styles/ai-academy-diploma.css";
 
 interface Props extends DiplomaData {
   design?: DiplomaDesign | null;
   seal?: DiplomaSeal | null;
+  signature?: DiplomaSignature | null;
   revoked?: boolean;
   label?: string;
 }
 
-const { design, seal, revoked = false, label, ...data } = Astro.props;
+const { design, seal, signature, revoked = false, label, ...data } = Astro.props;
 const lines = diplomaLines(data, design ?? DEFAULT_DIPLOMA_DESIGN);
 ---
 
@@ -26,6 +27,7 @@ const lines = diplomaLines(data, design ?? DEFAULT_DIPLOMA_DESIGN);
     >{line.text}</p>
   ))}
   <span class="dpl__rule" aria-hidden="true"></span>
+  {signature && <div class="dpl__sig" style={`left: ${signatureStyle(signature).left}; bottom: ${signatureStyle(signature).bottom}; width: ${signatureStyle(signature).width};`} aria-hidden="true"><img src={signature.url} alt="" draggable="false" /></div>}
   {seal && <div class="dpl__seal" style={`left: ${sealStyle(seal).left}; top: ${sealStyle(seal).top}; width: ${sealStyle(seal).width};`} set:html={seal.svg} aria-hidden="true" />}
   {revoked && <span class="dpl__void" aria-hidden="true">REVOCADO</span>}
 </div>

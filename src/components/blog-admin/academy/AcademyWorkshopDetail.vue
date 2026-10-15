@@ -5,7 +5,7 @@ import AcademyAdmin from "../AcademyAdmin.vue";
 import AcademyIcon from "./AcademyIcon.vue";
 import DiplomaReplica from "./DiplomaReplica.vue";
 import { DEFAULT_DIPLOMA_DESIGN, type DiplomaDesign } from "../../../lib/academy-diploma";
-import { isGeneratedDiploma, type AcademyGenerateResult, type DiplomaSealConfig } from "../../../lib/blog-admin";
+import { isGeneratedDiploma, type AcademyGenerateResult, type DiplomaSealConfig, type DiplomaSignatureConfig, type DiplomaSignatureState } from "../../../lib/blog-admin";
 import { askConfirm, showCopy } from "../../../lib/dialogs";
 import { startBusy, withBusy } from "../../../lib/busy";
 
@@ -16,7 +16,7 @@ const emit = defineEmits<{
   (e: "notice", message: string, type?: "success" | "error"): void;
 }>();
 
-type Tab = "bloques" | "estudiantes" | "diplomas" | "textos" | "sello" | "herramientas" | "videos" | "publicacion" | "ajustes";
+type Tab = "bloques" | "estudiantes" | "diplomas" | "textos" | "sello" | "firma" | "herramientas" | "videos" | "publicacion" | "ajustes";
 const tab = ref<Tab>("bloques");
 const loading = ref(true);
 const error = ref("");
@@ -231,12 +231,12 @@ const previewData = computed(() => {
 async function openPreview() {
   // Con diploma guardado se abre su PDF real; si no, el CMS genera una muestra con la fecha elegida.
   if (previewSaved.value?.file) {
-    window.open(props.api.fileUrl(previewSaved.value.file), "_blank", "noopener");
+    window.open(props.api.fileUrl({ url: (withSignature.value && previewSaved.value.file.signedUrl) || previewSaved.value.file.url }), "_blank", "noopener");
     return;
   }
   const win = window.open("", "_blank");
   try {
-    const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, issuedAt: auto.issuedAt });
+    const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, issuedAt: auto.issuedAt, withSignature: withSignature.value });
     const url = URL.createObjectURL(blob);
     if (win) win.location.href = url; else window.location.assign(url);
   } catch (value) {
@@ -303,9 +303,9 @@ async function downloadZip() {
   zipping.value = true;
   const wait = startBusy("Preparando el ZIP", `${ids.length} ${ids.length === 1 ? "diploma" : "diplomas"}…`);
   try {
-    const blob = await props.api.downloadDiplomasZip({ workshop: props.workshopKey, ids });
+    const blob = await props.api.downloadDiplomasZip({ workshop: props.workshopKey, ids, signature: withSignature.value });
     const scope = picked.value.length ? "seleccion" : listBlock.value ? blockName(listBlock.value) : "todos";
-    saveBlob(blob, `Diplomas AI Academy - ${workshop.value?.code ?? ""} - ${scope} - ${today()}.zip`.replace(/[\\/:*?"<>|]+/g, ""));
+    saveBlob(blob, `Diplomas AI Academy - ${workshop.value?.code ?? ""} - ${scope}${withSignature.value ? " - firmados" : ""} - ${today()}.zip`.replace(/[\\/:*?"<>|]+/g, ""));
     say(`${ids.length} ${ids.length === 1 ? "diploma descargado" : "diplomas descargados"} en un ZIP.`);
   } catch (value) {
     say(problem(value, "No se pudieron descargar los diplomas."), "error");
@@ -820,11 +820,127 @@ async function previewSealPdf() {
   }
 }
 
+// ---------------------------------------------------------------- firma
+// Una imagen PNG de la firma, igual para todos los talleres. Va en la versión digital del diploma (campus y
+// verificación). El PDF guardado nunca la lleva: se estampa al descargar solo si se pide (casilla «Con firma»
+// del administrador, o la opción para el estudiante). Se arrastra sobre el diploma como el sello.
+const SIGNATURE_FALLBACK: DiplomaSignatureConfig = { enabled: false, x: 396, y: 136, width: 150, studentDownload: false };
+const signatureKeys = Object.keys(SIGNATURE_FALLBACK) as (keyof DiplomaSignatureConfig)[];
+const signatureForm = reactive<DiplomaSignatureConfig>({ ...SIGNATURE_FALLBACK });
+const signatureSaved = ref<DiplomaSignatureConfig>({ ...SIGNATURE_FALLBACK });
+const signatureDefaults = ref<DiplomaSignatureConfig>({ ...SIGNATURE_FALLBACK });
+const signatureImage = ref<{ url: string; width: number | null; height: number | null } | null>(null);
+const signatureLoaded = ref(false);
+const signatureSaving = ref(false);
+const signatureUploading = ref(false);
+const signatureDirty = computed(() => signatureKeys.some((key) => String(signatureForm[key]) !== String(signatureSaved.value[key])));
+const signaturePreview = computed(() => (signatureForm.enabled && signatureImage.value ? { x: signatureForm.x, y: signatureForm.y, width: signatureForm.width, url: signatureImage.value.url } : null));
+// La firma guardada (la que ven los alumnos y la verificación): se muestra en la vista previa de Diplomas.
+const savedSignature = computed(() => {
+  const saved = detail.value?.diplomaSignature;
+  return saved?.enabled && saved.hasImage && saved.imageUrl ? { x: saved.x, y: saved.y, width: saved.width, url: props.api.fileUrl({ url: saved.imageUrl }) } : null;
+});
+const signatureReady = computed(() => Boolean(savedSignature.value));
+// Descargas del administrador con la firma estampada (casilla de la barra de descargas).
+const withSignature = ref(false);
+
+function applySignature(result: { signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }) {
+  const config = Object.fromEntries(signatureKeys.map((key) => [key, result.signature[key]])) as DiplomaSignatureConfig;
+  Object.assign(signatureForm, config);
+  signatureSaved.value = { ...config };
+  signatureDefaults.value = { ...result.defaults };
+  signatureImage.value = result.signature.hasImage && result.signature.imageUrl
+    ? { url: props.api.fileUrl({ url: result.signature.imageUrl }), width: result.signature.imageWidth, height: result.signature.imageHeight }
+    : null;
+  if (detail.value) detail.value.diplomaSignature = { ...result.signature };
+}
+
+async function loadSignature() {
+  try {
+    applySignature(await props.api.diplomaSignature());
+    signatureLoaded.value = true;
+  } catch (value) {
+    say(problem(value, "No se pudo cargar la firma."), "error");
+  }
+}
+
+async function uploadSignature(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!/\.png$/i.test(file.name)) { input.value = ""; return say("La firma debe ser una imagen PNG con fondo transparente.", "error"); }
+  signatureUploading.value = true;
+  const wait = startBusy("Subiendo la firma", file.name);
+  try {
+    applySignature(await props.api.uploadDiplomaSignature(file));
+    if (!signatureForm.enabled) signatureForm.enabled = true;
+    say("Firma subida. Colócala sobre el diploma y guarda.");
+  } catch (value) {
+    say(problem(value, "No se pudo subir la firma."), "error");
+  } finally {
+    wait.done();
+    signatureUploading.value = false;
+    input.value = "";
+  }
+}
+
+async function removeSignatureImage() {
+  if (!await askConfirm({ title: "¿Quitar la imagen de la firma?", text: "El diploma dejará de mostrar la firma en el campus y en la verificación.", confirmText: "Quitar", tone: "danger" })) return;
+  try {
+    applySignature(await props.api.removeDiplomaSignature());
+    say("Imagen de la firma eliminada.");
+  } catch (value) {
+    say(problem(value, "No se pudo quitar la firma."), "error");
+  }
+}
+
+function moveSignature(position: { x: number; y: number }) {
+  signatureForm.x = position.x;
+  signatureForm.y = position.y;
+}
+
+// Centrada sobre la línea de firma del diseño (de x 304 a 488, en y 117).
+function placeSignature() {
+  signatureForm.x = 396;
+  signatureForm.y = 136;
+}
+
+function resetSignature() {
+  Object.assign(signatureForm, signatureDefaults.value, { enabled: signatureForm.enabled, studentDownload: signatureForm.studentDownload });
+}
+
+async function saveSignature() {
+  signatureSaving.value = true;
+  try {
+    applySignature(await props.api.saveDiplomaSignature({ ...signatureForm }));
+    say(signatureForm.enabled
+      ? (signatureImage.value ? "Firma guardada. Ya se ve en el campus y en la página de verificación." : "Firma guardada. Sube la imagen PNG para que se muestre.")
+      : "Firma guardada. Los diplomas se muestran sin firma.");
+  } catch (value) {
+    say(problem(value, "No se pudo guardar la firma."), "error");
+  } finally {
+    signatureSaving.value = false;
+  }
+}
+
+async function previewSignaturePdf() {
+  const win = window.open("", "_blank");
+  try {
+    const blob = await props.api.previewDiploma({ workshop: props.workshopKey, student: previewPerson.value?.id, signature: { ...signatureForm } });
+    const url = URL.createObjectURL(blob);
+    if (win) win.location.href = url; else window.location.assign(url);
+  } catch (value) {
+    win?.close();
+    say(problem(value, "No se pudo generar la vista previa."), "error");
+  }
+}
+
 function selectTab(next: Tab) {
   tab.value = next;
   if (next === "ajustes") fillSettings();
   if (next === "textos" && !designLoaded.value) void loadDesign();
   if (next === "sello" && !sealLoaded.value) void loadSeal();
+  if (next === "firma" && !signatureLoaded.value) void loadSignature();
   if (next === "diplomas" && !issue.title) resetIssue();
 }
 
@@ -862,7 +978,7 @@ onMounted(async () => {
       </header>
 
       <nav class="tabs" aria-label="Secciones del taller">
-        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['sello', 'Sello'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
+        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['sello', 'Sello'], ['firma', 'Firma'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
       </nav>
 
       <!-- BLOQUES -->
@@ -957,7 +1073,7 @@ onMounted(async () => {
           </div>
           <div class="auto">
             <div class="auto__stage">
-              <DiplomaReplica :data="previewData" :design="detail.diplomaDesign" :seal="autoSeal" />
+              <DiplomaReplica :data="previewData" :design="detail.diplomaDesign" :seal="autoSeal" :signature="savedSignature" />
               <div class="auto__stage-foot">
                 <span v-if="previewSaved"><AcademyIcon name="diploma" :size="13" /> Diploma emitido · {{ previewPerson?.fullName }} · {{ dateLabel(previewSaved.issuedAt) }}</span>
                 <span v-else><AcademyIcon name="destello" :size="13" fill /> Vista previa en vivo · {{ previewPerson ? previewPerson.fullName : "ejemplo" }}</span>
@@ -1012,6 +1128,7 @@ onMounted(async () => {
               <option v-for="block in blocks" :key="block.id" :value="block.id">{{ block.name }}</option>
             </select>
             <span class="dl-bar__count">{{ downloadable.length }} {{ downloadable.length === 1 ? "diploma emitido" : "diplomas emitidos" }}</span>
+            <label v-if="signatureReady" class="dl-bar__sig" title="Estampa la firma en los PDF que se descargan o se abren desde aquí"><input v-model="withSignature" type="checkbox" /> Con firma</label>
             <button type="button" class="ghost-action ghost-action--small dl-bar__regen" :disabled="zipping || !downloadable.length" @click="regenerateMany">{{ picked.length ? `Regenerar seleccionados (${picked.length})` : "Regenerar todos" }}</button>
             <button type="button" class="primary-action primary-action--small dl-bar__zip" :disabled="zipping || !downloadable.length" @click="downloadZip">
               <AcademyIcon name="bajar" :size="15" />
@@ -1036,8 +1153,8 @@ onMounted(async () => {
               <div class="row__actions">
                 <template v-if="diplomaOf(item.student.id)">
                   <template v-if="diplomaOf(item.student.id)!.file">
-                    <a class="ghost-action ghost-action--small" :href="api.fileUrl(diplomaOf(item.student.id)!.file!)" target="_blank" rel="noopener">Ver</a>
-                    <a class="ghost-action ghost-action--small" :href="api.fileUrl({ url: diplomaOf(item.student.id)!.file!.downloadUrl || diplomaOf(item.student.id)!.file!.url })" download>Descargar</a>
+                    <a class="ghost-action ghost-action--small" :href="api.fileUrl({ url: (withSignature && diplomaOf(item.student.id)!.file!.signedUrl) || diplomaOf(item.student.id)!.file!.url })" target="_blank" rel="noopener">Ver</a>
+                    <a class="ghost-action ghost-action--small" :href="api.fileUrl({ url: (withSignature && diplomaOf(item.student.id)!.file!.signedDownloadUrl) || diplomaOf(item.student.id)!.file!.downloadUrl || diplomaOf(item.student.id)!.file!.url })" download>Descargar</a>
                   </template>
                   <button type="button" class="ghost-action ghost-action--small" @click="regenerate(diplomaOf(item.student.id)!)">{{ isGeneratedDiploma(diplomaOf(item.student.id)!) ? "Regenerar" : "Usar diseño oficial" }}</button>
                   <button type="button" class="ghost-action ghost-action--small" @click="copy(verifyUrl(diplomaOf(item.student.id)!), 'Enlace de verificación copiado.')">Verificación</button>
@@ -1236,6 +1353,54 @@ onMounted(async () => {
         </div>
       </section>
 
+      <!-- FIRMA -->
+      <section v-else-if="tab === 'firma'" class="panel">
+        <div class="panel__head">
+          <div><h3>Firma del diploma</h3><p>Una imagen PNG de la firma montada sobre la línea. Va en la versión digital del diploma (campus y página de verificación, la que se comparte en LinkedIn). En las descargas se añade solo cuando lo eliges.</p></div>
+          <label class="toggle seal__toggle"><input v-model="signatureForm.enabled" type="checkbox" /> {{ signatureForm.enabled ? "Firma activada" : "Firma desactivada" }}</label>
+        </div>
+        <div class="auto">
+          <div class="auto__stage">
+            <DiplomaReplica :data="designPreview" :design="detail.diplomaDesign" :seal="autoSeal" :signature="signaturePreview" signature-draggable @move-signature="moveSignature" />
+            <div class="auto__stage-foot">
+              <span v-if="signaturePreview"><AcademyIcon name="destello" :size="13" fill /> Arrastra la firma con el cursor o muévela con las flechas del teclado.</span>
+              <span v-else-if="signatureForm.enabled">Sube la imagen PNG de la firma para verla sobre el diploma.</span>
+              <span v-else>Activa la firma para verla sobre el diploma.</span>
+              <button type="button" class="ghost-action ghost-action--small" :disabled="!signaturePreview" @click="previewSignaturePdf">Ver el PDF con firma ↗</button>
+            </div>
+          </div>
+          <form class="auto__form" @submit.prevent="saveSignature">
+            <div class="field">Imagen de la firma
+              <div class="sig__file">
+                <div v-if="signatureImage" class="sig__thumb"><img :src="signatureImage.url" alt="Firma actual" /></div>
+                <div class="sig__actions">
+                  <label class="ghost-action ghost-action--small sig__upload" :class="{ 'is-busy': signatureUploading }"><input type="file" accept="image/png,.png" hidden :disabled="signatureUploading" @change="uploadSignature" />{{ signatureUploading ? "Subiendo…" : signatureImage ? "Cambiar imagen" : "Subir PNG" }}</label>
+                  <button v-if="signatureImage" type="button" class="ghost-action ghost-action--small ghost-action--danger" @click="removeSignatureImage">Quitar</button>
+                </div>
+              </div>
+              <small>PNG con fondo transparente, hasta 3 MB. Se recortan los bordes vacíos para que la posición corresponda al trazo.</small>
+            </div>
+            <label class="field seal__range">Ancho <output>{{ signatureForm.width }} pt</output><input v-model.number="signatureForm.width" type="range" min="40" max="420" step="2" /></label>
+            <div class="field">Posición
+              <div class="seal__pos">
+                <label>X <input v-model.number="signatureForm.x" class="mini-input" type="number" min="40" max="752" /></label>
+                <label>Y <input v-model.number="signatureForm.y" class="mini-input" type="number" min="40" max="572" /></label>
+                <button type="button" class="ghost-action ghost-action--small" @click="placeSignature">Sobre la línea de firma</button>
+              </div>
+              <small>En puntos de la hoja, desde la esquina inferior izquierda (centro de la imagen). Lo que ves aquí es lo que se imprime.</small>
+            </div>
+            <div class="field">Descargas
+              <label class="toggle seal__toggle"><input v-model="signatureForm.studentDownload" type="checkbox" /> El PDF que descarga el estudiante lleva la firma</label>
+              <small>En el campus el diploma siempre se ve firmado. Esta opción decide si el archivo que el estudiante descarga desde ahí va firmado. En este panel lo eliges al descargar, con la casilla «Con firma» de la pestaña Diplomas.</small>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="ghost-action" @click="resetSignature">Restablecer posición</button>
+              <button type="submit" class="primary-action" :disabled="signatureSaving || !signatureLoaded || !signatureDirty">{{ signatureSaving ? "Guardando…" : signatureDirty ? "Guardar firma" : "Sin cambios" }}</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <!-- PUBLICACIÓN -->
       <AcademyAdmin v-else-if="tab === 'publicacion'" :api="api" :cms-url="cmsUrl" :only-key="workshopKey" embedded @notice="(message, type) => emit('notice', message, type)" />
 
@@ -1401,6 +1566,14 @@ onMounted(async () => {
 .seal__pos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .seal__pos label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
 .seal__pos .mini-input { width: 76px; }
+.sig__file { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.sig__thumb { display: grid; width: 180px; min-height: 64px; padding: 10px 14px; place-items: center; border-radius: 12px; background: #fff; }
+.sig__thumb img { display: block; max-width: 100%; max-height: 72px; }
+.sig__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sig__upload { cursor: pointer; }
+.sig__upload.is-busy { opacity: .6; cursor: wait; }
+.dl-bar__sig { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.dl-bar__sig input { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); }
 .dl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; background: rgba(2, 9, 34, 0.45); }
 .dl-bar__all { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
 .dl-bar__all input, .row__pick { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }

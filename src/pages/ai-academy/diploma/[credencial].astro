@@ -3,11 +3,11 @@ export const prerender = false;
 
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
 import DiplomaReplica from "~/components/ai-academy/DiplomaReplica.astro";
-import type { DiplomaDesign, DiplomaSeal } from "~/lib/academy-diploma";
+import type { DiplomaDesign, DiplomaSeal, DiplomaSignature } from "~/lib/academy-diploma";
 import CampusIcon from "~/components/ai-academy/CampusIcon.astro";
 import { SITE_URL } from "~/config/seo.mjs";
 import { AI_ACADEMY_WHATSAPP } from "~/content/aiAcademy";
-import { formatDiplomaDate, linkedinShareUrl, verifyDiploma } from "~/lib/academy-campus";
+import { diplomaSignatureFor, formatDiplomaDate, linkedinShareUrl, verifyDiploma } from "~/lib/academy-campus";
 import "~/styles/index.css";
 import "~/styles/ai-academy-tema.css";
 import "~/styles/ai-academy-campus.css";
@@ -17,6 +17,7 @@ type Verified = {
   student: { fullName: string }; workshop: { code: string; title: string; slug: string; accent: string };
   design?: Partial<DiplomaDesign> | null;
   seal?: DiplomaSeal | null;
+  signature?: DiplomaSignature | null;
 };
 
 const credencial = String(Astro.params.credencial ?? "").toUpperCase().slice(0, 40);
@@ -52,7 +53,7 @@ const dataFooter = {
           </div>
 
           <h1 class="verify__sr">Diploma de {diploma.student.fullName}: {diploma.title}</h1>
-          <DiplomaReplica fullName={diploma.student.fullName} title={diploma.title} hours={diploma.hours} issuedAt={diploma.issuedAt} credentialId={diploma.credentialId} verifyUrl={url} design={diploma.design} seal={diploma.seal} revoked={revoked} />
+          <DiplomaReplica fullName={diploma.student.fullName} title={diploma.title} hours={diploma.hours} issuedAt={diploma.issuedAt} credentialId={diploma.credentialId} verifyUrl={url} design={diploma.design} seal={diploma.seal} signature={diplomaSignatureFor(diploma.signature)} revoked={revoked} />
           <dl class="cx-glass verify__meta">
             <div><dt>Otorgado a</dt><dd>{diploma.student.fullName}</dd></div>
             <div><dt>Emitido</dt><dd>{formatDiplomaDate(diploma.issuedAt)}</dd></div>
