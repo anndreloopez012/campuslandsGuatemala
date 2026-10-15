@@ -1392,7 +1392,7 @@ onMounted(async () => {
               <small>PNG con fondo transparente, hasta 3 MB. Se recortan los bordes vacíos para que la posición corresponda al trazo.</small>
             </div>
             <label class="field seal__range">Ancho <output>{{ signatureForm.width }} pt</output><input v-model.number="signatureForm.width" type="range" min="40" max="420" step="2" /></label>
-            <label class="field seal__range">Giro <output>{{ signatureForm.rotation }}°</output><input v-model.number="signatureForm.rotation" type="range" min="-45" max="45" step="1" /><small>Gira sobre su centro: negativo hacia la derecha, positivo hacia la izquierda. <button type="button" class="link-action" @click="straightenSignature">Enderezar</button></small></label>
+            <label class="field seal__range">Giro <output>{{ signatureForm.rotation }}°</output><input v-model.number="signatureForm.rotation" type="range" min="-90" max="90" step="1" /><small>Gira sobre su centro: negativo hacia la derecha, positivo hacia la izquierda. <button type="button" class="link-action" @click="straightenSignature">Enderezar</button></small></label>
             <div class="field">Posición
               <div class="seal__pos">
                 <label>X <input v-model.number="signatureForm.x" class="mini-input" type="number" min="40" max="752" /></label>
