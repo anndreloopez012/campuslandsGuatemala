@@ -130,8 +130,8 @@ export const PAGE_SEO = {
       "empleabilidad tecnológica",
     ],
   },
-  "/blog/galerias/": {
-    title: "Galerías de Campuslands Guatemala | Comunidad Tech",
+  "/galeria/": {
+    title: "Galería de Campuslands Guatemala | Momentos de nuestros campers",
     description:
       "Explora galerías de Campuslands Guatemala con experiencias, actividades y momentos de nuestra comunidad de formación tecnológica en Campus Tec.",
     dynamic: true,

@@ -343,7 +343,7 @@ onBeforeUnmount(() => {
           <section class="panel panel--lead">
             <header><span>01</span><div><h2>La historia visual</h2><p>Identifica la colección y explica por qué vale la pena recorrerla.</p></div></header>
             <label><span>Título</span><textarea v-model="form.title" rows="2" maxlength="140" @input="titleChanged"></textarea><small>{{ form.title.length }}/140</small></label>
-            <label><span>Slug público</span><div class="slug"><b>/blog/galerias/</b><input v-model="form.slug" maxlength="140" @blur="form.slug = slugify(form.slug)" /><i>/</i></div></label>
+            <label><span>Slug público</span><div class="slug"><b>/galeria/</b><input v-model="form.slug" maxlength="140" @blur="form.slug = slugify(form.slug)" /><i>/</i></div></label>
             <label><span>Descripción</span><textarea v-model="form.description" rows="4" maxlength="500"></textarea><small>{{ form.description.length }}/500</small></label>
           </section>
 
@@ -392,7 +392,7 @@ onBeforeUnmount(() => {
           <article v-for="gallery in filteredGalleries" :key="gallery.documentId" :style="`--category:${gallery.category?.color || '#2CAAFF'}`">
             <button type="button" class="gallery-cover" @click="openGallery(gallery)"><img v-if="gallery.images?.[0]" :src="mediaUrl(cmsUrl, gallery.images[0])" :alt="gallery.title" /><span v-else>{ 00 }</span><b>{{ gallery.images?.length || 0 }} imágenes</b></button>
             <div><p><i></i>{{ gallery.category?.name }}</p><h2>{{ gallery.title }}</h2><span>{{ gallery.description }}</span><small>{{ statusLabel(gallery.publicationState) }} · {{ gallery.publishDate }}</small></div>
-            <footer><button @click="openGallery(gallery)">Editar</button><button @click="openGallery(gallery, true)">Usar como base</button><a v-if="gallery.publicationState !== 'draft'" :href="`/blog/galerias/${gallery.slug}/`" target="_blank" rel="noopener">Ver ↗</a><button v-if="gallery.publicationState !== 'published'" @click="quickPublish(gallery)">Publicar</button><button v-if="gallery.publicationState !== 'draft'" @click="quickUnpublish(gallery)">Retirar</button><button class="danger" @click="removeGallery(gallery)">Eliminar</button></footer>
+            <footer><button @click="openGallery(gallery)">Editar</button><button @click="openGallery(gallery, true)">Usar como base</button><a v-if="gallery.publicationState !== 'draft'" :href="`/galeria/${gallery.slug}/`" target="_blank" rel="noopener">Ver ↗</a><button v-if="gallery.publicationState !== 'published'" @click="quickPublish(gallery)">Publicar</button><button v-if="gallery.publicationState !== 'draft'" @click="quickUnpublish(gallery)">Retirar</button><button class="danger" @click="removeGallery(gallery)">Eliminar</button></footer>
           </article>
         </div>
         <div v-else class="image-empty"><b>{ 00 }</b><h2>No encontramos galerías.</h2><p>Cambia los filtros o crea una nueva colección visual.</p></div>
