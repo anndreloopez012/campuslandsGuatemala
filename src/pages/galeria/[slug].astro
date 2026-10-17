@@ -1,0 +1,290 @@
+---
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import { blogMediaSrcset, blogSeoDescription, blogSeoTitle, colorRgb, formatBlogDate, getBlogData, safeCategoryColor } from "~/lib/blog";
+import { SITE, SITE_URL } from "~/config/seo.mjs";
+import "~/styles/index.css";
+import "~/styles/galeria.css";
+
+// Una colección de la galería pública: portada con la foto principal, mosaico y visor a pantalla completa.
+export const prerender = false;
+Astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+
+const { galleries, settings } = await getBlogData();
+const gallery = galleries.find((candidate) => candidate.slug === Astro.params.slug);
+if (!gallery) return Astro.redirect("/galeria/", 302);
+const category = safeCategoryColor(gallery.category.color);
+const rgb = colorRgb(category);
+const pageUrl = `${SITE_URL}/galeria/${gallery.slug}/`;
+const cover = gallery.seo?.shareImage ?? gallery.images[0] ?? null;
+const seoTitle = blogSeoTitle(gallery.seo?.metaTitle, `${gallery.title} | Galería Campuslands Guatemala`);
+const seoDescription = blogSeoDescription(gallery.seo?.metaDescription, gallery.description);
+const dataFooter = settings ? { title: settings.articleFooterTitle, content: settings.articleFooterDescription, buttonType: "contacto" } : undefined;
+const index = galleries.findIndex((candidate) => candidate.slug === gallery.slug);
+const others = [...galleries.slice(index + 1), ...galleries.slice(0, index)].filter((candidate) => candidate.images.length).slice(0, 3);
+const pad = (value: number) => String(value).padStart(2, "0");
+const structuredData = [{
+  "@type": "ImageGallery",
+  "@id": `${pageUrl}#gallery`,
+  name: gallery.title,
+  description: gallery.description,
+  datePublished: gallery.publishedDate || gallery.publishDate,
+  dateModified: gallery.modifiedDate || gallery.publishDate,
+  inLanguage: SITE.language,
+  url: pageUrl,
+  mainEntityOfPage: { "@id": `${pageUrl}#webpage` },
+  associatedMedia: gallery.images.map((item) => ({ "@type": "ImageObject", contentUrl: item.url, caption: item.caption || item.alternativeText, width: item.width || undefined, height: item.height || undefined })),
+  publisher: { "@id": `${SITE_URL}/#organization` },
+}, {
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Inicio", item: `${SITE_URL}/` },
+    { "@type": "ListItem", position: 2, name: "Galería", item: `${SITE_URL}/galeria/` },
+    { "@type": "ListItem", position: 3, name: gallery.title, item: pageUrl },
+  ],
+}];
+const icons = {
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5v15l12-7.5-12-7.5Z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/><path d="M12 3v12"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/></svg>',
+  full: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>',
+  prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
+  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
+};
+---
+
+<LayoutNavbar dataFooter={dataFooter} title={seoTitle} description={seoDescription} image={cover?.url} pageType="Article" publishedTime={gallery.publishedDate || gallery.publishDate} modifiedTime={gallery.modifiedDate || gallery.publishDate} structuredData={structuredData}>
+  <div class="gal gal--detail" style={`--cat:${category};--cat-rgb:${rgb}`} data-gal data-title={gallery.title} data-url={pageUrl}>
+    <header class="gal-cover">
+      {cover && <img class="gal-cover__img" src={cover.formats?.large?.url || cover.url} srcset={blogMediaSrcset(cover)} sizes="100vw" alt="" aria-hidden="true" fetchpriority="high" decoding="async" />}
+      <div class="gal-cover__shade" aria-hidden="true"></div>
+      <div class="gal-cover__body sections">
+        <a class="gal-back" href="/galeria/"><span aria-hidden="true">←</span> Todas las galerías</a>
+        <p class="gal-eyebrow"><i></i>{gallery.category.name}</p>
+        <h1>{gallery.title}</h1>
+        <p class="gal-cover__text">{gallery.description}</p>
+        <ul class="gal-meta">
+          <li>{formatBlogDate(gallery.publishDate)}</li>
+          <li>{pad(gallery.images.length)} fotografías</li>
+          {gallery.tags.map((tag) => <li class="is-cat">#{tag}</li>)}
+        </ul>
+        {gallery.images.length > 0 && (
+          <div class="gal-cover__actions">
+            <button type="button" class="gal-btn gal-btn--primary" data-open="0"><Fragment set:html={icons.play} /> Ver presentación</button>
+            <button type="button" class="gal-btn" data-share-page><Fragment set:html={icons.share} /> Compartir galería</button>
+          </div>
+        )}
+      </div>
+    </header>
+
+    <section class="gal-masonry sections" aria-labelledby="gal-photos">
+      <div class="gal-masonry__head">
+        <p class="gal-eyebrow" id="gal-photos"><i></i>{settings?.galleryImagesLabel || "Fotografías"}</p>
+        <p>Toca una foto para abrir el visor. Flechas para moverte, barra espaciadora para la presentación.</p>
+      </div>
+      {gallery.images.length > 0 ? (
+        <div class="gal-masonry__cols" data-shots>
+          {gallery.images.map((item, position) => (
+            <figure class="gal-shot" data-reveal style={`--delay:${(position % 3) * 0.06}s`}>
+              <button type="button" data-shot={position} data-src={item.url} data-large={item.formats?.large?.url || item.url} data-alt={item.alternativeText || gallery.title} data-caption={item.caption || ""} data-name={item.name || `${gallery.slug}-${position + 1}.jpg`} aria-label={`Abrir la fotografía ${position + 1} de ${gallery.images.length}`}>
+                <img src={item.formats?.medium?.url || item.url} srcset={blogMediaSrcset(item)} sizes="(max-width: 640px) 100vw, (max-width: 980px) 50vw, 33vw" alt={item.alternativeText || gallery.title} width={item.width} height={item.height} loading={position < 4 ? "eager" : "lazy"} decoding="async" />
+                <span class="gal-shot__num">{pad(position + 1)}</span>
+                {item.caption && <figcaption>{item.caption}</figcaption>}
+              </button>
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <div class="gal-empty"><span>{"{ 00 }"}</span><h2>Esta galería aún no tiene fotos</h2></div>
+      )}
+    </section>
+
+    {others.length > 0 && (
+      <section class="gal-more sections" aria-labelledby="gal-more">
+        <div class="gal-more__head"><h2 id="gal-more">Más galerías</h2><a href="/galeria/">Ver todas →</a></div>
+        <div class="gal-grid" style="margin-top:0">
+          {others.map((other) => (
+            <article class="gal-card" style={`--cat:${safeCategoryColor(other.category.color)};--cat-rgb:${colorRgb(safeCategoryColor(other.category.color))}`} data-reveal>
+              <a href={`/galeria/${other.slug}/`}>
+                <div class:list={["gal-card__mosaic", `gal-card__mosaic--${Math.min(other.images.length, 3)}`]}>
+                  {other.images.slice(0, 3).map((image, imageIndex) => <img src={image.formats?.medium?.url || image.url} alt={imageIndex === 0 ? image.alternativeText || other.title : ""} width={image.width} height={image.height} loading="lazy" decoding="async" />)}
+                  <b>{pad(other.images.length)} fotos</b>
+                </div>
+                <div class="gal-card__body"><p class="gal-eyebrow"><i></i>{other.category.name}</p><h2>{other.title}</h2><p>{other.description}</p><footer><span>{formatBlogDate(other.publishDate)}</span><b>Abrir galería</b></footer></div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+    <div class="gal-end"></div>
+
+    <div class="gal-box" hidden data-box role="dialog" aria-modal="true" aria-label={`Visor de ${gallery.title}`}>
+      <img class="gal-box__bg" alt="" aria-hidden="true" data-box-bg />
+      <div class="gal-box__progress" aria-hidden="true"></div>
+      <div class="gal-box__bar">
+        <div class="gal-box__info"><span class="gal-box__count" data-box-count></span><span class="gal-box__title">{gallery.title}</span></div>
+        <div class="gal-box__tools">
+          <button type="button" data-auto aria-pressed="false" title="Presentación automática (barra espaciadora)"><Fragment set:html={icons.play} /><span>Auto</span></button>
+          <button type="button" data-full title="Pantalla completa"><Fragment set:html={icons.full} /><span>Pantalla completa</span></button>
+          <a data-download download href="#" title="Descargar esta foto"><Fragment set:html={icons.down} /><span>Descargar</span></a>
+          <button type="button" data-share title="Compartir esta foto"><Fragment set:html={icons.share} /><span>Compartir</span></button>
+          <button type="button" data-close aria-label="Cerrar el visor (Esc)">×</button>
+        </div>
+      </div>
+      <div class="gal-box__stage" data-stage>
+        <figure><img data-box-img alt="" /><figcaption data-box-caption></figcaption></figure>
+        <button type="button" class="gal-box__nav gal-box__nav--prev" data-prev aria-label="Fotografía anterior"><Fragment set:html={icons.prev} /></button>
+        <button type="button" class="gal-box__nav gal-box__nav--next" data-next aria-label="Fotografía siguiente"><Fragment set:html={icons.next} /></button>
+      </div>
+      <div class="gal-box__thumbs" data-thumbs></div>
+    </div>
+  </div>
+</LayoutNavbar>
+
+<script>
+  function initCollection() {
+    const root = document.querySelector<HTMLElement>("[data-gal]");
+    if (!root || root.classList.contains("js-ready")) return;
+    root.classList.add("js-ready");
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add("is-in"); observer.unobserve(entry.target); } });
+    }, { rootMargin: "0px 0px -6% 0px", threshold: 0.05 });
+    root.querySelectorAll("[data-reveal]").forEach((node) => observer.observe(node));
+
+    const toast = (message: string) => { const node = document.createElement("div"); node.className = "gal-toast"; node.textContent = message; document.body.append(node); window.setTimeout(() => node.remove(), 2700); };
+    const share = async (title: string, url: string) => {
+      if (navigator.share) { try { await navigator.share({ title, url }); return; } catch { return; } }
+      try { await navigator.clipboard.writeText(url); toast("Enlace copiado."); } catch { window.prompt("Copia el enlace:", url); }
+    };
+    const pageTitle = root.dataset.title || document.title;
+    const pageUrl = root.dataset.url || location.href.split("#")[0];
+    root.querySelector("[data-share-page]")?.addEventListener("click", () => share(pageTitle, pageUrl));
+
+    // ---------------------------------------------------------------- visor
+    const shots = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-shot]"));
+    const box = root.querySelector<HTMLElement>("[data-box]");
+    if (!shots.length || !box) return;
+    // Fuera del contenedor del sitio (lleva transformaciones de scroll que rompen position: fixed).
+    document.body.append(box);
+    const image = box.querySelector<HTMLImageElement>("[data-box-img]")!;
+    const background = box.querySelector<HTMLImageElement>("[data-box-bg]")!;
+    const caption = box.querySelector<HTMLElement>("[data-box-caption]")!;
+    const count = box.querySelector<HTMLElement>("[data-box-count]")!;
+    const thumbs = box.querySelector<HTMLElement>("[data-thumbs]")!;
+    const download = box.querySelector<HTMLAnchorElement>("[data-download]")!;
+    const auto = box.querySelector<HTMLButtonElement>("[data-auto]")!;
+    const stage = box.querySelector<HTMLElement>("[data-stage]")!;
+    let current = 0;
+    let timer = 0;
+    let opener: HTMLElement | null = null;
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const preload = (index: number) => { const item = shots[(index + shots.length) % shots.length]; const node = new Image(); node.src = item.dataset.large || item.dataset.src || ""; };
+
+    shots.forEach((shot, index) => {
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.setAttribute("aria-label", `Ir a la fotografía ${index + 1}`);
+      thumb.innerHTML = `<img src="${shot.querySelector("img")?.currentSrc || shot.dataset.src || ""}" alt="" loading="lazy" />`;
+      thumb.addEventListener("click", () => show(index));
+      thumbs.append(thumb);
+      shot.addEventListener("click", () => open(index, shot));
+    });
+
+    function show(index: number) {
+      current = (index + shots.length) % shots.length;
+      const item = shots[current];
+      image.classList.add("is-swapping");
+      const next = item.dataset.large || item.dataset.src || "";
+      const swap = () => { image.src = next; image.alt = item.dataset.alt || ""; image.classList.remove("is-swapping"); };
+      const loader = new Image();
+      loader.onload = swap; loader.onerror = swap; loader.src = next;
+      background.src = item.querySelector("img")?.currentSrc || next;
+      caption.textContent = item.dataset.caption || "";
+      count.textContent = `${pad(current + 1)} / ${pad(shots.length)}`;
+      download.href = item.dataset.src || next;
+      download.download = item.dataset.name || `foto-${current + 1}.jpg`;
+      Array.from(thumbs.children).forEach((thumb, position) => thumb.classList.toggle("is-active", position === current));
+      (thumbs.children[current] as HTMLElement | undefined)?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      history.replaceState(null, "", `#foto-${current + 1}`);
+      preload(current + 1); preload(current - 1);
+      if (timer) restartProgress();
+    }
+
+    function open(index: number, from?: HTMLElement) {
+      opener = from ?? null;
+      box.hidden = false;
+      document.body.style.overflow = "hidden";
+      show(index);
+      box.querySelector<HTMLButtonElement>("[data-close]")?.focus();
+    }
+
+    function stop() {
+      if (timer) window.clearInterval(timer);
+      timer = 0;
+      box.classList.remove("is-playing");
+      auto.classList.remove("is-on");
+      auto.setAttribute("aria-pressed", "false");
+    }
+
+    function restartProgress() {
+      box.classList.remove("is-playing");
+      void box.offsetWidth;
+      box.classList.add("is-playing");
+    }
+
+    function play() {
+      if (timer) return stop();
+      timer = window.setInterval(() => show(current + 1), 5000);
+      auto.classList.add("is-on");
+      auto.setAttribute("aria-pressed", "true");
+      restartProgress();
+    }
+
+    function close() {
+      stop();
+      box.hidden = true;
+      document.body.style.overflow = "";
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      history.replaceState(null, "", location.pathname + location.search);
+      opener?.focus();
+    }
+
+    box.querySelector("[data-close]")?.addEventListener("click", close);
+    box.querySelector("[data-prev]")?.addEventListener("click", () => show(current - 1));
+    box.querySelector("[data-next]")?.addEventListener("click", () => show(current + 1));
+    auto.addEventListener("click", play);
+    box.querySelector("[data-full]")?.addEventListener("click", () => { if (document.fullscreenElement) void document.exitFullscreen(); else void box.requestFullscreen?.().catch(() => toast("Tu navegador no permite pantalla completa aquí.")); });
+    box.querySelector("[data-share]")?.addEventListener("click", () => share(`${pageTitle} · foto ${current + 1}`, `${pageUrl}#foto-${current + 1}`));
+    root.querySelector("[data-open]")?.addEventListener("click", (event) => { open(0, event.currentTarget as HTMLElement); play(); });
+    stage.addEventListener("click", (event) => { if (event.target === stage) close(); });
+
+    // Deslizar con el dedo o el cursor.
+    let startX: number | null = null;
+    stage.addEventListener("pointerdown", (event) => { startX = event.clientX; });
+    stage.addEventListener("pointerup", (event) => {
+      if (startX === null) return;
+      const delta = event.clientX - startX;
+      startX = null;
+      if (Math.abs(delta) > 40) show(current + (delta < 0 ? 1 : -1));
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (box.hidden) return;
+      if (event.key === "Escape") close();
+      else if (event.key === "ArrowLeft") show(current - 1);
+      else if (event.key === "ArrowRight") show(current + 1);
+      else if (event.key === " ") { event.preventDefault(); play(); }
+    });
+
+    // Enlace directo a una foto: /galeria/<slug>/#foto-3
+    const openFromHash = () => {
+      const wanted = Number((location.hash.match(/^#foto-(\d+)$/) || [])[1]);
+      if (wanted >= 1 && wanted <= shots.length && (box.hidden || current !== wanted - 1)) open(wanted - 1, shots[wanted - 1]);
+    };
+    window.addEventListener("hashchange", openFromHash);
+    openFromHash();
+  }
+  document.addEventListener("astro:page-load", initCollection);
+  initCollection();
+</script>

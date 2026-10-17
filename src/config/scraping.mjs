@@ -96,8 +96,8 @@ const pageDetails = {
       "carrera y empleabilidad",
     ],
   },
-  "/blog/galerias/": {
-    name: "Galerías de Campuslands",
+  "/galeria/": {
+    name: "Galería de Campuslands",
     audience: ["estudiantes", "familias", "empresas", "comunidad tecnológica"],
     topics: ["vida en Campuslands", "actividades", "Campus Tec", "comunidad Camper"],
   },

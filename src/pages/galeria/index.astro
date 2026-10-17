@@ -1,0 +1,145 @@
+---
+import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
+import { blogMediaSrcset, blogSeoDescription, blogSeoTitle, colorRgb, formatBlogDate, getBlogData, safeCategoryColor } from "~/lib/blog";
+import { PAGE_SEO, SITE, SITE_URL } from "~/config/seo.mjs";
+import "~/styles/index.css";
+import "~/styles/galeria.css";
+
+// Galería pública: las colecciones que se crean en el administrador (Galerías). No va en el menú:
+// se comparte por enlace con estudiantes, familias y empresas.
+export const prerender = false;
+Astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+
+const { settings, galleries, categories } = await getBlogData();
+const totalPhotos = galleries.reduce((sum, gallery) => sum + gallery.images.length, 0);
+const latestUpdate = galleries.map((gallery) => gallery.modifiedDate).filter(Boolean).sort().at(-1);
+const latestDate = galleries.map((gallery) => gallery.publishDate).filter(Boolean).sort().at(-1);
+const featured = galleries.find((gallery) => gallery.featured && gallery.images.length) ?? galleries.find((gallery) => gallery.images.length) ?? null;
+const usedCategories = categories.filter((category) => galleries.some((gallery) => gallery.category.slug === category.slug));
+// Cinta de fondo: una foto de cada galería, mezcladas, hasta 14.
+const strip = galleries.flatMap((gallery) => gallery.images.slice(0, 5).map((image, index) => ({ image, gallery, index })))
+  .sort((a, b) => a.index - b.index || a.gallery.publishDate.localeCompare(b.gallery.publishDate))
+  .slice(0, 14);
+const seo = PAGE_SEO["/galeria/"];
+const title = blogSeoTitle(settings ? `${settings.galleriesTitle} | Campuslands Guatemala` : undefined, seo.title);
+const description = blogSeoDescription(settings?.galleriesDescription, seo.description);
+const dataFooter = settings ? { title: settings.footerTitle, content: settings.footerDescription, buttonType: "contacto" } : undefined;
+const structuredData = [{
+  "@type": "CollectionPage",
+  "@id": `${SITE_URL}/galeria/#collection`,
+  name: settings?.galleriesTitle ?? seo.title,
+  description,
+  dateModified: latestUpdate,
+  inLanguage: SITE.language,
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: galleries.length,
+    itemListElement: galleries.map((gallery, index) => ({ "@type": "ListItem", position: index + 1, name: gallery.title, url: `${SITE_URL}/galeria/${gallery.slug}/` })),
+  },
+}];
+const pad = (value: number) => String(value).padStart(2, "0");
+const catStyle = (color?: string) => `--cat:${safeCategoryColor(color)};--cat-rgb:${colorRgb(safeCategoryColor(color))}`;
+---
+
+<LayoutNavbar dataFooter={dataFooter} title={title} description={description} image={featured?.images[0]?.url} pageType="CollectionPage" modifiedTime={latestUpdate} structuredData={structuredData}>
+  <div class="gal" data-gal>
+    <header class="gal-hero">
+      {strip.length > 0 && (
+        <div class="gal-strip" aria-hidden="true">
+          <div class="gal-strip__track">
+            {[...strip, ...strip].map(({ image, gallery }) => <img src={image.formats?.small?.url || image.formats?.medium?.url || image.url} alt="" width={image.width} height={image.height} loading="eager" decoding="async" />)}
+          </div>
+        </div>
+      )}
+      <div class="gal-hero__body sections">
+        <p class="gal-eyebrow"><i></i>Galería · Campuslands Guatemala</p>
+        <h1>{settings?.galleriesTitle ? settings.galleriesTitle : <>Los momentos que <em>nos hacen Campuslands</em></>}</h1>
+        <p class="gal-hero__text">{settings?.galleriesDescription || "Graduaciones, demo days, primeros días y todo lo que pasa en Campus Tec. Cada ciclo que termina deja aquí su huella."}</p>
+        <dl class="gal-stats">
+          <div><dt>Galerías</dt><dd>{pad(galleries.length)}</dd></div>
+          <div><dt>Fotografías</dt><dd>{pad(totalPhotos)}</dd></div>
+          {latestDate && <div><dt>Última galería</dt><dd>{formatBlogDate(latestDate)}</dd></div>}
+        </dl>
+      </div>
+    </header>
+
+    {featured && (
+      <section class="gal-featured sections" aria-label="Galería destacada" data-reveal>
+        <a class="gal-feature" href={`/galeria/${featured.slug}/`} style={catStyle(featured.category.color)}>
+          <div class:list={["gal-feature__media", `gal-feature__media--${Math.min(featured.images.length, 4)}`]} aria-hidden="true">
+            {featured.images.slice(0, 4).map((image, index) => <img src={image.formats?.large?.url || image.url} srcset={blogMediaSrcset(image)} sizes="(max-width: 1360px) 100vw, 1360px" alt="" loading={index === 0 ? "eager" : "lazy"} decoding="async" />)}
+          </div>
+          <div class="gal-feature__body">
+            <p class="gal-eyebrow"><i></i>{featured.featured ? "Destacada" : "Más reciente"} · {featured.category.name}</p>
+            <h2>{featured.title}</h2>
+            <p>{featured.description}</p>
+            <footer><span>{formatBlogDate(featured.publishDate)}</span><span>{pad(featured.images.length)} fotografías</span><b>Ver galería <span aria-hidden="true">→</span></b></footer>
+          </div>
+        </a>
+      </section>
+    )}
+
+    {galleries.length > 0 ? (
+      <>
+        <nav class="gal-filters sections" aria-label="Filtrar galerías por categoría" data-reveal>
+          <span>Filtrar</span>
+          <button type="button" class="gal-chip is-active" data-filter="todas" aria-pressed="true">Todas <small>{pad(galleries.length)}</small></button>
+          {usedCategories.map((category) => (
+            <button type="button" class="gal-chip" data-filter={category.slug} aria-pressed="false" style={catStyle(category.color)}>{category.name} <small>{pad(galleries.filter((gallery) => gallery.category.slug === category.slug).length)}</small></button>
+          ))}
+        </nav>
+        <section class="gal-grid sections" aria-label="Todas las galerías" data-grid>
+          {galleries.map((gallery, index) => (
+            <article class="gal-card" data-cat={gallery.category.slug} style={`${catStyle(gallery.category.color)};--delay:${(index % 3) * 0.08}s`} data-reveal>
+              <a href={`/galeria/${gallery.slug}/`}>
+                <div class:list={["gal-card__mosaic", `gal-card__mosaic--${Math.min(gallery.images.length, 3)}`]}>
+                  {gallery.images.slice(0, 3).map((image, imageIndex) => <img src={image.formats?.medium?.url || image.url} alt={imageIndex === 0 ? image.alternativeText || gallery.title : ""} width={image.width} height={image.height} loading={index < 3 ? "eager" : "lazy"} decoding="async" />)}
+                  {!gallery.images.length && <span>{"{ 00 }"}</span>}
+                  <b>{pad(gallery.images.length)} fotos</b>
+                </div>
+                <div class="gal-card__body">
+                  <p class="gal-eyebrow"><i></i>{gallery.category.name}</p>
+                  <h2>{gallery.title}</h2>
+                  <p>{gallery.description}</p>
+                  <footer><span>{formatBlogDate(gallery.publishDate)}</span><b>Abrir galería</b></footer>
+                </div>
+              </a>
+            </article>
+          ))}
+        </section>
+        <div class="gal-empty sections" data-no-results hidden><span>{"{ 00 }"}</span><h2>No hay galerías en esta categoría</h2></div>
+      </>
+    ) : (
+      <section class="gal-empty sections"><span>{"{ 00 }"}</span><h2>Todavía no hay galerías publicadas</h2><p>Las primeras fotos de nuestros campers aparecerán aquí muy pronto.</p></section>
+    )}
+    <div class="gal-end"></div>
+  </div>
+</LayoutNavbar>
+
+<script>
+  function initGallery() {
+    const root = document.querySelector<HTMLElement>("[data-gal]");
+    if (!root || root.classList.contains("js-ready")) return;
+    root.classList.add("js-ready");
+
+    // Aparición suave al entrar en pantalla.
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add("is-in"); observer.unobserve(entry.target); } });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    root.querySelectorAll("[data-reveal]").forEach((node) => observer.observe(node));
+
+    // Filtro por categoría, sin recargar.
+    const chips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-filter]"));
+    const cards = Array.from(root.querySelectorAll<HTMLElement>(".gal-card"));
+    const empty = root.querySelector<HTMLElement>("[data-no-results]");
+    chips.forEach((chip) => chip.addEventListener("click", () => {
+      const filter = chip.dataset.filter || "todas";
+      chips.forEach((item) => { const active = item === chip; item.classList.toggle("is-active", active); item.setAttribute("aria-pressed", String(active)); });
+      let visible = 0;
+      cards.forEach((card) => { const show = filter === "todas" || card.dataset.cat === filter; card.classList.toggle("is-hidden", !show); if (show) { visible += 1; card.classList.add("is-in"); } });
+      if (empty) empty.hidden = visible > 0;
+    }));
+  }
+  document.addEventListener("astro:page-load", initGallery);
+  initGallery();
+</script>

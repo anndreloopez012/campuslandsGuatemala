@@ -16,7 +16,7 @@ type SitemapEntry = {
   alternate?: string | null;
 };
 
-const BLOG_ROOTS = new Set(["/blog/", "/blog/galerias/"]);
+const BLOG_ROOTS = new Set(["/blog/", "/galeria/"]);
 
 function xmlEscape(value: unknown): string {
   return String(value ?? "")
@@ -73,7 +73,7 @@ function articleEntry(article: BlogArticle): SitemapEntry {
 
 function galleryEntry(gallery: BlogGallery): SitemapEntry {
   return {
-    url: `${SITE_URL}/blog/galerias/${gallery.slug}/`,
+    url: `${SITE_URL}/galeria/${gallery.slug}/`,
     lastmod: validDate(gallery.modifiedDate || gallery.publishedDate || gallery.publishDate),
     title: gallery.title,
     image: gallery.seo?.shareImage?.url || gallery.images[0]?.url || undefined,
@@ -89,7 +89,7 @@ export async function liveBlogEntries(): Promise<SitemapEntry[]> {
   const lastmod = latest(content);
   return [
     { url: `${SITE_URL}/blog/`, lastmod, title: PAGE_SEO["/blog/"].title },
-    { url: `${SITE_URL}/blog/galerias/`, lastmod, title: PAGE_SEO["/blog/galerias/"].title },
+    { url: `${SITE_URL}/galeria/`, lastmod, title: PAGE_SEO["/galeria/"].title },
     ...content,
   ];
 }
