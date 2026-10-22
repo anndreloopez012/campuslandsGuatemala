@@ -21,7 +21,7 @@ import {
   type EditorUser,
 } from "../../lib/blog-admin";
 
-type WorkspaceTab = "posts" | "galleries" | "categories" | "academy" | "users" | "settings";
+type WorkspaceTab = "posts" | "galleries" | "categories" | "academy" | "codeup" | "users" | "settings";
 type AppState = "checking" | "login" | "workspace";
 type ArticleSearchScope = "all" | "title" | "author" | "category" | "tags";
 type ArticleSortOrder = "recent" | "oldest" | "title-asc" | "title-desc";
@@ -811,10 +811,12 @@ onBeforeUnmount(() => {
           <button :class="{ active: activeTab === 'galleries' }" @click="selectTab('galleries')"><b>02</b><span>Galerías</span><i>{{ dashboard.galleries.length }}</i></button>
           <button :class="{ active: activeTab === 'categories' }" @click="selectTab('categories')"><b>03</b><span>Categorías</span><i>{{ dashboard.categories.length }}</i></button>
           <button :class="{ active: activeTab === 'academy' }" @click="selectTab('academy')"><b>04</b><span>AI Academy</span><i><AcademyIcon name="destello" :size="12" fill /></i></button>
-          <button :class="{ active: activeTab === 'users' }" @click="selectTab('users')"><b>05</b><span>Usuarios</span><i><AcademyIcon name="estudiantes" :size="12" /></i></button>
-          <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>06</b><span>Identidad y SEO</span><i>↗</i></button>
+          <button :class="{ active: activeTab === 'codeup' }" @click="selectTab('codeup')"><b>05</b><span>CodeUp</span><i><AcademyIcon name="diploma" :size="12" /></i></button>
+          <button :class="{ active: activeTab === 'users' }" @click="selectTab('users')"><b>06</b><span>Usuarios</span><i><AcademyIcon name="estudiantes" :size="12" /></i></button>
+          <button :class="{ active: activeTab === 'settings' }" @click="selectTab('settings')"><b>07</b><span>Identidad y SEO</span><i>↗</i></button>
         </nav>
         <div class="workspace-sidebar__bottom">
+          <a href="/joinUs/" target="_blank" rel="noopener">Ver Sé un Camper / CodeUp ↗</a>
           <a href="/ai-academy/" target="_blank" rel="noopener">Ver AI Academy ↗</a>
           <a href="/blog/" target="_blank" rel="noopener">Ver blog público ↗</a>
           <div><span>{{ user?.username }}</span><small>{{ user?.email }}</small></div>
@@ -829,6 +831,7 @@ onBeforeUnmount(() => {
           <option value="galleries">Galerías</option>
           <option value="categories">Categorías</option>
           <option value="academy">AI Academy</option>
+          <option value="codeup">CodeUp</option>
           <option value="users">Usuarios</option>
           <option value="settings">Identidad y SEO</option>
         </select>
@@ -1092,8 +1095,20 @@ onBeforeUnmount(() => {
 
         <AcademyCampus
           v-else-if="activeTab === 'academy'"
+          key="academy-campus"
           :api="api"
           :cms-url="cmsUrl"
+          program="ai-academy"
+          @notice="(message, type) => showNotice(message, type)"
+          @users="selectTab('users')"
+        />
+
+        <AcademyCampus
+          v-else-if="activeTab === 'codeup'"
+          key="codeup-campus"
+          :api="api"
+          :cms-url="cmsUrl"
+          program="codeup"
           @notice="(message, type) => showNotice(message, type)"
           @users="selectTab('users')"
         />

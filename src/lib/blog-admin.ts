@@ -54,6 +54,8 @@ export type EditorArticleLink = {
   active: boolean;
 };
 
+export type GalleryTargetSection = "ambas" | "join-us" | "ai-academy";
+
 export type EditorGallery = {
   id?: number;
   documentId: string;
@@ -65,6 +67,7 @@ export type EditorGallery = {
   category: EditorCategory;
   tags: string[];
   featured: boolean;
+  targetSection?: GalleryTargetSection;
   publishDate: string;
   seo?: EditorSeo | null;
   publicationState?: "draft" | "published" | "modified";
@@ -143,7 +146,9 @@ export function slugify(value: string) {
     .slice(0, 140);
 }
 
-// ------------------------------------------------------------------ campus de AI Academy
+// ------------------------------------------------------------------ campus de AI Academy y CodeUp
+
+export type AcademyProgram = "ai-academy" | "codeup";
 
 export type AcademyFile = { id: number; name: string; mime: string; size: number; url: string; downloadUrl?: string; signedUrl?: string; signedDownloadUrl?: string };
 
@@ -154,6 +159,7 @@ export type AcademyWorkshop = {
   code: string;
   title: string;
   order: number;
+  program?: AcademyProgram;
   accent: string;
   description: string;
   hours: number;
@@ -174,7 +180,7 @@ export type AcademyPerson = {
   isOwner: boolean;
   mustChangePassword: boolean;
   createdAt: string;
-  workshops?: { key: string; code: string; title: string; accent: string; enrollmentId: number; status: string; block: AcademyBlockRef }[];
+  workshops?: { key: string; code: string; title: string; program?: AcademyProgram; accent: string; enrollmentId: number; status: string; block: AcademyBlockRef }[];
 };
 
 // Bloque: cada vez que se imparte el taller. El avance (%) sale de la sesión actual que define el administrador.
@@ -192,7 +198,8 @@ export type AcademyGenerateResult = {
   emitted: number; updated: number; skipped: number; failed: number;
 };
 // Los diplomas con el diseño oficial se reconocen por el nombre del archivo.
-export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) => Boolean(diploma.file?.name.startsWith("Diploma AI Academy - "));
+export const isGeneratedDiploma = (diploma: { file: { name: string } | null }) =>
+  Boolean(diploma.file?.name.startsWith("Diploma AI Academy - ") || diploma.file?.name.startsWith("Diploma CodeUp - "));
 export type AcademyDetail = { workshop: AcademyWorkshop; diplomaDesign?: Partial<DiplomaDesign>; diplomaSeal?: DiplomaSealConfig; diplomaSignature?: DiplomaSignatureState; blocks: AcademyBlock[]; enrollments: AcademyEnrollment[]; diplomas: AcademyDiploma[]; tools: AcademyTool[]; videos: AcademyVideo[] };
 export type AcademyOverview = { workshops: AcademyWorkshop[]; students: number; admins: number };
 
@@ -359,17 +366,20 @@ export class BlogAdminApi {
     return uploaded;
   }
 
-  // ---------------------------------------------------------------- campus de AI Academy
-  academyOverview() {
-    return this.request<AcademyOverview>("/editor/academy");
+  // ---------------------------------------------------------------- campus de AI Academy y CodeUp
+  academyOverview(program: AcademyProgram | "all" = "ai-academy") {
+    return this.request<AcademyOverview>(`/editor/academy?program=${encodeURIComponent(program)}`);
   }
 
   academyWorkshop(key: string) {
     return this.request<AcademyDetail>(`/editor/academy/workshops/${encodeURIComponent(key)}`);
   }
 
-  createAcademyWorkshop(data: Partial<AcademyWorkshop>) {
-    return this.request<AcademyWorkshop>("/editor/academy/workshops", { method: "POST", body: JSON.stringify({ data }) });
+  createAcademyWorkshop(data: Partial<AcademyWorkshop>, program: AcademyProgram = "ai-academy") {
+    return this.request<AcademyWorkshop>(`/editor/academy/workshops?program=${encodeURIComponent(program)}`, {
+      method: "POST",
+      body: JSON.stringify({ data: { ...data, program } }),
+    });
   }
 
   updateAcademyWorkshop(key: string, data: Partial<AcademyWorkshop>) {
@@ -429,68 +439,68 @@ export class BlogAdminApi {
     return response.blob();
   }
 
-  // Sello del diploma (aplica a todos los talleres).
-  diplomaSeal() {
-    return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>("/editor/academy/diploma-seal");
+  // Sello del diploma (por programa: AI Academy o CodeUp).
+  diplomaSeal(program: AcademyProgram = "ai-academy") {
+    return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>(`/editor/academy/diploma-seal?program=${encodeURIComponent(program)}`);
   }
 
-  saveDiplomaSeal(data: DiplomaSealConfig) {
-    return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>("/editor/academy/diploma-seal", { method: "PUT", body: JSON.stringify({ data }) });
+  saveDiplomaSeal(data: DiplomaSealConfig, program: AcademyProgram = "ai-academy") {
+    return this.request<{ seal: DiplomaSealConfig; defaults: DiplomaSealConfig }>(`/editor/academy/diploma-seal?program=${encodeURIComponent(program)}`, { method: "PUT", body: JSON.stringify({ data: { ...data, program } }) });
   }
 
   // ---------------------------------------------------------------- firma del diploma
-  diplomaSignature() {
-    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>("/editor/academy/diploma-signature");
+  diplomaSignature(program: AcademyProgram = "ai-academy") {
+    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>(`/editor/academy/diploma-signature?program=${encodeURIComponent(program)}`);
   }
 
-  saveDiplomaSignature(data: Partial<DiplomaSignatureConfig>) {
-    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>("/editor/academy/diploma-signature", { method: "PUT", body: JSON.stringify({ data }) });
+  saveDiplomaSignature(data: Partial<DiplomaSignatureConfig>, program: AcademyProgram = "ai-academy") {
+    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>(`/editor/academy/diploma-signature?program=${encodeURIComponent(program)}`, { method: "PUT", body: JSON.stringify({ data: { ...data, program } }) });
   }
 
-  async uploadDiplomaSignature(file: File) {
+  async uploadDiplomaSignature(file: File, program: AcademyProgram = "ai-academy") {
     const body = new FormData();
     body.append("file", file, file.name);
     const headers = new Headers();
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
-    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-signature/image`, { method: "POST", headers, body });
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-signature/image?program=${encodeURIComponent(program)}`, { method: "POST", headers, body });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload?.error?.message || "No se pudo subir la firma.");
     return payload.data as { signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig };
   }
 
   // Imagen de la firma para el panel (esté o no activada), como objeto local para mostrarla al instante.
-  async diplomaSignatureImage(version: string | number) {
+  async diplomaSignatureImage(version: string | number, program: AcademyProgram = "ai-academy") {
     const headers = new Headers();
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
-    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-signature/image?v=${encodeURIComponent(String(version))}`, { headers });
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-signature/image?v=${encodeURIComponent(String(version))}&program=${encodeURIComponent(program)}`, { headers });
     if (!response.ok) throw new Error("No se pudo cargar la imagen de la firma.");
     return URL.createObjectURL(await response.blob());
   }
 
-  removeDiplomaSignature() {
-    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>("/editor/academy/diploma-signature/image", { method: "DELETE" });
+  removeDiplomaSignature(program: AcademyProgram = "ai-academy") {
+    return this.request<{ signature: DiplomaSignatureState; defaults: DiplomaSignatureConfig }>(`/editor/academy/diploma-signature/image?program=${encodeURIComponent(program)}`, { method: "DELETE" });
   }
 
   // Dibujo del sello con una configuración en borrador, para verlo en vivo mientras se edita.
-  async sealSvg(data: { workshop: string; seal: Partial<DiplomaSealConfig>; centerText?: string }) {
+  async sealSvg(data: { workshop: string; seal: Partial<DiplomaSealConfig>; centerText?: string }, program: AcademyProgram = "ai-academy") {
     const headers = new Headers({ Accept: "image/svg+xml", "Content-Type": "application/json" });
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
-    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-seal/svg`, { method: "POST", headers, body: JSON.stringify({ data }) });
+    const response = await fetch(`${this.cmsUrl}/api/editor/academy/diploma-seal/svg?program=${encodeURIComponent(program)}`, { method: "POST", headers, body: JSON.stringify({ data: { ...data, program } }) });
     if (!response.ok) throw new Error("No se pudo dibujar el sello.");
     return response.text();
   }
 
-  // Textos fijos del diploma (aplican a todos los talleres).
-  diplomaDesign() {
-    return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>("/editor/academy/diploma-design");
+  // Textos fijos del diploma (por programa: AI Academy o CodeUp).
+  diplomaDesign(program: AcademyProgram = "ai-academy") {
+    return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>(`/editor/academy/diploma-design?program=${encodeURIComponent(program)}`);
   }
 
-  saveDiplomaDesign(data: DiplomaDesign) {
-    return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>("/editor/academy/diploma-design", { method: "PUT", body: JSON.stringify({ data }) });
+  saveDiplomaDesign(data: DiplomaDesign, program: AcademyProgram = "ai-academy") {
+    return this.request<{ design: DiplomaDesign; defaults: DiplomaDesign }>(`/editor/academy/diploma-design?program=${encodeURIComponent(program)}`, { method: "PUT", body: JSON.stringify({ data: { ...data, program } }) });
   }
 
-  regenerateAllDiplomas() {
-    return this.request<{ updated: number; failed: number }>("/editor/academy/diploma-design/regenerate", { method: "POST" });
+  regenerateAllDiplomas(program: AcademyProgram = "ai-academy") {
+    return this.request<{ updated: number; failed: number }>(`/editor/academy/diploma-design/regenerate?program=${encodeURIComponent(program)}`, { method: "POST", body: JSON.stringify({ program }) });
   }
 
   async previewDiploma(data: { workshop: string; student?: number; fullName?: string; issuedAt?: string; design?: DiplomaDesign; seal?: DiplomaSealConfig; signature?: DiplomaSignatureConfig; withSignature?: boolean }) {

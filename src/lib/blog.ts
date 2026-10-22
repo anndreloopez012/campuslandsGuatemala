@@ -59,6 +59,8 @@ export type BlogArticleLink = {
   active: boolean;
 };
 
+export type GalleryTargetSection = "ambas" | "join-us" | "ai-academy";
+
 export type BlogGallery = {
   id: string;
   title: string;
@@ -68,6 +70,7 @@ export type BlogGallery = {
   category: BlogCategory;
   tags: string[];
   featured: boolean;
+  targetSection: GalleryTargetSection;
   publishDate: string;
   publishedDate: string;
   modifiedDate: string;
@@ -407,6 +410,11 @@ function normalizeGallery(value: any): BlogGallery | null {
     const image = normalizeMedia({ ...base, alternativeText: item?.alternativeText ?? base?.alternativeText, caption: item?.caption ?? base?.caption });
     return image ? [image] : [];
   });
+  const rawTarget = String(value.targetSection || "").trim().toLowerCase();
+  const targetSection: GalleryTargetSection =
+    rawTarget === "join-us" || rawTarget === "ai-academy" || rawTarget === "ambas"
+      ? rawTarget
+      : "ambas";
   return {
     id: String(value.documentId || value.id || value.slug),
     title: String(value.title),
@@ -416,6 +424,7 @@ function normalizeGallery(value: any): BlogGallery | null {
     category,
     tags: Array.isArray(value.tags) ? value.tags.filter((tag: unknown) => typeof tag === "string") : [],
     featured: Boolean(value.featured),
+    targetSection,
     publishDate: String(value.publishDate || value.publishedAt || "").slice(0, 10),
     publishedDate: normalizeDateTime(value.publishedAt || value.publishDate),
     modifiedDate: normalizeDateTime(value.updatedAt || value.publishedAt || value.publishDate),
@@ -426,6 +435,17 @@ function normalizeGallery(value: any): BlogGallery | null {
       shareImage: normalizeMedia(value.seo.shareImage),
     } : null,
   };
+}
+
+export function filterGalleriesBySection(
+  galleries: BlogGallery[] = [],
+  section: "join-us" | "ai-academy",
+): BlogGallery[] {
+  return galleries.filter(
+    (gallery) =>
+      gallery.images.length > 0 &&
+      (gallery.targetSection === "ambas" || gallery.targetSection === section || !gallery.targetSection),
+  );
 }
 
 async function fetchJson(path: string) {

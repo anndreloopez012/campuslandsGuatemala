@@ -23,6 +23,11 @@ import ContactButton from "../common/ContactButton.astro";
       linkPage="https://estudiante-guate.campuslands.com/login"
       iconName="happyFace.svg"
     />
+    <a class="joinus-campus-link" href="/codeup/acceso/">
+      <span class="joinus-campus-link__dot" aria-hidden="true"></span>
+      ¿Ya eres camper CodeUp? <strong>Entra a tu campus</strong>
+      <span aria-hidden="true">→</span>
+    </a>
   </div>
 
   <figure class="joinus-hero-media w-full max-w-[550px]" aria-label="Grupo de campers de Campuslands Guatemala">
@@ -67,6 +72,41 @@ import ContactButton from "../common/ContactButton.astro";
   .joinus-hero-media {
     margin: 0;
     filter: drop-shadow(0 24px 46px rgb(0 0 81 / 0.38));
+  }
+
+  .joinus-campus-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.95rem 0.55rem 0.75rem;
+    border: 1px solid rgb(44 170 255 / 0.28);
+    border-radius: 999px;
+    color: rgb(223 245 255 / 0.84);
+    background: linear-gradient(145deg, rgb(0 0 81 / 0.65), rgb(7 16 43 / 0.82));
+    font-size: 0.86rem;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 28px rgb(0 0 81 / 0.32);
+    transition: border-color 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  .joinus-campus-link strong {
+    color: #fff;
+  }
+
+  .joinus-campus-link:hover {
+    border-color: rgb(44 170 255 / 0.65);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgb(44 170 255 / 0.18);
+  }
+
+  .joinus-campus-link__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #00aa80;
+    box-shadow: 0 0 0 0.25rem rgb(0 170 128 / 0.18), 0 0 0.8rem #2caaff;
   }
 
   .joinus-hero-media__surface {

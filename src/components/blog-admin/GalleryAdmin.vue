@@ -9,6 +9,7 @@ import {
   type EditorCategory,
   type EditorGallery,
   type EditorMedia,
+  type GalleryTargetSection,
 } from "../../lib/blog-admin";
 
 type GalleryImageDraft = {
@@ -39,6 +40,7 @@ const errorMessage = ref("");
 const search = ref("");
 const statusFilter = ref("all");
 const categoryFilter = ref("all");
+const sectionFilter = ref<"all" | "join-us" | "ai-academy" | "ambas">("all");
 const images = ref<GalleryImageDraft[]>([]);
 const draggedIndex = ref<number | null>(null);
 const previewOpen = ref(false);
@@ -54,7 +56,19 @@ function key() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function emptyForm() {
+function normalizeTargetSection(value?: string | null): GalleryTargetSection {
+  if (value === "join-us" || value === "ai-academy" || value === "ambas") return value;
+  return "ambas";
+}
+
+function targetSectionLabel(value?: string | null) {
+  const normalized = normalizeTargetSection(value);
+  if (normalized === "join-us") return "Sé un Camper (/joinUs)";
+  if (normalized === "ai-academy") return "AI Academy (/ai-academy)";
+  return "Ambas páginas (Camper + IA)";
+}
+
+function emptyForm(defaultSection: GalleryTargetSection = "ambas") {
   return {
     documentId: "",
     title: "",
@@ -63,12 +77,25 @@ function emptyForm() {
     categoryDocumentId: "",
     tagsText: "",
     featured: false,
+    targetSection: defaultSection,
     publishDate: today(),
     seo: { metaTitle: "", metaDescription: "", keywords: "" },
   };
 }
 
 const form = reactive(emptyForm());
+const sectionCounts = computed(() => {
+  const joinUs = props.galleries.filter((g) => {
+    const t = normalizeTargetSection(g.targetSection);
+    return t === "join-us" || t === "ambas";
+  }).length;
+  const aiAcademy = props.galleries.filter((g) => {
+    const t = normalizeTargetSection(g.targetSection);
+    return t === "ai-academy" || t === "ambas";
+  }).length;
+  const ambas = props.galleries.filter((g) => normalizeTargetSection(g.targetSection) === "ambas").length;
+  return { all: props.galleries.length, joinUs, aiAcademy, ambas };
+});
 const filteredGalleries = computed(() => {
   const term = search.value.trim().toLowerCase();
   return props.galleries.filter((gallery) => {
@@ -76,7 +103,14 @@ const filteredGalleries = computed(() => {
       .some((value) => String(value || "").toLowerCase().includes(term));
     const matchesStatus = statusFilter.value === "all" || gallery.publicationState === statusFilter.value;
     const matchesCategory = categoryFilter.value === "all" || gallery.category?.documentId === categoryFilter.value;
-    return matchesSearch && matchesStatus && matchesCategory;
+    const target = normalizeTargetSection(gallery.targetSection);
+    const matchesSection =
+      sectionFilter.value === "all"
+        ? true
+        : sectionFilter.value === "ambas"
+          ? target === "ambas"
+          : target === sectionFilter.value || target === "ambas";
+    return matchesSearch && matchesStatus && matchesCategory && matchesSection;
   });
 });
 const selectedCategory = computed(() => props.categories.find((category) => category.documentId === form.categoryDocumentId));
@@ -114,6 +148,9 @@ function resetForm() {
 
 function newGallery() {
   resetForm();
+  if (sectionFilter.value === "join-us" || sectionFilter.value === "ai-academy" || sectionFilter.value === "ambas") {
+    form.targetSection = sectionFilter.value;
+  }
   editorOpen.value = true;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -143,6 +180,7 @@ function applyDetail(detail: EditorGallery, asCopy = false) {
     categoryDocumentId: detail.category?.documentId || "",
     tagsText: Array.isArray(detail.tags) ? detail.tags.join(", ") : "",
     featured: asCopy ? false : Boolean(detail.featured),
+    targetSection: normalizeTargetSection(detail.targetSection),
     publishDate: asCopy ? today() : detail.publishDate || today(),
     seo: {
       metaTitle: asCopy ? `Copia de ${detail.seo?.metaTitle || detail.title}`.slice(0, 60) : detail.seo?.metaTitle || "",
@@ -241,6 +279,7 @@ async function save(publish: boolean) {
       categoryDocumentId: form.categoryDocumentId,
       tags: form.tagsText.split(",").map((tag) => tag.trim()).filter(Boolean),
       featured: form.featured,
+      targetSection: form.targetSection,
       publishDate: form.publishDate,
       imageIds: resolved.map((image) => image.media?.id).filter(Boolean),
       imageDetails: resolved.map((image) => ({
@@ -372,6 +411,14 @@ onBeforeUnmount(() => {
         <aside>
           <section class="panel inspector">
             <h3>PUBLICACIÓN</h3>
+            <label>
+              <span>Página de destino</span>
+              <select v-model="form.targetSection">
+                <option value="ambas">Ambas páginas (Sé un Camper + AI Academy)</option>
+                <option value="join-us">Solo Sé un Camper (/joinUs)</option>
+                <option value="ai-academy">Solo AI Academy (/ai-academy)</option>
+              </select>
+            </label>
             <label><span>Categoría</span><select v-model="form.categoryDocumentId"><option value="" disabled>Seleccionar</option><option v-for="category in categories" :key="category.documentId" :value="category.documentId">{{ category.name }}</option></select></label>
             <label><span>Fecha</span><input v-model="form.publishDate" type="date" /></label>
             <label><span>Temas</span><input v-model="form.tagsText" placeholder="talleres, comunidad, IA" /></label>
@@ -384,18 +431,32 @@ onBeforeUnmount(() => {
     </template>
 
     <template v-else>
-      <header class="gallery-heading"><div><p>PULSO / GALERÍAS</p><h1>Archivo visual</h1><span>Administra colecciones, su secuencia, contexto y publicación pública.</span></div><button type="button" class="primary" @click="newGallery">Nueva galería ＋</button></header>
-      <div class="gallery-stats"><article><span>TOTAL</span><strong>{{ galleries.length.toString().padStart(2, "0") }}</strong></article><article><span>PUBLICADAS</span><strong>{{ galleries.filter((item) => item.publicationState === 'published').length.toString().padStart(2, "0") }}</strong></article><article><span>IMÁGENES</span><strong>{{ galleries.reduce((total, item) => total + (item.images?.length || 0), 0).toString().padStart(2, "0") }}</strong></article></div>
+      <header class="gallery-heading"><div><p>PULSO / GALERÍAS</p><h1>Archivo visual</h1><span>Administra colecciones para Sé un Camper (/joinUs), AI Academy (/ai-academy) y Pulso en un mismo punto.</span></div><button type="button" class="primary" @click="newGallery">Nueva galería ＋</button></header>
+      <div class="gallery-stats"><article><span>TOTAL</span><strong>{{ galleries.length.toString().padStart(2, "0") }}</strong></article><article><span>SÉ UN CAMPER</span><strong>{{ sectionCounts.joinUs.toString().padStart(2, "0") }}</strong></article><article><span>AI ACADEMY</span><strong>{{ sectionCounts.aiAcademy.toString().padStart(2, "0") }}</strong></article><article><span>IMÁGENES</span><strong>{{ galleries.reduce((total, item) => total + (item.images?.length || 0), 0).toString().padStart(2, "0") }}</strong></article></div>
+      <div class="gallery-partitions" role="tablist" aria-label="Partición de galerías por página">
+        <button type="button" role="tab" :class="{ active: sectionFilter === 'all' }" @click="sectionFilter = 'all'">
+          <span>Todas las galerías</span><b>{{ sectionCounts.all }}</b>
+        </button>
+        <button type="button" role="tab" :class="{ active: sectionFilter === 'join-us' }" @click="sectionFilter = 'join-us'">
+          <span>Sé un Camper (/joinUs)</span><b>{{ sectionCounts.joinUs }}</b>
+        </button>
+        <button type="button" role="tab" :class="{ active: sectionFilter === 'ai-academy' }" @click="sectionFilter = 'ai-academy'">
+          <span>AI Academy (/ai-academy)</span><b>{{ sectionCounts.aiAcademy }}</b>
+        </button>
+        <button type="button" role="tab" :class="{ active: sectionFilter === 'ambas' }" @click="sectionFilter = 'ambas'">
+          <span>Compartidas en ambas</span><b>{{ sectionCounts.ambas }}</b>
+        </button>
+      </div>
       <section class="gallery-console">
         <div class="gallery-filters"><input v-model="search" type="search" placeholder="Buscar galería o categoría" /><select v-model="statusFilter"><option value="all">Todos los estados</option><option value="published">Publicadas</option><option value="draft">Borradores</option><option value="modified">Cambios pendientes</option></select><select v-model="categoryFilter"><option value="all">Todas las categorías</option><option v-for="category in categories" :key="category.documentId" :value="category.documentId">{{ category.name }}</option></select></div>
         <div v-if="filteredGalleries.length" class="gallery-list">
           <article v-for="gallery in filteredGalleries" :key="gallery.documentId" :style="`--category:${gallery.category?.color || '#2CAAFF'}`">
             <button type="button" class="gallery-cover" @click="openGallery(gallery)"><img v-if="gallery.images?.[0]" :src="mediaUrl(cmsUrl, gallery.images[0])" :alt="gallery.title" /><span v-else>{ 00 }</span><b>{{ gallery.images?.length || 0 }} imágenes</b></button>
-            <div><p><i></i>{{ gallery.category?.name }}</p><h2>{{ gallery.title }}</h2><span>{{ gallery.description }}</span><small>{{ statusLabel(gallery.publicationState) }} · {{ gallery.publishDate }}</small></div>
+            <div><div class="gallery-meta-row"><p><i></i>{{ gallery.category?.name }}</p><em class="gallery-section-badge" :class="`is-${normalizeTargetSection(gallery.targetSection)}`">{{ targetSectionLabel(gallery.targetSection) }}</em></div><h2>{{ gallery.title }}</h2><span>{{ gallery.description }}</span><small>{{ statusLabel(gallery.publicationState) }} · {{ gallery.publishDate }}</small></div>
             <footer><button @click="openGallery(gallery)">Editar</button><button @click="openGallery(gallery, true)">Usar como base</button><a v-if="gallery.publicationState !== 'draft'" :href="`/galeria/${gallery.slug}/`" target="_blank" rel="noopener">Ver ↗</a><button v-if="gallery.publicationState !== 'published'" @click="quickPublish(gallery)">Publicar</button><button v-if="gallery.publicationState !== 'draft'" @click="quickUnpublish(gallery)">Retirar</button><button class="danger" @click="removeGallery(gallery)">Eliminar</button></footer>
           </article>
         </div>
-        <div v-else class="image-empty"><b>{ 00 }</b><h2>No encontramos galerías.</h2><p>Cambia los filtros o crea una nueva colección visual.</p></div>
+        <div v-else class="image-empty"><b>{ 00 }</b><h2>No encontramos galerías en esta partición.</h2><p>Cambia los filtros o crea una nueva colección visual para esta sección.</p></div>
       </section>
     </template>
 
@@ -409,7 +470,16 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-*{box-sizing:border-box}.gallery-admin{--line:rgba(87,187,255,.16);--muted:rgba(247,249,255,.52);--green:#00d9a4;color:#f7f9ff}.gallery-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}.gallery-heading>div:first-child{display:grid;gap:8px}.gallery-heading p,.panel>header>span,.panel h3{margin:0;color:#57bbff;font:700 10px/1 ui-monospace,monospace;letter-spacing:.15em}.gallery-heading h1{margin:0;font-size:clamp(34px,4.8vw,64px);line-height:1;letter-spacing:-.055em}.gallery-heading>div>span{color:var(--muted);font-size:12px}.gallery-heading>div>button{width:max-content;padding:0;border:0;color:#79d5ff;background:none;cursor:pointer}.gallery-heading>div:last-child{display:flex;gap:9px}.primary,.secondary,.mobile-save{min-height:44px;padding:0 16px;border-radius:11px;cursor:pointer;font-weight:750}.primary,.mobile-save{border:0;color:#021a21;background:linear-gradient(90deg,#50c8ff,var(--green))}.secondary{border:1px solid rgba(87,187,255,.22);color:#fff;background:rgba(87,187,255,.07)}button:disabled{opacity:.45;cursor:default}.gallery-error{padding:12px 14px;border:1px solid rgba(255,90,110,.25);border-radius:10px;color:#ff9aa7;background:rgba(255,70,90,.07)}.gallery-loading{display:grid;min-height:400px;place-content:center;color:var(--muted)}.gallery-editor{display:grid;margin-top:32px;grid-template-columns:minmax(0,1fr)320px;align-items:start;gap:20px}.gallery-canvas{display:grid;gap:17px}.panel{padding:clamp(18px,2.5vw,28px);border:1px solid var(--line);border-radius:22px;background:rgba(6,16,49,.67)}.panel--lead{background:linear-gradient(145deg,rgba(11,28,73,.82),rgba(5,15,47,.7))}.panel>header{display:flex;margin-bottom:22px;align-items:flex-start;gap:13px}.panel>header>span{display:grid;width:30px;height:30px;place-content:center;border:1px solid rgba(0,217,164,.22);border-radius:50%;color:var(--green)}.panel>header h2{margin:0;font-size:17px}.panel>header p{margin:4px 0 0;color:var(--muted);font-size:10px}.panel>label,.image-grid label,.inspector label{display:grid;position:relative;margin-top:14px;gap:7px;color:rgba(255,255,255,.58);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.panel input,.panel textarea,.panel select,.gallery-filters input,.gallery-filters select{width:100%;min-height:45px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:11px;outline:0;color:#fff;background:rgba(2,9,34,.7);font:inherit}.panel textarea{resize:vertical;font-size:14px;line-height:1.55;text-transform:none}.panel label>small{position:absolute;right:7px;bottom:5px;color:rgba(255,255,255,.25);font-size:8px}.panel--lead>label:first-of-type textarea{font-size:27px;font-weight:700;line-height:1.15}.slug{display:flex;min-height:45px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(2,9,34,.7);overflow:hidden}.slug b,.slug i{padding:0 10px;color:rgba(255,255,255,.34);font:600 9px/1 ui-monospace,monospace;font-style:normal}.slug input{min-height:43px;padding-inline:0;border:0;background:transparent}.image-drop{display:grid!important;min-height:90px!important;place-content:center;border:1px dashed rgba(0,217,164,.33)!important;border-radius:13px!important;color:#7debd0!important;background:rgba(0,217,164,.04)!important;cursor:pointer}.image-drop input{display:none}.image-grid{display:grid;margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.image-grid>article{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(0,0,20,.18)}.image-preview{display:block;position:relative;width:100%;padding:0;border:0;border-radius:10px;background:#02091e;overflow:hidden;cursor:zoom-in}.image-preview img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}.image-preview span{position:absolute;top:8px;left:8px;padding:5px 7px;border-radius:99px;color:#001a21;background:var(--green);font:800 8px/1 ui-monospace,monospace}.image-grid label{margin-top:9px}.image-grid label span{font-size:8px}.image-grid input{min-height:38px;padding:8px 9px;font-size:10px;text-transform:none}.image-grid footer{display:flex;margin-top:8px;align-items:center;gap:5px}.image-grid footer button{width:27px;height:27px;border:1px solid rgba(255,255,255,.09);border-radius:7px;color:#fff;background:rgba(255,255,255,.04)}.image-grid footer i{flex:1;color:rgba(255,255,255,.24);font:600 7px/1 ui-monospace,monospace;font-style:normal;text-align:center}.image-grid footer .remove{color:#ff8393}.image-empty{display:grid;min-height:180px;margin-top:14px;place-content:center;justify-items:center;color:var(--muted);text-align:center}.image-empty b{color:#57bbff;font:700 22px/1 ui-monospace,monospace}.image-empty h2{margin:15px 0 0}.image-empty p{font-size:10px}.gallery-editor>aside{display:grid;position:sticky;top:22px;gap:14px}.inspector h3{margin-bottom:18px}.switch{display:flex!important;align-items:center;grid-template-columns:auto auto 1fr}.switch input{position:absolute;opacity:0}.switch i{width:34px;height:19px;border-radius:99px;background:rgba(255,255,255,.12)}.switch i:after{display:block;width:13px;height:13px;margin:3px;border-radius:50%;background:#aaa;content:"";transition:transform .2s}.switch input:checked+i{background:rgba(0,217,164,.32)}.switch input:checked+i:after{transform:translateX(15px);background:var(--green)}.score header{display:flex;margin:0 0 13px;justify-content:space-between}.score header strong{color:var(--green)}.score>div{height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}.score>div i{display:block;height:100%;background:linear-gradient(90deg,#57bbff,var(--green))}.score p{margin:10px 0 0;color:var(--muted);font-size:8px}.mobile-save{display:none}.gallery-stats{display:grid;margin-top:30px;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:18px;background:rgba(6,16,49,.58);overflow:hidden}.gallery-stats article{display:grid;min-height:110px;padding:18px;align-content:space-between;border-right:1px solid var(--line)}.gallery-stats article:last-child{border:0}.gallery-stats span{color:var(--muted);font:700 8px/1 ui-monospace,monospace;letter-spacing:.12em}.gallery-stats strong{font-size:36px;font-weight:400}.gallery-console{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:rgba(6,16,49,.54);overflow:hidden}.gallery-filters{display:grid;padding:13px;grid-template-columns:1fr 180px 190px;gap:8px;border-bottom:1px solid var(--line)}.gallery-list{display:grid}.gallery-list>article{display:grid;padding:14px;grid-template-columns:220px minmax(0,1fr);gap:17px;border-bottom:1px solid rgba(255,255,255,.07)}.gallery-list>article:last-child{border:0}.gallery-cover{display:block;position:relative;padding:0;border:0;border-radius:13px;background:#02091e;overflow:hidden;cursor:pointer}.gallery-cover img{display:block;width:100%;height:150px;object-fit:cover}.gallery-cover>span{display:grid;height:150px;place-content:center;color:#57bbff;font:700 22px/1 ui-monospace,monospace}.gallery-cover b{position:absolute;right:7px;bottom:7px;padding:5px 7px;border-radius:99px;color:#fff;background:rgba(2,8,27,.78);font-size:8px}.gallery-list>article>div{min-width:0;padding-top:5px}.gallery-list p{display:flex;margin:0;align-items:center;gap:7px;color:var(--category);font:700 8px/1 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}.gallery-list p i{width:18px;height:1px;background:currentColor}.gallery-list h2{margin:12px 0 6px;font-size:20px}.gallery-list>article>div>span{display:-webkit-box;color:var(--muted);font-size:10px;line-height:1.55;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gallery-list small{display:block;margin-top:10px;color:rgba(255,255,255,.28);font:600 8px/1 ui-monospace,monospace}.gallery-list footer{display:flex;grid-column:1/-1;justify-content:flex-end;gap:6px}.gallery-list footer button,.gallery-list footer a{padding:7px 9px;border:1px solid rgba(255,255,255,.09);border-radius:8px;color:rgba(255,255,255,.66);background:rgba(255,255,255,.035);font-size:8px;text-decoration:none;cursor:pointer}.gallery-list footer .danger{color:#ff8393}.gallery-modal{display:grid;position:fixed;inset:0;z-index:110;padding:18px 80px 88px;background:rgba(0,3,16,.96);place-items:center}.gallery-modal>header{display:flex;position:absolute;top:0;left:0;width:100%;min-height:68px;padding:13px 22px;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1)}.gallery-modal>header>div{display:grid;gap:4px}.gallery-modal>header span{color:#fff;font-weight:700}.gallery-modal>header small{color:var(--muted)}.gallery-modal nav{display:flex;gap:6px}.gallery-modal button{border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#fff;background:rgba(255,255,255,.05);cursor:pointer}.gallery-modal nav button{min-height:34px;padding:0 10px}.gallery-modal figure{display:grid;max-width:min(1150px,100%);max-height:calc(100vh - 180px);margin:70px 0 0;justify-items:center}.gallery-modal figure img{display:block;max-width:100%;max-height:calc(100vh - 220px);object-fit:contain}.gallery-modal figcaption{margin-top:10px;color:rgba(255,255,255,.6);font-size:11px}.gallery-modal>.previous,.gallery-modal>.next{position:absolute;top:50%;width:48px;height:48px;border-radius:50%;font-size:20px}.gallery-modal>.previous{left:20px}.gallery-modal>.next{right:20px}.gallery-thumbs{display:flex;position:absolute;right:0;bottom:0;left:0;height:78px;padding:9px;justify-content:center;gap:6px;border-top:1px solid rgba(255,255,255,.08);overflow-x:auto}.gallery-thumbs button{width:78px;flex:0 0 auto;padding:2px;border-color:transparent;opacity:.45}.gallery-thumbs button.active{border-color:var(--green);opacity:1}.gallery-thumbs img{display:block;width:100%;height:54px;object-fit:cover}
+*{box-sizing:border-box}.gallery-admin{--line:rgba(87,187,255,.16);--muted:rgba(247,249,255,.52);--green:#00d9a4;color:#f7f9ff}.gallery-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}.gallery-heading>div:first-child{display:grid;gap:8px}.gallery-heading p,.panel>header>span,.panel h3{margin:0;color:#57bbff;font:700 10px/1 ui-monospace,monospace;letter-spacing:.15em}.gallery-heading h1{margin:0;font-size:clamp(34px,4.8vw,64px);line-height:1;letter-spacing:-.055em}.gallery-heading>div>span{color:var(--muted);font-size:12px}.gallery-heading>div>button{width:max-content;padding:0;border:0;color:#79d5ff;background:none;cursor:pointer}.gallery-heading>div:last-child{display:flex;gap:9px}.primary,.secondary,.mobile-save{min-height:44px;padding:0 16px;border-radius:11px;cursor:pointer;font-weight:750}.primary,.mobile-save{border:0;color:#021a21;background:linear-gradient(90deg,#50c8ff,var(--green))}.secondary{border:1px solid rgba(87,187,255,.22);color:#fff;background:rgba(87,187,255,.07)}button:disabled{opacity:.45;cursor:default}.gallery-error{padding:12px 14px;border:1px solid rgba(255,90,110,.25);border-radius:10px;color:#ff9aa7;background:rgba(255,70,90,.07)}.gallery-loading{display:grid;min-height:400px;place-content:center;color:var(--muted)}.gallery-editor{display:grid;margin-top:32px;grid-template-columns:minmax(0,1fr)320px;align-items:start;gap:20px}.gallery-canvas{display:grid;gap:17px}.panel{padding:clamp(18px,2.5vw,28px);border:1px solid var(--line);border-radius:22px;background:rgba(6,16,49,.67)}.panel--lead{background:linear-gradient(145deg,rgba(11,28,73,.82),rgba(5,15,47,.7))}.panel>header{display:flex;margin-bottom:22px;align-items:flex-start;gap:13px}.panel>header>span{display:grid;width:30px;height:30px;place-content:center;border:1px solid rgba(0,217,164,.22);border-radius:50%;color:var(--green)}.panel>header h2{margin:0;font-size:17px}.panel>header p{margin:4px 0 0;color:var(--muted);font-size:10px}.panel>label,.image-grid label,.inspector label{display:grid;position:relative;margin-top:14px;gap:7px;color:rgba(255,255,255,.58);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.panel input,.panel textarea,.panel select,.gallery-filters input,.gallery-filters select{width:100%;min-height:45px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:11px;outline:0;color:#fff;background:rgba(2,9,34,.7);font:inherit}.panel textarea{resize:vertical;font-size:14px;line-height:1.55;text-transform:none}.panel label>small{position:absolute;right:7px;bottom:5px;color:rgba(255,255,255,.25);font-size:8px}.panel--lead>label:first-of-type textarea{font-size:27px;font-weight:700;line-height:1.15}.slug{display:flex;min-height:45px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(2,9,34,.7);overflow:hidden}.slug b,.slug i{padding:0 10px;color:rgba(255,255,255,.34);font:600 9px/1 ui-monospace,monospace;font-style:normal}.slug input{min-height:43px;padding-inline:0;border:0;background:transparent}.image-drop{display:grid!important;min-height:90px!important;place-content:center;border:1px dashed rgba(0,217,164,.33)!important;border-radius:13px!important;color:#7debd0!important;background:rgba(0,217,164,.04)!important;cursor:pointer}.image-drop input{display:none}.image-grid{display:grid;margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.image-grid>article{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(0,0,20,.18)}.image-preview{display:block;position:relative;width:100%;padding:0;border:0;border-radius:10px;background:#02091e;overflow:hidden;cursor:zoom-in}.image-preview img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}.image-preview span{position:absolute;top:8px;left:8px;padding:5px 7px;border-radius:99px;color:#001a21;background:var(--green);font:800 8px/1 ui-monospace,monospace}.image-grid label{margin-top:9px}.image-grid label span{font-size:8px}.image-grid input{min-height:38px;padding:8px 9px;font-size:10px;text-transform:none}.image-grid footer{display:flex;margin-top:8px;align-items:center;gap:5px}.image-grid footer button{width:27px;height:27px;border:1px solid rgba(255,255,255,.09);border-radius:7px;color:#fff;background:rgba(255,255,255,.04)}.image-grid footer i{flex:1;color:rgba(255,255,255,.24);font:600 7px/1 ui-monospace,monospace;font-style:normal;text-align:center}.image-grid footer .remove{color:#ff8393}.image-empty{display:grid;min-height:180px;margin-top:14px;place-content:center;justify-items:center;color:var(--muted);text-align:center}.image-empty b{color:#57bbff;font:700 22px/1 ui-monospace,monospace}.image-empty h2{margin:15px 0 0}.image-empty p{font-size:10px}.gallery-editor>aside{display:grid;position:sticky;top:22px;gap:14px}.inspector h3{margin-bottom:18px}.switch{display:flex!important;align-items:center;grid-template-columns:auto auto 1fr}.switch input{position:absolute;opacity:0}.switch i{width:34px;height:19px;border-radius:99px;background:rgba(255,255,255,.12)}.switch i:after{display:block;width:13px;height:13px;margin:3px;border-radius:50%;background:#aaa;content:"";transition:transform .2s}.switch input:checked+i{background:rgba(0,217,164,.32)}.switch input:checked+i:after{transform:translateX(15px);background:var(--green)}.score header{display:flex;margin:0 0 13px;justify-content:space-between}.score header strong{color:var(--green)}.score>div{height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}.score>div i{display:block;height:100%;background:linear-gradient(90deg,#57bbff,var(--green))}.score p{margin:10px 0 0;color:var(--muted);font-size:8px}.mobile-save{display:none}.gallery-stats{display:grid;margin-top:30px;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:18px;background:rgba(6,16,49,.58);overflow:hidden}
+.gallery-partitions{display:grid;margin-top:14px;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.gallery-partitions button{display:flex;min-height:44px;padding:0 14px;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;color:rgba(247,249,255,.72);background:rgba(6,16,49,.48);font:650 11px/1.2 inherit;cursor:pointer;transition:all .18s}
+.gallery-partitions button b{padding:3px 7px;border-radius:99px;color:#57bbff;background:rgba(87,187,255,.12);font:700 10px/1 ui-monospace,monospace}
+.gallery-partitions button.active{border-color:rgba(0,217,164,.45);color:#fff;background:linear-gradient(135deg,rgba(15,44,104,.85),rgba(0,217,164,.14))}
+.gallery-partitions button.active b{color:#001a21;background:var(--green)}
+.gallery-meta-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.gallery-section-badge{padding:4px 9px;border-radius:99px;font:700 8px/1 ui-monospace,monospace;font-style:normal;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(87,187,255,.25);color:#79d5ff;background:rgba(87,187,255,.1)}
+.gallery-section-badge.is-join-us{border-color:rgba(0,217,164,.35);color:#7debd0;background:rgba(0,217,164,.12)}
+.gallery-section-badge.is-ai-academy{border-color:rgba(185,151,255,.4);color:#d7c2ff;background:rgba(122,60,255,.18)}.gallery-stats article{display:grid;min-height:110px;padding:18px;align-content:space-between;border-right:1px solid var(--line)}.gallery-stats article:last-child{border:0}.gallery-stats span{color:var(--muted);font:700 8px/1 ui-monospace,monospace;letter-spacing:.12em}.gallery-stats strong{font-size:36px;font-weight:400}.gallery-console{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:rgba(6,16,49,.54);overflow:hidden}.gallery-filters{display:grid;padding:13px;grid-template-columns:1fr 180px 190px;gap:8px;border-bottom:1px solid var(--line)}.gallery-list{display:grid}.gallery-list>article{display:grid;padding:14px;grid-template-columns:220px minmax(0,1fr);gap:17px;border-bottom:1px solid rgba(255,255,255,.07)}.gallery-list>article:last-child{border:0}.gallery-cover{display:block;position:relative;padding:0;border:0;border-radius:13px;background:#02091e;overflow:hidden;cursor:pointer}.gallery-cover img{display:block;width:100%;height:150px;object-fit:cover}.gallery-cover>span{display:grid;height:150px;place-content:center;color:#57bbff;font:700 22px/1 ui-monospace,monospace}.gallery-cover b{position:absolute;right:7px;bottom:7px;padding:5px 7px;border-radius:99px;color:#fff;background:rgba(2,8,27,.78);font-size:8px}.gallery-list>article>div{min-width:0;padding-top:5px}.gallery-list p{display:flex;margin:0;align-items:center;gap:7px;color:var(--category);font:700 8px/1 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}.gallery-list p i{width:18px;height:1px;background:currentColor}.gallery-list h2{margin:12px 0 6px;font-size:20px}.gallery-list>article>div>span{display:-webkit-box;color:var(--muted);font-size:10px;line-height:1.55;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gallery-list small{display:block;margin-top:10px;color:rgba(255,255,255,.28);font:600 8px/1 ui-monospace,monospace}.gallery-list footer{display:flex;grid-column:1/-1;justify-content:flex-end;gap:6px}.gallery-list footer button,.gallery-list footer a{padding:7px 9px;border:1px solid rgba(255,255,255,.09);border-radius:8px;color:rgba(255,255,255,.66);background:rgba(255,255,255,.035);font-size:8px;text-decoration:none;cursor:pointer}.gallery-list footer .danger{color:#ff8393}.gallery-modal{display:grid;position:fixed;inset:0;z-index:110;padding:18px 80px 88px;background:rgba(0,3,16,.96);place-items:center}.gallery-modal>header{display:flex;position:absolute;top:0;left:0;width:100%;min-height:68px;padding:13px 22px;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1)}.gallery-modal>header>div{display:grid;gap:4px}.gallery-modal>header span{color:#fff;font-weight:700}.gallery-modal>header small{color:var(--muted)}.gallery-modal nav{display:flex;gap:6px}.gallery-modal button{border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#fff;background:rgba(255,255,255,.05);cursor:pointer}.gallery-modal nav button{min-height:34px;padding:0 10px}.gallery-modal figure{display:grid;max-width:min(1150px,100%);max-height:calc(100vh - 180px);margin:70px 0 0;justify-items:center}.gallery-modal figure img{display:block;max-width:100%;max-height:calc(100vh - 220px);object-fit:contain}.gallery-modal figcaption{margin-top:10px;color:rgba(255,255,255,.6);font-size:11px}.gallery-modal>.previous,.gallery-modal>.next{position:absolute;top:50%;width:48px;height:48px;border-radius:50%;font-size:20px}.gallery-modal>.previous{left:20px}.gallery-modal>.next{right:20px}.gallery-thumbs{display:flex;position:absolute;right:0;bottom:0;left:0;height:78px;padding:9px;justify-content:center;gap:6px;border-top:1px solid rgba(255,255,255,.08);overflow-x:auto}.gallery-thumbs button{width:78px;flex:0 0 auto;padding:2px;border-color:transparent;opacity:.45}.gallery-thumbs button.active{border-color:var(--green);opacity:1}.gallery-thumbs img{display:block;width:100%;height:54px;object-fit:cover}
 @media(max-width:980px){.gallery-editor{grid-template-columns:1fr}.gallery-editor>aside{position:static;grid-template-columns:repeat(2,1fr)}.mobile-save{display:block}.gallery-filters{grid-template-columns:1fr 1fr}.gallery-filters input{grid-column:1/-1}.gallery-list>article{grid-template-columns:180px minmax(0,1fr)}}
 @media(max-width:650px){.gallery-heading{align-items:flex-start;flex-direction:column}.gallery-heading>div:last-child{width:100%;flex-wrap:wrap}.gallery-heading>div:last-child>*{flex:1}.gallery-editor>aside{grid-template-columns:1fr}.image-grid{grid-template-columns:1fr}.gallery-stats{grid-template-columns:1fr}.gallery-stats article{min-height:78px;border-right:0;border-bottom:1px solid var(--line)}.gallery-filters{grid-template-columns:1fr}.gallery-filters input{grid-column:auto}.gallery-list>article{grid-template-columns:1fr}.gallery-cover img,.gallery-cover>span{height:190px}.gallery-modal{padding:16px 50px 88px}.gallery-modal>.previous{left:5px}.gallery-modal>.next{right:5px}}
 </style>

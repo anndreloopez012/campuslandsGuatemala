@@ -1,12 +1,19 @@
 ---
+export const prerender = false;
+
 import LayoutNavbar from "../layouts/LayoutNavbar.astro";
 import Intro from "../components/joinUs/intro.astro";
 import AlliedCompanies from "../components/alliedCompanies.astro";
 import SliderTestimonials from "../components/joinUs/sliderTestimonials.astro";
 import StepByStep from "~/components/joinUs/stepByStep.astro";
 import Skills from "~/components/joinUs/skills.astro";
+import EmbeddedGalleryViewer from "../components/common/EmbeddedGalleryViewer.astro";
+import { filterGalleriesBySection, getBlogData } from "../lib/blog";
 
 import "~/styles/index.css";
+
+const blogData = await getBlogData();
+const joinUsGalleries = filterGalleriesBySection(blogData.galleries, "join-us");
 
 const dataFooter = {
   title: "¿Listo para iniciar tu camino como desarrollador?",
@@ -36,6 +43,7 @@ const dataFooter = {
   <AlliedCompanies />
   <SliderTestimonials />
   <Skills />
+  <EmbeddedGalleryViewer variant="join-us" galleries={joinUsGalleries} />
   <StepByStep />
 
   <style>
