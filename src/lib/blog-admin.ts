@@ -54,6 +54,8 @@ export type EditorArticleLink = {
   active: boolean;
 };
 
+export type GalleryTargetSection = "ambas" | "join-us" | "ai-academy";
+
 export type EditorGallery = {
   id?: number;
   documentId: string;
@@ -65,6 +67,7 @@ export type EditorGallery = {
   category: EditorCategory;
   tags: string[];
   featured: boolean;
+  targetSection?: GalleryTargetSection;
   publishDate: string;
   seo?: EditorSeo | null;
   publicationState?: "draft" | "published" | "modified";

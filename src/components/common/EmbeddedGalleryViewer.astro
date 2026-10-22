@@ -1,0 +1,943 @@
+---
+import {
+  blogMediaSrcset,
+  colorRgb,
+  formatBlogDate,
+  type BlogGallery,
+} from "../../lib/blog";
+
+interface Props {
+  variant: "join-us" | "ai-academy";
+  galleries: BlogGallery[];
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+}
+
+const {
+  variant,
+  galleries = [],
+  eyebrow = variant === "ai-academy" ? "AI.GAL · ARCHIVO VISUAL" : "VIDA EN EL CAMPUS · GALERÍA",
+  title = variant === "ai-academy"
+    ? "Así se viven los talleres y laboratorios de AI Academy"
+    : "Conoce de cerca la experiencia de ser un Camper",
+  description = variant === "ai-academy"
+    ? "Explora las sesiones prácticas, demostraciones de agentes y momentos reales de nuestras cohortes en Campus Tec."
+    : "Recorre nuestros espacios de entrenamiento, sesiones de código en equipo y la comunidad que impulsa tu carrera en tecnología.",
+} = Astro.props;
+
+const fallbackGalleries: BlogGallery[] =
+  variant === "ai-academy"
+    ? [
+        {
+          id: "fallback-ai-academy-1",
+          title: "Laboratorios prácticos y sesiones en vivo en Campus Tec",
+          slug: "laboratorios-ai-academy",
+          description:
+            "Recorrido visual por nuestras mesas de trabajo, construcción de flujos con IA y aprendizaje guiado en Guatemala.",
+          targetSection: "ai-academy",
+          featured: true,
+          publishDate: "2026-10-15",
+          publishedDate: "2026-10-15T12:00:00Z",
+          modifiedDate: "2026-10-15T12:00:00Z",
+          tags: ["AI Academy", "Talleres", "Campus Tec"],
+          category: {
+            id: "cat-ai",
+            name: "Inteligencia Artificial",
+            slug: "inteligencia-artificial",
+            description: "",
+            color: "#7A3CFF",
+            order: 1,
+            visualStyle: "ai",
+          },
+          seo: null,
+          images: [
+            {
+              id: 101,
+              url: "/images/campus-zonatec.webp",
+              alternativeText: "Ecosistema de innovación y talleres en Campus Tec Zona 4",
+              caption: "Sede presencial de AI Academy en Campus Tec, Zona 4 de Ciudad de Guatemala.",
+              width: 1280,
+              height: 853,
+            },
+            {
+              id: 102,
+              url: "/images/hero-slide-2.jpg",
+              alternativeText: "Sesión colaborativa de arquitectura y automatización",
+              caption: "Equipos construyendo soluciones prácticas con criterios de negocio y tecnología.",
+              width: 1280,
+              height: 853,
+            },
+            {
+              id: 103,
+              url: "/images/hero-slide-3.jpg",
+              alternativeText: "Mentoría directa durante los laboratorios de Campuslands",
+              caption: "Acompañamiento paso a paso en cada bloque de aprendizaje.",
+              width: 1280,
+              height: 853,
+            },
+            {
+              id: 104,
+              url: "/images/hero-slide-1.jpg",
+              alternativeText: "Comunidad tecnológica en acción",
+              caption: "Presentación de entregables y casos aplicados por cohorte.",
+              width: 1280,
+              height: 853,
+            },
+          ],
+        },
+      ]
+    : [
+        {
+          id: "fallback-join-us-1",
+          title: "Entrenamiento intensivo y comunidad Camper en Guatemala",
+          slug: "comunidad-camper-codeup",
+          description:
+            "Así se vive el día a día de formación intensiva en desarrollo de software, trabajo en equipo y preparación para la industria.",
+          targetSection: "join-us",
+          featured: true,
+          publishDate: "2026-10-15",
+          publishedDate: "2026-10-15T12:00:00Z",
+          modifiedDate: "2026-10-15T12:00:00Z",
+          tags: ["Sé un Camper", "CodeUp", "Comunidad"],
+          category: {
+            id: "cat-camper",
+            name: "Comunidad Camper",
+            slug: "comunidad-camper",
+            description: "",
+            color: "#2CAAFF",
+            order: 1,
+            visualStyle: "community",
+          },
+          seo: null,
+          images: [
+            {
+              id: 201,
+              url: "/images/hero-slide-1.jpg",
+              alternativeText: "Campers entrenando desarrollo de software en equipo",
+              caption: "Aprendizaje práctico basado en retos reales y pair programming diario.",
+              width: 1280,
+              height: 853,
+            },
+            {
+              id: 202,
+              url: "/images/campus-zonatec.webp",
+              alternativeText: "Instalaciones de Campuslands en Zona 4",
+              caption: "Espacios diseñados para concentrarse, colaborar y crecer profesionalmente.",
+              width: 1280,
+              height: 853,
+            },
+            {
+              id: 203,
+              url: "/images/hero-slide-2.jpg",
+              alternativeText: "Sesiones de mentoría técnica y revisión de código",
+              caption: "Acompañamiento constante de mentores técnicos, inglés y habilidades socioemocionales.",
+              width: 1280,
+              height: 853,
+            },
+            {
+              id: 204,
+              url: "/images/hero-slide-3.jpg",
+              alternativeText: "Presentación de proyectos de grado Camper",
+              caption: "Demostración de proyectos integradores frente a aliados de la industria.",
+              width: 1280,
+              height: 853,
+            },
+          ],
+        },
+      ];
+
+const activeGalleries = galleries.length ? galleries : fallbackGalleries;
+const isCmsBacked = galleries.length > 0;
+const viewerId = `egv-${variant}`;
+---
+
+<section
+  class:list={["egv-section", `egv-section--${variant}`]}
+  id={variant === "ai-academy" ? "galeria-ai-academy" : "galeria-camper"}
+  data-egv-root={viewerId}
+>
+  <div class="egv-shell">
+    <header class="egv-header">
+      <div class="egv-header__copy">
+        <span class="egv-eyebrow">
+          <i aria-hidden="true"></i>
+          {eyebrow}
+        </span>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+
+      <div class="egv-header__actions">
+        {activeGalleries.length > 1 && (
+          <div class="egv-tabs" role="tablist" aria-label="Colecciones disponibles">
+            {activeGalleries.map((gallery, index) => (
+              <button
+                type="button"
+                role="tab"
+                class:list={["egv-tab", { "is-active": index === 0 }]}
+                aria-selected={index === 0 ? "true" : "false"}
+                data-egv-tab={index}
+              >
+                <span>{gallery.title}</span>
+                <b>{String(gallery.images.length).padStart(2, "0")}</b>
+              </button>
+            ))}
+          </div>
+        )}
+        <a class="egv-all-link" href="/galeria/">
+          <span>Explorar archivo visual</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </header>
+
+    {activeGalleries.map((gallery, gIndex) => (
+      <div
+        class:list={["egv-collection", { "is-active": gIndex === 0 }]}
+        data-egv-panel={gIndex}
+        hidden={gIndex !== 0}
+        style={`--egv-accent:${gallery.category.color};--egv-accent-rgb:${colorRgb(gallery.category.color)}`}
+      >
+        <div class="egv-collection__bar">
+          <div class="egv-collection__meta">
+            <span class="egv-badge">
+              <i></i>
+              {gallery.category.name}
+            </span>
+            <time datetime={gallery.publishDate}>{formatBlogDate(gallery.publishDate)}</time>
+            <span>{gallery.images.length} fotografías</span>
+          </div>
+          <div class="egv-collection__cta">
+            <button type="button" class="egv-btn-present" data-egv-open-first={gIndex}>
+              <span>Abrir visor a pantalla completa</span>
+              <span aria-hidden="true">⤢</span>
+            </button>
+            {isCmsBacked && (
+              <a class="egv-btn-album" href={`/galeria/${gallery.slug}/`}>
+                <span>Álbum completo</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div class="egv-grid">
+          {gallery.images.slice(0, 8).map((image, index) => {
+            const alt = image.alternativeText || image.caption || `${gallery.title} (${index + 1})`;
+            const srcset = blogMediaSrcset(image);
+            return (
+              <button
+                type="button"
+                class:list={["egv-card", { "egv-card--featured": index === 0 }]}
+                data-egv-item
+                data-egv-gallery={gIndex}
+                data-egv-index={index}
+                data-src={image.url}
+                data-alt={alt}
+                data-caption={image.caption || gallery.description}
+                data-album-title={gallery.title}
+                aria-label={`Abrir imagen ${index + 1} de ${gallery.images.length}: ${alt}`}
+              >
+                <img
+                  src={image.url}
+                  srcset={srcset}
+                  sizes={index === 0 ? "(max-width: 900px) 100vw, 58vw" : "(max-width: 680px) 100vw, 28vw"}
+                  alt={alt}
+                  width={image.width || undefined}
+                  height={image.height || undefined}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="egv-card__overlay">
+                  <span class="egv-card__index">{String(index + 1).padStart(2, "0")}</span>
+                  <div class="egv-card__caption">
+                    <strong>{image.caption || alt}</strong>
+                    <small>Clic para ampliar en el visor</small>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div class="egv-lightbox" data-egv-lightbox hidden role="dialog" aria-modal="true" aria-label="Visor de galería">
+    <header class="egv-lightbox__top">
+      <div class="egv-lightbox__title">
+        <span data-egv-lb-album>GALERÍA</span>
+        <small data-egv-lb-counter>01 / 01</small>
+      </div>
+      <div class="egv-lightbox__controls">
+        <button type="button" data-egv-lb-auto>Auto 5s</button>
+        <a data-egv-lb-download href="#" download target="_blank" rel="noopener">Descargar ↓</a>
+        <button type="button" class="egv-lightbox__close" data-egv-lb-close aria-label="Cerrar visor">×</button>
+      </div>
+    </header>
+
+    <div class="egv-lightbox__stage">
+      <button type="button" class="egv-lightbox__nav egv-lightbox__nav--prev" data-egv-lb-prev aria-label="Imagen anterior">←</button>
+      <figure class="egv-lightbox__figure">
+        <img data-egv-lb-img src="" alt="" />
+        <figcaption data-egv-lb-caption></figcaption>
+      </figure>
+      <button type="button" class="egv-lightbox__nav egv-lightbox__nav--next" data-egv-lb-next aria-label="Imagen siguiente">→</button>
+    </div>
+
+    <div class="egv-lightbox__thumbs" data-egv-lb-thumbs></div>
+  </div>
+</section>
+
+<script is:inline define:vars={{ viewerId }}>
+  (() => {
+    const root = document.querySelector(`[data-egv-root="${viewerId}"]`);
+    if (!root) return;
+
+    const tabs = Array.from(root.querySelectorAll("[data-egv-tab]"));
+    const panels = Array.from(root.querySelectorAll("[data-egv-panel]"));
+    const lightbox = root.querySelector("[data-egv-lightbox]");
+    const lbImg = root.querySelector("[data-egv-lb-img]");
+    const lbCaption = root.querySelector("[data-egv-lb-caption]");
+    const lbCounter = root.querySelector("[data-egv-lb-counter]");
+    const lbAlbum = root.querySelector("[data-egv-lb-album]");
+    const lbDownload = root.querySelector("[data-egv-lb-download]");
+    const lbAuto = root.querySelector("[data-egv-lb-auto]");
+    const lbThumbs = root.querySelector("[data-egv-lb-thumbs]");
+
+    let activeGalleryIdx = 0;
+    let activeImageIdx = 0;
+    let timer = null;
+
+    function getGalleryItems(gIdx) {
+      return Array.from(root.querySelectorAll(`[data-egv-item][data-egv-gallery="${gIdx}"]`));
+    }
+
+    function switchTab(nextIdx) {
+      activeGalleryIdx = nextIdx;
+      tabs.forEach((tab, idx) => {
+        const active = idx === nextIdx;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      panels.forEach((panel, idx) => {
+        const active = idx === nextIdx;
+        panel.classList.toggle("is-active", active);
+        panel.hidden = !active;
+      });
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        switchTab(Number(tab.getAttribute("data-egv-tab") || 0));
+      });
+    });
+
+    function stopAuto() {
+      if (timer) window.clearInterval(timer);
+      timer = null;
+      if (lbAuto) lbAuto.textContent = "Auto 5s";
+    }
+
+    function renderThumbs(items) {
+      if (!lbThumbs) return;
+      lbThumbs.innerHTML = "";
+      items.forEach((btn, idx) => {
+        const thumbBtn = document.createElement("button");
+        thumbBtn.type = "button";
+        if (idx === activeImageIdx) thumbBtn.classList.add("is-active");
+        const img = document.createElement("img");
+        img.src = btn.dataset.src || "";
+        img.alt = "";
+        thumbBtn.appendChild(img);
+        thumbBtn.addEventListener("click", () => showSlide(activeGalleryIdx, idx));
+        lbThumbs.appendChild(thumbBtn);
+      });
+    }
+
+    function showSlide(gIdx, iIdx) {
+      const items = getGalleryItems(gIdx);
+      if (!items.length || !lightbox || !lbImg) return;
+      activeGalleryIdx = gIdx;
+      activeImageIdx = (iIdx + items.length) % items.length;
+      const current = items[activeImageIdx];
+      const src = current.dataset.src || "";
+      const alt = current.dataset.alt || "";
+      const caption = current.dataset.caption || alt;
+      const albumTitle = current.dataset.albumTitle || "Galería";
+
+      lbImg.src = src;
+      lbImg.alt = alt;
+      if (lbCaption) lbCaption.textContent = caption;
+      if (lbAlbum) lbAlbum.textContent = albumTitle;
+      if (lbCounter) {
+        lbCounter.textContent = `${String(activeImageIdx + 1).padStart(2, "0")} / ${String(items.length).padStart(2, "0")}`;
+      }
+      if (lbDownload) lbDownload.href = src;
+      renderThumbs(items);
+      lightbox.hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+      if (!lightbox) return;
+      stopAuto();
+      lightbox.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    root.querySelectorAll("[data-egv-item]").forEach((item) => {
+      item.addEventListener("click", () => {
+        const gIdx = Number(item.getAttribute("data-egv-gallery") || 0);
+        const iIdx = Number(item.getAttribute("data-egv-index") || 0);
+        showSlide(gIdx, iIdx);
+      });
+    });
+
+    root.querySelectorAll("[data-egv-open-first]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const gIdx = Number(btn.getAttribute("data-egv-open-first") || 0);
+        showSlide(gIdx, 0);
+      });
+    });
+
+    root.querySelector("[data-egv-lb-prev]")?.addEventListener("click", () => {
+      showSlide(activeGalleryIdx, activeImageIdx - 1);
+    });
+    root.querySelector("[data-egv-lb-next]")?.addEventListener("click", () => {
+      showSlide(activeGalleryIdx, activeImageIdx + 1);
+    });
+    root.querySelector("[data-egv-lb-close]")?.addEventListener("click", closeLightbox);
+
+    lbAuto?.addEventListener("click", () => {
+      if (timer) {
+        stopAuto();
+      } else {
+        lbAuto.textContent = "Pausar";
+        timer = window.setInterval(() => showSlide(activeGalleryIdx, activeImageIdx + 1), 5000);
+      }
+    });
+
+    lightbox?.addEventListener("click", (event) => {
+      if (event.target === lightbox || event.target.classList?.contains("egv-lightbox__stage")) {
+        closeLightbox();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (!lightbox || lightbox.hidden) return;
+      if (event.key === "Escape") closeLightbox();
+      if (event.key === "ArrowLeft") showSlide(activeGalleryIdx, activeImageIdx - 1);
+      if (event.key === "ArrowRight") showSlide(activeGalleryIdx, activeImageIdx + 1);
+    });
+  })();
+</script>
+
+<style>
+  .egv-section {
+    position: relative;
+    padding: clamp(3.5rem, 6vw, 6rem) 1.25rem;
+    overflow: hidden;
+  }
+
+  .egv-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  /* Variant: Sé un Camper (/joinUs) */
+  .egv-section--join-us {
+    --egv-bg-card: linear-gradient(155deg, rgba(0, 0, 81, 0.94), rgba(0, 0, 135, 0.86));
+    --egv-border: rgba(44, 170, 255, 0.24);
+    --egv-title: #000051;
+    --egv-copy: rgba(0, 0, 81, 0.76);
+    --egv-pill-bg: rgba(0, 0, 81, 0.06);
+    --egv-pill-text: #000051;
+    --egv-pill-active-bg: linear-gradient(135deg, #000051, #000087);
+    --egv-pill-active-text: #ffffff;
+    --egv-accent-main: #2caaff;
+    --egv-accent-secondary: #00aa80;
+  }
+
+  /* Variant: AI Academy (/ai-academy) */
+  .egv-section--ai-academy {
+    --egv-bg-card: linear-gradient(155deg, rgba(16, 9, 36, 0.9), rgba(9, 5, 22, 0.92));
+    --egv-border: rgba(122, 60, 255, 0.32);
+    --egv-title: #f6f3ff;
+    --egv-copy: rgba(230, 224, 255, 0.74);
+    --egv-pill-bg: rgba(122, 60, 255, 0.12);
+    --egv-pill-text: rgba(246, 243, 255, 0.84);
+    --egv-pill-active-bg: linear-gradient(135deg, #7a3cff, #3b82f6);
+    --egv-pill-active-text: #ffffff;
+    --egv-accent-main: #7a3cff;
+    --egv-accent-secondary: #7fffdc;
+  }
+
+  .egv-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .egv-header__copy {
+    max-width: 44rem;
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .egv-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font: 800 0.76rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--egv-accent-main);
+  }
+
+  .egv-eyebrow i {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--egv-accent-secondary);
+    box-shadow: 0 0 12px var(--egv-accent-secondary);
+  }
+
+  .egv-header h2 {
+    margin: 0;
+    color: var(--egv-title);
+    font-size: clamp(1.85rem, 3.6vw, 3rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+  }
+
+  .egv-header p {
+    margin: 0;
+    color: var(--egv-copy);
+    font-size: clamp(0.98rem, 1.3vw, 1.12rem);
+    line-height: 1.6;
+  }
+
+  .egv-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .egv-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .egv-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.6rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--egv-border);
+    background: var(--egv-pill-bg);
+    color: var(--egv-pill-text);
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  }
+
+  .egv-tab b {
+    padding: 0.18rem 0.48rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    font: 700 0.72rem/1 ui-monospace, monospace;
+  }
+
+  .egv-tab.is-active {
+    background: var(--egv-pill-active-bg);
+    color: var(--egv-pill-active-text);
+    border-color: transparent;
+    box-shadow: 0 10px 26px rgba(0, 0, 81, 0.22);
+  }
+
+  .egv-all-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.6rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--egv-border);
+    color: var(--egv-pill-text);
+    text-decoration: none;
+    font-size: 0.84rem;
+    font-weight: 700;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+
+  .egv-all-link:hover,
+  .egv-tab:hover {
+    transform: translateY(-1px);
+  }
+
+  .egv-collection {
+    display: grid;
+    gap: 1.15rem;
+    padding: clamp(1.1rem, 2.4vw, 1.75rem);
+    border-radius: 1.65rem;
+    border: 1px solid var(--egv-border);
+    background: var(--egv-bg-card);
+    box-shadow: 0 24px 60px rgba(0, 4, 28, 0.24);
+  }
+
+  .egv-collection[hidden] {
+    display: none !important;
+  }
+
+  .egv-collection__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.82rem;
+  }
+
+  .egv-collection__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .egv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font: 700 0.72rem/1 ui-monospace, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .egv-badge i {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--egv-accent, #2caaff);
+  }
+
+  .egv-collection__cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .egv-btn-present,
+  .egv-btn-album {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.35rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+
+  .egv-btn-present {
+    border: 1px solid rgba(44, 170, 255, 0.42);
+    background: linear-gradient(135deg, rgba(44, 170, 255, 0.22), rgba(0, 170, 128, 0.22));
+    color: #ffffff;
+  }
+
+  .egv-section--ai-academy .egv-btn-present {
+    border-color: rgba(127, 255, 220, 0.38);
+    background: linear-gradient(135deg, rgba(122, 60, 255, 0.35), rgba(87, 187, 255, 0.22));
+  }
+
+  .egv-btn-album {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
+  }
+
+  .egv-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+
+  .egv-card {
+    grid-column: span 4;
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 230px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 1.15rem;
+    background: #04091f;
+    overflow: hidden;
+    cursor: zoom-in;
+    text-align: left;
+  }
+
+  .egv-card--featured {
+    grid-column: span 8;
+    min-height: 320px;
+  }
+
+  .egv-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .egv-card:hover img {
+    transform: scale(1.045);
+  }
+
+  .egv-card__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.95rem;
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.18) 0%, rgba(2, 6, 23, 0.05) 42%, rgba(2, 6, 23, 0.86) 100%);
+    color: #ffffff;
+  }
+
+  .egv-card__index {
+    align-self: flex-start;
+    padding: 0.28rem 0.58rem;
+    border-radius: 999px;
+    background: rgba(2, 8, 28, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font: 800 0.72rem/1 ui-monospace, monospace;
+    color: #7fffdc;
+  }
+
+  .egv-card__caption {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .egv-card__caption strong {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .egv-card__caption small {
+    font-size: 0.73rem;
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  /* Lightbox */
+  .egv-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background: rgba(2, 5, 19, 0.96);
+    backdrop-filter: blur(14px);
+    color: #ffffff;
+  }
+
+  .egv-lightbox[hidden] {
+    display: none !important;
+  }
+
+  .egv-lightbox__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .egv-lightbox__title {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .egv-lightbox__title span {
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .egv-lightbox__title small {
+    color: rgba(255, 255, 255, 0.6);
+    font: 700 0.75rem/1 ui-monospace, monospace;
+  }
+
+  .egv-lightbox__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .egv-lightbox__controls button,
+  .egv-lightbox__controls a {
+    min-height: 2.25rem;
+    padding: 0 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .egv-lightbox__close {
+    font-size: 1.25rem !important;
+  }
+
+  .egv-lightbox__stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem 4.5rem;
+    min-height: 0;
+  }
+
+  .egv-lightbox__figure {
+    margin: 0;
+    max-width: min(1120px, 100%);
+    max-height: calc(100vh - 190px);
+    display: grid;
+    justify-items: center;
+    gap: 0.65rem;
+  }
+
+  .egv-lightbox__figure img {
+    max-width: 100%;
+    max-height: calc(100vh - 230px);
+    border-radius: 0.85rem;
+    object-fit: contain;
+  }
+
+  .egv-lightbox__figure figcaption {
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 0.88rem;
+    text-align: center;
+    max-width: 65ch;
+  }
+
+  .egv-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+
+  .egv-lightbox__nav--prev {
+    left: 1.25rem;
+  }
+
+  .egv-lightbox__nav--next {
+    right: 1.25rem;
+  }
+
+  .egv-lightbox__thumbs {
+    display: flex;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-x: auto;
+  }
+
+  .egv-lightbox__thumbs :global(button) {
+    width: 4.5rem;
+    height: 3.1rem;
+    padding: 2px;
+    border-radius: 0.5rem;
+    border: 2px solid transparent;
+    background: transparent;
+    opacity: 0.48;
+    cursor: pointer;
+    flex: 0 0 auto;
+    overflow: hidden;
+  }
+
+  .egv-lightbox__thumbs :global(button.is-active) {
+    border-color: #00d9a4;
+    opacity: 1;
+  }
+
+  .egv-lightbox__thumbs :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.35rem;
+    display: block;
+  }
+
+  @media (max-width: 960px) {
+    .egv-card,
+    .egv-card--featured {
+      grid-column: span 6;
+      min-height: 220px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .egv-card,
+    .egv-card--featured {
+      grid-column: span 12;
+      min-height: 210px;
+    }
+
+    .egv-lightbox__stage {
+      padding: 1rem 0.75rem;
+    }
+
+    .egv-lightbox__nav--prev {
+      left: 0.5rem;
+    }
+
+    .egv-lightbox__nav--next {
+      right: 0.5rem;
+    }
+  }
+</style>

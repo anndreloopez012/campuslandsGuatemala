@@ -7,6 +7,8 @@ import orbitAI from "../assets/img/ai-academy/orbit-ai-academy.png";
 import { SITE_URL } from "../config/seo.mjs";
 import { AI_ACADEMY_FAQS, workshopName, workshopPath, workshopWhatsappUrl } from "~/content/aiAcademy";
 import { getLiveWorkshops } from "~/lib/ai-academy";
+import { filterGalleriesBySection, getBlogData } from "~/lib/blog";
+import EmbeddedGalleryViewer from "~/components/common/EmbeddedGalleryViewer.astro";
 import "~/styles/index.css";
 import "~/styles/ai-academy-tema.css";
 
@@ -15,7 +17,11 @@ const whatsappMessage = encodeURIComponent(
 );
 const whatsappUrl = `https://wa.me/50232705200?text=${whatsappMessage}`;
 
-const activeWorkshops = await getLiveWorkshops();
+const [activeWorkshops, blogData] = await Promise.all([
+  getLiveWorkshops(),
+  getBlogData(),
+]);
+const aiAcademyGalleries = filterGalleriesBySection(blogData.galleries, "ai-academy");
 const faqs = AI_ACADEMY_FAQS;
 
 const dataFooter = {
@@ -409,6 +415,8 @@ const structuredData = [
         </ul>
       </div>
     </section>
+
+    <EmbeddedGalleryViewer variant="ai-academy" galleries={aiAcademyGalleries} />
 
     <section class="ai-faq" id="preguntas" aria-labelledby="ai-faq-title">
       <div class="ai-shell ai-faq__layout">
