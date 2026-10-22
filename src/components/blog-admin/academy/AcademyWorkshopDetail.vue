@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import type { AcademyBlock, AcademyDetail, AcademyDiploma, AcademyEnrollment, AcademyPerson, AcademyTool, AcademyVideo, BlogAdminApi } from "../../../lib/blog-admin";
+import type { AcademyBlock, AcademyDetail, AcademyDiploma, AcademyEnrollment, AcademyPerson, AcademyProgram, AcademyTool, AcademyVideo, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyAdmin from "../AcademyAdmin.vue";
 import AcademyIcon from "./AcademyIcon.vue";
 import DiplomaReplica from "./DiplomaReplica.vue";
@@ -9,12 +9,15 @@ import { isGeneratedDiploma, type AcademyGenerateResult, type DiplomaSealConfig,
 import { askConfirm, showCopy } from "../../../lib/dialogs";
 import { startBusy, withBusy } from "../../../lib/busy";
 
-const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string }>();
+const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; workshopKey: string; program?: AcademyProgram }>();
 const emit = defineEmits<{
   (e: "back"): void;
   (e: "users"): void;
   (e: "notice", message: string, type?: "success" | "error"): void;
 }>();
+
+const activeProgram = computed<AcademyProgram>(() => props.program || detail.value?.workshop?.program || "ai-academy");
+const isCodeup = computed(() => activeProgram.value === "codeup");
 
 type Tab = "bloques" | "estudiantes" | "diplomas" | "textos" | "sello" | "firma" | "herramientas" | "videos" | "publicacion" | "ajustes";
 const tab = ref<Tab>("bloques");
@@ -210,7 +213,7 @@ const autoSeal = computed(() => (detail.value?.diplomaSeal?.enabled && autoSealS
 watch(() => [detail.value?.diplomaSeal, previewBlockName.value] as const, async ([seal, center]) => {
   if (!seal?.enabled || !center) { autoSealSvg.value = ""; return; }
   try {
-    autoSealSvg.value = await props.api.sealSvg({ workshop: props.workshopKey, seal, centerText: center });
+    autoSealSvg.value = await props.api.sealSvg({ workshop: props.workshopKey, seal, centerText: center }, activeProgram.value);
   } catch {
     autoSealSvg.value = "";
   }
@@ -224,7 +227,7 @@ const previewData = computed(() => {
     hours: saved?.hours || workshop.value?.hours || 16,
     issuedAt: saved?.issuedAt || auto.issuedAt || today(),
     credentialId,
-    verifyUrl: `${window.location.origin}/ai-academy/diploma/${credentialId}/`,
+    verifyUrl: `${window.location.origin}/${isCodeup.value ? "codeup" : "ai-academy"}/diploma/${credentialId}/`,
   };
 });
 
@@ -305,7 +308,8 @@ async function downloadZip() {
   try {
     const blob = await props.api.downloadDiplomasZip({ workshop: props.workshopKey, ids, signature: withSignature.value });
     const scope = picked.value.length ? "seleccion" : listBlock.value ? blockName(listBlock.value) : "todos";
-    saveBlob(blob, `Diplomas AI Academy - ${workshop.value?.code ?? ""} - ${scope}${withSignature.value ? " - firmados" : ""} - ${today()}.zip`.replace(/[\\/:*?"<>|]+/g, ""));
+    const progName = isCodeup.value ? "CodeUp" : "AI Academy";
+    saveBlob(blob, `Diplomas ${progName} - ${workshop.value?.code ?? ""} - ${scope}${withSignature.value ? " - firmados" : ""} - ${today()}.zip`.replace(/[\\/:*?"<>|]+/g, ""));
     say(`${ids.length} ${ids.length === 1 ? "diploma descargado" : "diplomas descargados"} en un ZIP.`);
   } catch (value) {
     say(problem(value, "No se pudieron descargar los diplomas."), "error");
@@ -478,7 +482,7 @@ async function deleteDiploma(diploma: AcademyDiploma) {
   }
 }
 
-const verifyUrl = (diploma: AcademyDiploma) => `${window.location.origin}/ai-academy/diploma/${diploma.credentialId}/`;
+const verifyUrl = (diploma: AcademyDiploma) => `${window.location.origin}/${isCodeup.value ? "codeup" : "ai-academy"}/diploma/${diploma.credentialId}/`;
 async function copy(textValue: string, message: string) {
   try { await navigator.clipboard.writeText(textValue); } catch { await showCopy({ title: "Copia el enlace", value: textValue }); return; }
   say(message);
@@ -678,7 +682,7 @@ const designPreview = computed(() => ({ ...previewData.value, issuedAt: today() 
 
 async function loadDesign() {
   try {
-    const result = await props.api.diplomaDesign();
+    const result = await props.api.diplomaDesign(activeProgram.value);
     Object.assign(designForm, result.design);
     designSaved.value = { ...result.design };
     designLoaded.value = true;
@@ -690,13 +694,13 @@ async function loadDesign() {
 async function saveDesign() {
   designSaving.value = true;
   try {
-    const result = await props.api.saveDiplomaDesign({ ...designForm });
+    const result = await props.api.saveDiplomaDesign({ ...designForm }, activeProgram.value);
     Object.assign(designForm, result.design);
     designSaved.value = { ...result.design };
     if (detail.value) detail.value.diplomaDesign = { ...result.design };
     say("Textos del diploma guardados. Los diplomas nuevos ya salen así.");
-    if (await askConfirm({ title: "¿Aplicar los textos a los diplomas ya emitidos?", text: "Se regeneran los de todos los talleres. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
-      const regenerated = await withBusy("Aplicando los textos a los diplomas emitidos", () => props.api.regenerateAllDiplomas(), "Se regeneran los PDF de todos los talleres…");
+    if (await askConfirm({ title: "¿Aplicar los textos a los diplomas ya emitidos?", text: "Se regeneran los de todos los talleres de este programa. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
+      const regenerated = await withBusy("Aplicando los textos a los diplomas emitidos", () => props.api.regenerateAllDiplomas(activeProgram.value), "Se regeneran los PDF…");
       say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"} con los textos nuevos.`, regenerated.failed ? "error" : "success");
       await load(true);
     }
@@ -743,7 +747,7 @@ let sealTimer = 0;
 async function drawSeal() {
   sealDrawing.value = true;
   try {
-    sealSvg.value = await props.api.sealSvg({ workshop: props.workshopKey, seal: { topText: sealForm.topText, bottomText: sealForm.bottomText, rotation: sealForm.rotation, wear: sealForm.wear }, centerText: sealCenter.value });
+    sealSvg.value = await props.api.sealSvg({ workshop: props.workshopKey, seal: { topText: sealForm.topText, bottomText: sealForm.bottomText, rotation: sealForm.rotation, wear: sealForm.wear }, centerText: sealCenter.value }, activeProgram.value);
   } catch (value) {
     say(problem(value, "No se pudo dibujar el sello."), "error");
   } finally {
@@ -761,7 +765,7 @@ onBeforeUnmount(() => window.clearTimeout(sealTimer));
 
 async function loadSeal() {
   try {
-    const result = await props.api.diplomaSeal();
+    const result = await props.api.diplomaSeal(activeProgram.value);
     Object.assign(sealForm, result.seal);
     sealSaved.value = { ...result.seal };
     sealDefaults.value = { ...result.defaults };
@@ -791,13 +795,13 @@ function resetSeal() {
 async function saveSeal() {
   sealSaving.value = true;
   try {
-    const result = await props.api.saveDiplomaSeal({ ...sealForm });
+    const result = await props.api.saveDiplomaSeal({ ...sealForm }, activeProgram.value);
     Object.assign(sealForm, result.seal);
     sealSaved.value = { ...result.seal };
     if (detail.value) detail.value.diplomaSeal = { ...result.seal };
     say(result.seal.enabled ? "Sello guardado. Los diplomas nuevos ya salen con él." : "Sello guardado. Los diplomas nuevos saldrán sin sello.");
-    if (await askConfirm({ title: `¿Aplicar el ${result.seal.enabled ? "sello" : "cambio"} a los diplomas ya emitidos?`, text: "Se regeneran los de todos los talleres. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
-      const regenerated = await withBusy("Aplicando el sello a los diplomas emitidos", () => props.api.regenerateAllDiplomas(), "Se regeneran los PDF de todos los talleres…");
+    if (await askConfirm({ title: `¿Aplicar el ${result.seal.enabled ? "sello" : "cambio"} a los diplomas ya emitidos?`, text: "Se regeneran los de todos los talleres de este programa. Conservan su código y su fecha de emisión.", confirmText: "Aplicar a todos", cancelText: "Solo a los nuevos" })) {
+      const regenerated = await withBusy("Aplicando el sello a los diplomas emitidos", () => props.api.regenerateAllDiplomas(activeProgram.value), "Se regeneran los PDF…");
       say(`${regenerated.updated} ${regenerated.updated === 1 ? "diploma actualizado" : "diplomas actualizados"}.`, regenerated.failed ? "error" : "success");
       await load(true);
     }
@@ -853,18 +857,18 @@ async function applySignature(result: { signature: DiplomaSignatureState; defaul
   signatureSaved.value = { ...config };
   signatureDefaults.value = { ...result.defaults };
   if (detail.value) detail.value.diplomaSignature = { ...result.signature };
-  const version = result.signature.hasImage && result.signature.imageUrl ? result.signature.imageUrl.split("v=")[1] || "1" : "";
+  const version = result.signature.hasImage && result.signature.imageUrl ? result.signature.imageUrl.split("v=")[1]?.split("&")[0] || "1" : "";
   if (version === signatureImageVersion) return;
   if (signatureImage.value?.url.startsWith("blob:")) URL.revokeObjectURL(signatureImage.value.url);
   signatureImageVersion = version;
   signatureImage.value = version
-    ? { url: await props.api.diplomaSignatureImage(version), width: result.signature.imageWidth, height: result.signature.imageHeight }
+    ? { url: await props.api.diplomaSignatureImage(version, activeProgram.value), width: result.signature.imageWidth, height: result.signature.imageHeight }
     : null;
 }
 
 async function loadSignature() {
   try {
-    await applySignature(await props.api.diplomaSignature());
+    await applySignature(await props.api.diplomaSignature(activeProgram.value));
     signatureLoaded.value = true;
   } catch (value) {
     say(problem(value, "No se pudo cargar la firma."), "error");
@@ -879,7 +883,7 @@ async function uploadSignature(event: Event) {
   signatureUploading.value = true;
   const wait = startBusy("Subiendo la firma", file.name);
   try {
-    await applySignature(await props.api.uploadDiplomaSignature(file));
+    await applySignature(await props.api.uploadDiplomaSignature(file, activeProgram.value));
     if (!signatureForm.enabled) signatureForm.enabled = true;
     say("Firma subida. Colócala sobre el diploma y guarda.");
   } catch (value) {
@@ -894,7 +898,7 @@ async function uploadSignature(event: Event) {
 async function removeSignatureImage() {
   if (!await askConfirm({ title: "¿Quitar la imagen de la firma?", text: "El diploma dejará de mostrar la firma en el campus y en la verificación.", confirmText: "Quitar", tone: "danger" })) return;
   try {
-    await applySignature(await props.api.removeDiplomaSignature());
+    await applySignature(await props.api.removeDiplomaSignature(activeProgram.value));
     say("Imagen de la firma eliminada.");
   } catch (value) {
     say(problem(value, "No se pudo quitar la firma."), "error");
@@ -923,7 +927,7 @@ function straightenSignature() {
 async function saveSignature() {
   signatureSaving.value = true;
   try {
-    await applySignature(await props.api.saveDiplomaSignature({ ...signatureForm }));
+    await applySignature(await props.api.saveDiplomaSignature({ ...signatureForm }, activeProgram.value));
     say(signatureForm.enabled
       ? (signatureImage.value ? "Firma guardada. Ya se ve en el campus y en la página de verificación." : "Firma guardada. Sube la imagen PNG para que se muestre.")
       : "Firma guardada. Los diplomas se muestran sin firma.");
@@ -962,11 +966,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="ac detail" :style="{ '--accent': workshop?.accent || '#7A3CFF' }">
-    <button type="button" class="link-action detail__back" @click="emit('back')">← Todos los talleres</button>
+  <section class="ac detail" :style="{ '--accent': workshop?.accent || (isCodeup ? '#2CAAFF' : '#7A3CFF') }">
+    <button type="button" class="link-action detail__back" @click="emit('back')">← {{ isCodeup ? "Todos los módulos CodeUp" : "Todos los talleres" }}</button>
 
-    <div v-if="loading" class="state"><i aria-hidden="true"></i><p>Cargando el taller…</p></div>
-    <div v-else-if="error || !detail || !workshop" class="state"><p class="error">{{ error || "No se encontró el taller." }}</p></div>
+    <div v-if="loading" class="state"><i aria-hidden="true"></i><p>Cargando {{ isCodeup ? "el módulo" : "el taller" }}…</p></div>
+    <div v-else-if="error || !detail || !workshop" class="state"><p class="error">{{ error || "No se encontró el registro." }}</p></div>
 
     <template v-else>
       <header class="hero">
@@ -974,22 +978,22 @@ onMounted(async () => {
         <div class="hero__copy">
           <div class="hero__chips">
             <span class="chip">{{ workshop.code }}</span>
-            <span class="chip" :class="workshop.isPublic ? 'chip--soft' : 'chip--warn'">{{ workshop.isPublic ? "Público en la web" : "Solo campus" }}</span>
+            <span class="chip" :class="workshop.isPublic ? 'chip--soft' : 'chip--warn'">{{ workshop.isPublic ? (isCodeup ? "Módulo activo" : "Público en la web") : "Solo campus" }}</span>
             <span class="chip chip--soft">{{ workshop.hours }} horas</span>
           </div>
           <h1>{{ workshop.title }}</h1>
           <p>{{ workshop.description || "Agrega una descripción en Ajustes." }}</p>
         </div>
         <dl class="hero__stats">
-          <div><dt>{{ detail.enrollments.length }}</dt><dd>estudiantes</dd></div>
+          <div><dt>{{ detail.enrollments.length }}</dt><dd>{{ isCodeup ? "campers" : "estudiantes" }}</dd></div>
           <div><dt>{{ issuedCount }}</dt><dd>diplomas</dd></div>
-          <div><dt>{{ detail.tools.length }}</dt><dd>herramientas</dd></div>
+          <div><dt>{{ detail.tools.length }}</dt><dd>{{ isCodeup ? "entregables" : "herramientas" }}</dd></div>
           <div><dt>{{ detail.videos.length }}</dt><dd>videos</dd></div>
         </dl>
       </header>
 
       <nav class="tabs" aria-label="Secciones del taller">
-        <button v-for="item in ([['bloques', 'Bloques'], ['estudiantes', 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['sello', 'Sello'], ['firma', 'Firma'], ['herramientas', 'Herramientas'], ['videos', 'Videos'], ['publicacion', 'Publicación web'], ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
+        <button v-for="item in ([['bloques', isCodeup ? 'Cohortes / Bloques' : 'Bloques'], ['estudiantes', isCodeup ? 'Campers' : 'Estudiantes'], ['diplomas', 'Diplomas'], ['textos', 'Textos del diploma'], ['sello', 'Sello'], ['firma', 'Firma'], ['herramientas', isCodeup ? 'Entregables y recursos' : 'Herramientas'], ['videos', 'Videos'], ...(isCodeup ? [] : [['publicacion', 'Publicación web']] as [Tab, string][]), ['ajustes', 'Ajustes']] as [Tab, string][])" :key="item[0]" type="button" :class="{ active: tab === item[0] }" @click="selectTab(item[0])">{{ item[1] }}</button>
       </nav>
 
       <!-- BLOQUES -->

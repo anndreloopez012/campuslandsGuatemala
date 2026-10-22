@@ -12,7 +12,7 @@ const totals = ref({ students: 0, admins: 0 });
 
 async function load() {
   try {
-    const overview = await props.api.academyOverview();
+    const overview = await props.api.academyOverview("all");
     workshops.value = overview.workshops;
     totals.value = { students: overview.students, admins: overview.admins };
   } catch {
@@ -29,9 +29,12 @@ onMounted(load);
       <div>
         <p>PULSO / USUARIOS</p>
         <h1>Usuarios y accesos</h1>
-        <span>Crea cuentas de administración para el panel y de estudiantes para el campus de AI Academy. Cada cuenta nueva recibe una contraseña temporal que debe cambiar al primer ingreso.</span>
+        <span>Crea cuentas de administración para el panel y de estudiantes para los campus de AI Academy y CodeUp. Cada cuenta nueva recibe una contraseña temporal que debe cambiar al primer ingreso.</span>
       </div>
-      <a class="ghost-action" href="/ai-academy/acceso/" target="_blank" rel="noopener">Ver acceso de estudiantes ↗</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="ghost-action" href="/codeup/acceso/" target="_blank" rel="noopener">Acceso CodeUp ↗</a>
+        <a class="ghost-action" href="/ai-academy/acceso/" target="_blank" rel="noopener">Acceso AI Academy ↗</a>
+      </div>
     </header>
     <dl class="stats">
       <div class="is-green"><dt>{{ totals.students }}</dt><dd>estudiantes</dd></div>

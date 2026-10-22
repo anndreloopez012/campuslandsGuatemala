@@ -1,25 +1,32 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
-import type { AcademyOverview, AcademyWorkshop, BlogAdminApi } from "../../../lib/blog-admin";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import type { AcademyOverview, AcademyProgram, AcademyWorkshop, BlogAdminApi } from "../../../lib/blog-admin";
 import AcademyWorkshopDetail from "./AcademyWorkshopDetail.vue";
 
-const props = defineProps<{ api: BlogAdminApi; cmsUrl: string }>();
+const props = defineProps<{ api: BlogAdminApi; cmsUrl: string; program?: AcademyProgram }>();
 const emit = defineEmits<{ (e: "notice", message: string, type?: "success" | "error"): void; (e: "users"): void }>();
+
+const activeProgram = computed<AcademyProgram>(() => props.program || "ai-academy");
+const isCodeup = computed(() => activeProgram.value === "codeup");
 
 const openKey = ref<string | null>(null);
 const loading = ref(true);
 const error = ref("");
 const overview = ref<AcademyOverview>({ workshops: [], students: 0, admins: 0 });
 
-const PALETTE = ["#57BBFF", "#FF7AD9", "#7FFFDC", "#FFC56B", "#B997FF", "#FF8A5B", "#7CFF8A"];
+const PALETTE = ["#2CAAFF", "#00AA80", "#57BBFF", "#7FFFDC", "#38BDF8", "#FFC56B", "#B997FF"];
 const creating = ref(false);
 const saving = ref(false);
-const form = reactive({ title: "", code: "", accent: PALETTE[5], description: "", hours: 16, isPublic: false });
+const form = reactive({ title: "", code: "", accent: PALETTE[0], description: "", hours: 16, isPublic: false });
 const formError = ref("");
 
 const totals = computed(() => overview.value.workshops.reduce(
-  (sum, item) => ({ diplomas: sum.diplomas + (item.counts?.diplomas ?? 0), videos: sum.videos + (item.counts?.videos ?? 0) }),
-  { diplomas: 0, videos: 0 },
+  (sum, item) => ({
+    diplomas: sum.diplomas + (item.counts?.diplomas ?? 0),
+    tools: sum.tools + (item.counts?.tools ?? 0),
+    videos: sum.videos + (item.counts?.videos ?? 0),
+  }),
+  { diplomas: 0, tools: 0, videos: 0 },
 ));
 
 // En silencio: refresca las cifras sin desmontar la sección abierta (y sus ventanas).
@@ -27,7 +34,7 @@ async function load(quiet = false) {
   if (!quiet) loading.value = true;
   error.value = "";
   try {
-    overview.value = await props.api.academyOverview();
+    overview.value = await props.api.academyOverview(activeProgram.value);
   } catch (problem) {
     error.value = problem instanceof Error ? problem.message : "No se pudo cargar el campus.";
   } finally {
@@ -35,8 +42,20 @@ async function load(quiet = false) {
   }
 }
 
+watch(activeProgram, () => {
+  openKey.value = null;
+  void load();
+});
+
 function openCreate() {
-  Object.assign(form, { title: "", code: "", accent: PALETTE[overview.value.workshops.length % PALETTE.length], description: "", hours: 16, isPublic: false });
+  Object.assign(form, {
+    title: "",
+    code: "",
+    accent: PALETTE[overview.value.workshops.length % PALETTE.length],
+    description: "",
+    hours: isCodeup.value ? 160 : 16,
+    isPublic: false,
+  });
   formError.value = "";
   creating.value = true;
 }
@@ -44,25 +63,30 @@ function openCreate() {
 async function create() {
   formError.value = "";
   if (!form.title.trim() || !form.code.trim()) {
-    formError.value = "Escribe el nombre y el código del taller.";
+    formError.value = isCodeup.value ? "Escribe el nombre y el código del módulo." : "Escribe el nombre y el código del taller.";
     return;
   }
   saving.value = true;
   try {
-    const workshop = await props.api.createAcademyWorkshop({ ...form });
+    const workshop = await props.api.createAcademyWorkshop({ ...form }, activeProgram.value);
     creating.value = false;
-    emit("notice", `Taller "${workshop.title}" creado. Ya puedes inscribir estudiantes y cargar su contenido.`);
+    emit(
+      "notice",
+      isCodeup.value
+        ? `Módulo "${workshop.title}" creado en CodeUp. Ya puedes inscribir campers, subir entregables y emitir diplomas.`
+        : `Taller "${workshop.title}" creado. Ya puedes inscribir estudiantes y cargar su contenido.`,
+    );
     await load();
     openKey.value = workshop.key;
   } catch (problem) {
-    formError.value = problem instanceof Error ? problem.message : "No se pudo crear el taller.";
+    formError.value = problem instanceof Error ? problem.message : "No se pudo crear el registro.";
   } finally {
     saving.value = false;
   }
 }
 
 function accentOf(workshop: AcademyWorkshop) {
-  return { "--accent": workshop.accent || "#7A3CFF" };
+  return { "--accent": workshop.accent || (isCodeup.value ? "#2CAAFF" : "#7A3CFF") };
 }
 
 onMounted(load);
@@ -75,6 +99,7 @@ onMounted(load);
       :api="api"
       :cms-url="cmsUrl"
       :workshop-key="openKey"
+      :program="activeProgram"
       @back="openKey = null; load(true)"
       @users="emit('users')"
       @notice="(message, type) => emit('notice', message, type)"
@@ -83,25 +108,31 @@ onMounted(load);
     <template v-else>
       <header class="page-heading">
         <div>
-          <p>AI ACADEMY / CAMPUS</p>
-          <h1>Talleres, estudiantes y credenciales</h1>
-          <span>Crea talleres, inscribe estudiantes y publica sus diplomas, herramientas y videos. Cada estudiante solo verá el contenido de los talleres en los que está inscrito.</span>
+          <p>{{ isCodeup ? "CODEUP / CAMPUS" : "AI ACADEMY / CAMPUS" }}</p>
+          <h1>{{ isCodeup ? "Módulos, entregables y diplomas CodeUp" : "Talleres, estudiantes y credenciales" }}</h1>
+          <span>{{
+            isCodeup
+              ? "Administra los módulos de CodeUp, cohortes, entregables descargables, sesiones en video y emisión de diplomas oficiales para los campers."
+              : "Crea talleres, inscribe estudiantes y publica sus diplomas, herramientas y videos. Cada estudiante solo verá el contenido de los talleres en los que está inscrito."
+          }}</span>
         </div>
         <div class="campus__nav">
           <button type="button" class="ghost-action" @click="emit('users')">Usuarios y accesos</button>
-          <a class="ghost-action" href="/ai-academy/acceso" target="_blank" rel="noopener">Ver acceso de estudiantes ↗</a>
+          <a class="ghost-action" :href="isCodeup ? '/codeup/acceso/' : '/ai-academy/acceso'" target="_blank" rel="noopener">
+            {{ isCodeup ? "Ver portal CodeUp ↗" : "Ver acceso de estudiantes ↗" }}
+          </a>
         </div>
       </header>
 
-      <div v-if="loading" class="state"><i aria-hidden="true"></i><p>Cargando el campus…</p></div>
+      <div v-if="loading" class="state"><i aria-hidden="true"></i><p>Cargando {{ isCodeup ? "CodeUp" : "el campus" }}…</p></div>
       <div v-else-if="error" class="state"><p class="error">{{ error }}</p><button type="button" class="ghost-action" @click="load()">Reintentar</button></div>
 
       <template v-else>
         <dl class="stats">
-          <div><dt>{{ overview.workshops.length }}</dt><dd>talleres</dd></div>
-          <div class="is-green"><dt>{{ overview.students }}</dt><dd>estudiantes</dd></div>
+          <div><dt>{{ overview.workshops.length }}</dt><dd>{{ isCodeup ? "módulos" : "talleres" }}</dd></div>
+          <div class="is-green"><dt>{{ overview.students }}</dt><dd>{{ isCodeup ? "campers / alumnos" : "estudiantes" }}</dd></div>
           <div class="is-violet"><dt>{{ totals.diplomas }}</dt><dd>diplomas emitidos</dd></div>
-          <div class="is-blue"><dt>{{ totals.videos }}</dt><dd>videos publicados</dd></div>
+          <div class="is-blue"><dt>{{ isCodeup ? totals.tools : totals.videos }}</dt><dd>{{ isCodeup ? "entregables activos" : "videos publicados" }}</dd></div>
         </dl>
 
         <div class="campus__grid">
@@ -116,23 +147,27 @@ onMounted(load);
             <span class="wcard__glow" aria-hidden="true"></span>
             <span class="wcard__top">
               <span class="chip">{{ workshop.code }}</span>
-              <span class="chip" :class="workshop.isPublic ? 'chip--soft' : 'chip--warn'">{{ workshop.isPublic ? "Público" : "Solo campus" }}</span>
+              <span class="chip" :class="workshop.isPublic ? 'chip--soft' : 'chip--warn'">{{ workshop.isPublic ? "Activo" : "Solo campus" }}</span>
             </span>
             <strong class="wcard__title">{{ workshop.title }}</strong>
             <span class="wcard__desc">{{ workshop.description || "Sin descripción todavía." }}</span>
             <span class="wcard__metrics">
-              <span><b>{{ workshop.counts?.students ?? 0 }}</b>estudiantes</span>
+              <span><b>{{ workshop.counts?.students ?? 0 }}</b>{{ isCodeup ? "campers" : "estudiantes" }}</span>
               <span><b>{{ workshop.counts?.diplomas ?? 0 }}</b>diplomas</span>
-              <span><b>{{ workshop.counts?.tools ?? 0 }}</b>herramientas</span>
+              <span><b>{{ workshop.counts?.tools ?? 0 }}</b>{{ isCodeup ? "entregables" : "herramientas" }}</span>
               <span><b>{{ workshop.counts?.videos ?? 0 }}</b>videos</span>
             </span>
-            <span class="wcard__open">Administrar taller <span aria-hidden="true">→</span></span>
+            <span class="wcard__open">{{ isCodeup ? "Administrar entregables y diplomas" : "Administrar taller" }} <span aria-hidden="true">→</span></span>
           </button>
 
           <button type="button" class="wcard wcard--new" @click="openCreate">
             <span class="wcard__plus" aria-hidden="true">+</span>
-            <strong>Crear taller</strong>
-            <span>Un taller nuevo nace privado: solo existe en el campus hasta que decidas publicarlo.</span>
+            <strong>{{ isCodeup ? "Crear módulo CodeUp" : "Crear taller" }}</strong>
+            <span>{{
+              isCodeup
+                ? "Crea un nuevo módulo o ruta en CodeUp para gestionar sus cohortes, entregables, videos y diplomas."
+                : "Un taller nuevo nace privado: solo existe en el campus hasta que decidas publicarlo."
+            }}</span>
           </button>
         </div>
       </template>
@@ -142,31 +177,35 @@ onMounted(load);
     <transition name="modal">
       <div v-if="creating" class="modal" role="dialog" aria-modal="true" aria-labelledby="crear-taller" @click.self="creating = false">
         <form class="modal__card" :style="{ '--accent': form.accent }" @submit.prevent="create">
-          <h3 id="crear-taller">Crear taller</h3>
-          <p>Define su identidad. Después podrás inscribir estudiantes y cargar diplomas, herramientas y videos.</p>
+          <h3 id="crear-taller">{{ isCodeup ? "Crear módulo CodeUp" : "Crear taller" }}</h3>
+          <p>{{
+            isCodeup
+              ? "Define la identidad del módulo. Después podrás inscribir campers y cargar entregables, recursos, videos y diplomas."
+              : "Define su identidad. Después podrás inscribir estudiantes y cargar diplomas, herramientas y videos."
+          }}</p>
           <div class="grid-2">
-            <label class="field">Nombre del taller<input v-model="form.title" maxlength="120" placeholder="Ej. IA para Recursos Humanos" required /></label>
-            <label class="field">Código<input v-model="form.code" maxlength="16" placeholder="Ej. RH.06" required /></label>
+            <label class="field">{{ isCodeup ? "Nombre del módulo" : "Nombre del taller" }}<input v-model="form.title" maxlength="120" :placeholder="isCodeup ? 'Ej. Arquitectura Backend y Microservicios' : 'Ej. IA para Recursos Humanos'" required /></label>
+            <label class="field">Código<input v-model="form.code" maxlength="16" :placeholder="isCodeup ? 'Ej. CODE.05' : 'Ej. RH.06'" required /></label>
           </div>
-          <label class="field" style="margin-top: 12px">Descripción corta<textarea v-model="form.description" maxlength="420" placeholder="La promesa del taller en una o dos frases."></textarea></label>
+          <label class="field" style="margin-top: 12px">Descripción corta<textarea v-model="form.description" maxlength="420" placeholder="El alcance o entregables principales en una o dos frases."></textarea></label>
           <div class="grid-2" style="margin-top: 12px">
             <label class="field">Horas<input v-model.number="form.hours" type="number" min="1" max="400" /></label>
-            <div class="field">Color del taller
+            <div class="field">Color distintivo
               <div class="swatches">
                 <button v-for="tone in PALETTE" :key="tone" type="button" :style="{ background: tone }" :class="{ active: form.accent === tone }" :aria-label="`Color ${tone}`" @click="form.accent = tone"></button>
                 <input v-model="form.accent" type="color" aria-label="Color personalizado" />
               </div>
             </div>
           </div>
-          <label class="toggle" style="margin-top: 16px"><input v-model="form.isPublic" type="checkbox" /> Mostrarlo también en la web pública</label>
+          <label class="toggle" style="margin-top: 16px"><input v-model="form.isPublic" type="checkbox" /> Destacar módulo como activo</label>
           <div class="preview" aria-hidden="true">
             <span class="chip">{{ form.code || "CÓDIGO" }}</span>
-            <strong>{{ form.title || "Nombre del taller" }}</strong>
+            <strong>{{ form.title || (isCodeup ? "Nombre del módulo" : "Nombre del taller") }}</strong>
           </div>
           <p v-if="formError" class="error">{{ formError }}</p>
           <div class="form-actions">
             <button type="button" class="ghost-action" @click="creating = false">Cancelar</button>
-            <button type="submit" class="primary-action" :disabled="saving">{{ saving ? "Creando…" : "Crear taller" }}</button>
+            <button type="submit" class="primary-action" :disabled="saving">{{ saving ? "Creando…" : isCodeup ? "Crear módulo" : "Crear taller" }}</button>
           </div>
         </form>
       </div>

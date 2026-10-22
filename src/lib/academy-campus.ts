@@ -29,8 +29,10 @@ export type CampusBlock = {
   id: number; name: string; startDate: string; totalSessions: number; currentSession: number; progress: number;
   status: "por-iniciar" | "en-curso" | "finalizado";
 };
+export type CampusProgram = "ai-academy" | "codeup";
 export type CampusWorkshop = {
   key: string; slug: string; code: string; title: string; accent: string; description: string; hours: number; isPublic: boolean;
+  program?: CampusProgram;
   enrollment: { cohort: string; status: string; enrolledAt: string };
   block: CampusBlock | null;
   diplomas: CampusDiploma[]; tools: CampusTool[]; videos: CampusVideo[];
@@ -41,7 +43,8 @@ export type CampusData = { student: { id: number; email: string; fullName: strin
 // La firma del diploma se sirve desde el CMS; la réplica necesita la URL completa.
 export const diplomaSignatureFor = (signature: DiplomaSignature | null | undefined) => (signature ? { ...signature, url: `${CMS_URL}${signature.url}` } : null);
 
-export const campusFileUrl = (file: Pick<CampusFile, "id">, download = false) => `/ai-academy/campus/archivo/${file.id}/${download ? "?dl=1" : ""}`;
+export const campusFileUrl = (file: Pick<CampusFile, "id">, download = false, program: CampusProgram = "ai-academy") =>
+  `/${program === "codeup" ? "codeup" : "ai-academy"}/campus/archivo/${file.id}/${download ? "?dl=1" : ""}`;
 
 export function setCampusSession(cookies: AstroCookies, token: string) {
   cookies.set(CAMPUS_COOKIE, token, { httpOnly: true, secure: import.meta.env.PROD, sameSite: "lax", path: "/", maxAge: MAX_AGE });
@@ -62,7 +65,7 @@ async function cms(path: string, init: RequestInit & { token?: string } = {}) {
 }
 
 // Inicia sesión y comprueba que la cuenta sea de estudiante: un administrador no entra al campus.
-export async function loginStudent(email: string, password: string) {
+export async function loginStudent(email: string, password: string, program: CampusProgram = "ai-academy") {
   let login;
   try {
     login = await cms("/auth/local", { method: "POST", body: JSON.stringify({ identifier: email.trim().toLowerCase(), password }) });
@@ -75,16 +78,16 @@ export async function loginStudent(email: string, password: string) {
     if (login.status === 429) return { error: "Demasiados intentos. Espera un minuto y vuelve a probar." } as const;
     return { error: "El correo o la contraseña no coinciden." } as const;
   }
-  const me = await cms("/academy/me", { token: login.payload.jwt });
+  const me = await cms(`/academy/me?program=${encodeURIComponent(program)}`, { token: login.payload.jwt });
   if (!me.ok) return { error: "Esta cuenta no es de estudiante. Los administradores entran por el panel de administración." } as const;
   return { token: login.payload.jwt as string, data: me.payload.data as CampusData } as const;
 }
 
-export async function campusData(cookies: AstroCookies): Promise<CampusData | null> {
+export async function campusData(cookies: AstroCookies, program: CampusProgram = "ai-academy"): Promise<CampusData | null> {
   const token = cookies.get(CAMPUS_COOKIE)?.value;
   if (!token) return null;
   try {
-    const me = await cms("/academy/me", { token });
+    const me = await cms(`/academy/me?program=${encodeURIComponent(program)}`, { token });
     if (me.ok) return me.payload.data as CampusData;
   } catch {
     return null;
