@@ -226,10 +226,15 @@ const viewerId = `egv-${variant}`;
           {gallery.images.slice(0, 8).map((image, index) => {
             const alt = image.alternativeText || image.caption || `${gallery.title} (${index + 1})`;
             const srcset = blogMediaSrcset(image);
+            const isPortrait = Boolean(image.height && image.width && image.height > image.width);
+            const allPortrait = gallery.images.length > 0 && gallery.images.every((item) => item.height && item.width && item.height > item.width);
             return (
               <button
                 type="button"
-                class:list={["egv-card", { "egv-card--featured": index === 0 }]}
+                class:list={[
+                  "egv-card",
+                  { "egv-card--featured": index === 0 && !allPortrait, "egv-card--portrait": isPortrait },
+                ]}
                 data-egv-item
                 data-egv-gallery={gIndex}
                 data-egv-index={index}
@@ -239,10 +244,17 @@ const viewerId = `egv-${variant}`;
                 data-album-title={gallery.title}
                 aria-label={`Abrir imagen ${index + 1} de ${gallery.images.length}: ${alt}`}
               >
+                {isPortrait && (
+                  <span
+                    class="egv-card__backdrop"
+                    style={`background-image:url('${image.url}')`}
+                    aria-hidden="true"
+                  ></span>
+                )}
                 <img
                   src={image.url}
                   srcset={srcset}
-                  sizes={index === 0 ? "(max-width: 900px) 100vw, 58vw" : "(max-width: 680px) 100vw, 28vw"}
+                  sizes={index === 0 && !allPortrait ? "(max-width: 900px) 100vw, 58vw" : "(max-width: 680px) 100vw, 28vw"}
                   alt={alt}
                   width={image.width || undefined}
                   height={image.height || undefined}
@@ -440,6 +452,11 @@ const viewerId = `egv-${variant}`;
     position: relative;
     padding: clamp(3.5rem, 6vw, 6rem) 1.25rem;
     overflow: hidden;
+  }
+
+  .egv-section button,
+  .egv-lightbox button {
+    height: auto;
   }
 
   .egv-shell {
@@ -691,7 +708,8 @@ const viewerId = `egv-${variant}`;
     position: relative;
     display: block;
     width: 100%;
-    min-height: 230px;
+    height: 290px;
+    min-height: 290px;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 1.15rem;
@@ -703,10 +721,28 @@ const viewerId = `egv-${variant}`;
 
   .egv-card--featured {
     grid-column: span 8;
-    min-height: 320px;
+    height: 330px;
+    min-height: 330px;
+  }
+
+  .egv-card--portrait {
+    height: 360px;
+    min-height: 360px;
+  }
+
+  .egv-card__backdrop {
+    position: absolute;
+    inset: -12%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(22px) saturate(1.2) brightness(0.45);
+    transform: scale(1.08);
+    pointer-events: none;
   }
 
   .egv-card img {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -714,18 +750,23 @@ const viewerId = `egv-${variant}`;
     transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  .egv-card--portrait img {
+    object-fit: contain;
+  }
+
   .egv-card:hover img {
-    transform: scale(1.045);
+    transform: scale(1.035);
   }
 
   .egv-card__overlay {
     position: absolute;
     inset: 0;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 0.95rem;
-    background: linear-gradient(180deg, rgba(2, 6, 23, 0.18) 0%, rgba(2, 6, 23, 0.05) 42%, rgba(2, 6, 23, 0.86) 100%);
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.18) 0%, rgba(2, 6, 23, 0.02) 48%, rgba(2, 6, 23, 0.88) 100%);
     color: #ffffff;
   }
 

@@ -1163,6 +1163,7 @@ onBeforeUnmount(() => {
 :global(html) { background: #030b28; }
 :global(body) { margin: 0; min-width: 320px; color: #f7f9ff; background: #030b28; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; }
 :global(button), :global(input), :global(textarea), :global(select) { font: inherit; }
+:global(button) { height: auto; }
 :global(button), :global(a) { -webkit-tap-highlight-color: transparent; }
 .editor-app { --ink: #f7f9ff; --muted: rgba(247,249,255,.55); --line: rgba(93,188,255,.16); --blue: #57bbff; --green: #00d9a4; position: relative; min-height: 100vh; isolation: isolate; }
 .editor-atmosphere { position: fixed; inset: 0; z-index: -2; overflow: hidden; background: #030b28; pointer-events: none; }
