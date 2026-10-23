@@ -143,8 +143,43 @@
 .gal-feature:hover footer b { transform: translateX(0.25rem); box-shadow: 0 1rem 2.4rem rgb(var(--cat-rgb) / 35%); }
 
 /* ---------------------------------------------------------------- filtros */
-.gal-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: clamp(3rem, 7vw, 5.5rem); }
-.gal-filters > span { margin-right: 0.6rem; color: rgb(255 255 255 / 40%); font: 600 0.6rem/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase; }
+.gal-hero__top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.2rem;
+}
+
+.gal-origin-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border: 1px solid rgb(87 187 255 / 26%);
+  border-radius: 99px;
+  color: rgb(223 245 255 / 85%);
+  background: rgb(2 9 30 / 60%);
+  font: 600 0.74rem/1 Poppins, sans-serif;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.gal-origin-back:hover {
+  border-color: var(--gal-aqua);
+  color: #fff;
+  transform: translateX(-2px);
+}
+
+.gal-filter-bars {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: clamp(3rem, 7vw, 5.5rem);
+}
+
+.gal-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.gal-filters > span { min-width: 4.5rem; margin-right: 0.4rem; color: rgb(255 255 255 / 42%); font: 600 0.6rem/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase; }
 
 .gal-chip {
   display: inline-flex;
@@ -165,6 +200,44 @@
 .gal-chip:hover { border-color: rgb(255 255 255 / 35%); }
 .gal-chip.is-active { border-color: var(--cat); color: #fff; background: rgb(var(--cat-rgb) / 16%); }
 .gal-chip.is-active small { color: var(--cat); }
+
+.gal-chip--joinus.is-active {
+  --cat: #2caaff;
+  --cat-rgb: 44 170 255;
+}
+
+.gal-chip--ai.is-active {
+  --cat: #b997ff;
+  --cat-rgb: 185 151 255;
+}
+
+.gal-card__eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gal-card__section-pill {
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 99px;
+  font: 700 0.56rem/1 ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gal-card__section-pill--join-us {
+  border-color: rgb(44 170 255 / 42%);
+  color: #57bbff;
+  background: rgb(44 170 255 / 12%);
+}
+
+.gal-card__section-pill--ai-academy {
+  border-color: rgb(185 151 255 / 42%);
+  color: #d6c6ff;
+  background: rgb(122 60 255 / 16%);
+}
 
 /* ---------------------------------------------------------------- tarjetas */
 .gal-grid { display: grid; margin-top: 1.6rem; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem; }

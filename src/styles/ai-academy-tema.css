@@ -222,12 +222,19 @@ body.ai-academy-route .btn-primary {
   65%, 100% { box-shadow: 0 0 0 0.8rem transparent, 0 0 1.15rem var(--ai-purple); }
 }
 
-/* Acceso al campus de estudiantes desde las páginas públicas */
+/* Acceso al campus de estudiantes y galería filtrada desde las páginas públicas */
+.ai-hero__subactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.1rem;
+}
+
 .ai-campus-link {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  margin-top: 1.1rem;
   padding: 0.55rem 0.95rem 0.55rem 0.75rem;
   border: 1px solid rgb(185 151 255 / 24%);
   border-radius: 999px;
@@ -236,7 +243,7 @@ body.ai-academy-route .btn-primary {
   font-size: 0.86rem;
   text-decoration: none;
   backdrop-filter: blur(10px);
-  transition: border-color 200ms ease, color 200ms ease, transform 200ms ease;
+  transition: border-color 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
 }
 
 .ai-campus-link strong {
@@ -249,10 +256,25 @@ body.ai-academy-route .btn-primary {
   transform: translateY(-1px);
 }
 
+.ai-campus-link--gallery {
+  border-color: rgb(122 60 255 / 44%);
+  background: linear-gradient(135deg, rgb(122 60 255 / 20%), rgb(7 8 30 / 68%));
+}
+
+.ai-campus-link--gallery:hover {
+  border-color: rgb(185 151 255 / 80%);
+  box-shadow: 0 10px 26px rgb(122 60 255 / 24%);
+}
+
 .ai-campus-link__dot {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
   background: #7fffdc;
   box-shadow: 0 0 0 0.25rem rgb(127 255 220 / 14%), 0 0 0.8rem #7fffdc;
+}
+
+.ai-campus-link__dot--gallery {
+  background: #b997ff;
+  box-shadow: 0 0 0 0.25rem rgb(185 151 255 / 18%), 0 0 0.8rem #7a3cff;
 }
