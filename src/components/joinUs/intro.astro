@@ -23,11 +23,18 @@ import ContactButton from "../common/ContactButton.astro";
       linkPage="https://estudiante-guate.campuslands.com/login"
       iconName="happyFace.svg"
     />
-    <a class="joinus-campus-link" href="/codeup/acceso/">
-      <span class="joinus-campus-link__dot" aria-hidden="true"></span>
-      ¿Ya eres camper CodeUp? <strong>Entra a tu campus</strong>
-      <span aria-hidden="true">→</span>
-    </a>
+    <div class="joinus-hero-links">
+      <a class="joinus-campus-link" href="/codeup/acceso/">
+        <span class="joinus-campus-link__dot" aria-hidden="true"></span>
+        ¿Ya eres camper CodeUp? <strong>Entra a tu campus</strong>
+        <span aria-hidden="true">→</span>
+      </a>
+      <a class="joinus-campus-link joinus-campus-link--gallery" href="/galeria/?seccion=join-us">
+        <span class="joinus-campus-link__dot joinus-campus-link__dot--gallery" aria-hidden="true"></span>
+        Explorar <strong>galería de Sé un Camper</strong>
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
   </div>
 
   <figure class="joinus-hero-media w-full max-w-[550px]" aria-label="Grupo de campers de Campuslands Guatemala">
@@ -74,6 +81,14 @@ import ContactButton from "../common/ContactButton.astro";
     filter: drop-shadow(0 24px 46px rgb(0 0 81 / 0.38));
   }
 
+  .joinus-hero-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
   .joinus-campus-link {
     display: inline-flex;
     align-items: center;
@@ -101,12 +116,27 @@ import ContactButton from "../common/ContactButton.astro";
     box-shadow: 0 14px 32px rgb(44 170 255 / 0.18);
   }
 
+  .joinus-campus-link--gallery {
+    border-color: rgb(0 217 164 / 0.36);
+    background: linear-gradient(145deg, rgb(0 170 128 / 0.22), rgb(7 16 43 / 0.86));
+  }
+
+  .joinus-campus-link--gallery:hover {
+    border-color: rgb(0 217 164 / 0.72);
+    box-shadow: 0 14px 32px rgb(0 217 164 / 0.2);
+  }
+
   .joinus-campus-link__dot {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
     background: #00aa80;
     box-shadow: 0 0 0 0.25rem rgb(0 170 128 / 0.18), 0 0 0.8rem #2caaff;
+  }
+
+  .joinus-campus-link__dot--gallery {
+    background: #2caaff;
+    box-shadow: 0 0 0 0.25rem rgb(44 170 255 / 0.22), 0 0 0.8rem #00d9a4;
   }
 
   .joinus-hero-media__surface {
