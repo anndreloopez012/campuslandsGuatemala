@@ -59,7 +59,7 @@ export type BlogArticleLink = {
   active: boolean;
 };
 
-export type GalleryTargetSection = "ambas" | "join-us" | "ai-academy";
+export type GalleryTargetSection = "join-us" | "ai-academy";
 
 export type BlogGallery = {
   id: string;
@@ -411,10 +411,17 @@ function normalizeGallery(value: any): BlogGallery | null {
     return image ? [image] : [];
   });
   const rawTarget = String(value.targetSection || "").trim().toLowerCase();
+  const inferredTarget: GalleryTargetSection =
+    category.slug === "inteligencia-artificial" ||
+    /\b(ia|ai|academy|taller|marketing|finanzas|automatizacion|datos)\b/i.test(
+      `${value.title || ""} ${value.slug || ""} ${category.slug}`,
+    )
+      ? "ai-academy"
+      : "join-us";
   const targetSection: GalleryTargetSection =
-    rawTarget === "join-us" || rawTarget === "ai-academy" || rawTarget === "ambas"
+    rawTarget === "join-us" || rawTarget === "ai-academy"
       ? rawTarget
-      : "ambas";
+      : inferredTarget;
   return {
     id: String(value.documentId || value.id || value.slug),
     title: String(value.title),
@@ -442,9 +449,7 @@ export function filterGalleriesBySection(
   section: "join-us" | "ai-academy",
 ): BlogGallery[] {
   return galleries.filter(
-    (gallery) =>
-      gallery.images.length > 0 &&
-      (gallery.targetSection === "ambas" || gallery.targetSection === section || !gallery.targetSection),
+    (gallery) => gallery.images.length > 0 && gallery.targetSection === section,
   );
 }
 

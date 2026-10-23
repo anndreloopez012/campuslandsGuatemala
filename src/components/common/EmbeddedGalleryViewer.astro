@@ -17,138 +17,19 @@ interface Props {
 const {
   variant,
   galleries = [],
-  eyebrow = variant === "ai-academy" ? "AI.GAL · ARCHIVO VISUAL" : "VIDA EN EL CAMPUS · GALERÍA",
+  eyebrow = variant === "ai-academy" ? "AI.GAL · ARCHIVO VISUAL" : "CODEUP · VIDA EN EL CAMPUS · GALERÍA",
   title = variant === "ai-academy"
     ? "Así se viven los talleres y laboratorios de AI Academy"
-    : "Conoce de cerca la experiencia de ser un Camper",
+    : "Conoce de cerca la experiencia de ser un Camper en CodeUp",
   description = variant === "ai-academy"
     ? "Explora las sesiones prácticas, demostraciones de agentes y momentos reales de nuestras cohortes en Campus Tec."
     : "Recorre nuestros espacios de entrenamiento, sesiones de código en equipo y la comunidad que impulsa tu carrera en tecnología.",
 } = Astro.props;
 
-const fallbackGalleries: BlogGallery[] =
-  variant === "ai-academy"
-    ? [
-        {
-          id: "fallback-ai-academy-1",
-          title: "Laboratorios prácticos y sesiones en vivo en Campus Tec",
-          slug: "laboratorios-ai-academy",
-          description:
-            "Recorrido visual por nuestras mesas de trabajo, construcción de flujos con IA y aprendizaje guiado en Guatemala.",
-          targetSection: "ai-academy",
-          featured: true,
-          publishDate: "2026-10-15",
-          publishedDate: "2026-10-15T12:00:00Z",
-          modifiedDate: "2026-10-15T12:00:00Z",
-          tags: ["AI Academy", "Talleres", "Campus Tec"],
-          category: {
-            id: "cat-ai",
-            name: "Inteligencia Artificial",
-            slug: "inteligencia-artificial",
-            description: "",
-            color: "#7A3CFF",
-            order: 1,
-            visualStyle: "ai",
-          },
-          seo: null,
-          images: [
-            {
-              id: 101,
-              url: "/images/campus-zonatec.webp",
-              alternativeText: "Ecosistema de innovación y talleres en Campus Tec Zona 4",
-              caption: "Sede presencial de AI Academy en Campus Tec, Zona 4 de Ciudad de Guatemala.",
-              width: 1280,
-              height: 853,
-            },
-            {
-              id: 102,
-              url: "/images/hero-slide-2.jpg",
-              alternativeText: "Sesión colaborativa de arquitectura y automatización",
-              caption: "Equipos construyendo soluciones prácticas con criterios de negocio y tecnología.",
-              width: 1280,
-              height: 853,
-            },
-            {
-              id: 103,
-              url: "/images/hero-slide-3.jpg",
-              alternativeText: "Mentoría directa durante los laboratorios de Campuslands",
-              caption: "Acompañamiento paso a paso en cada bloque de aprendizaje.",
-              width: 1280,
-              height: 853,
-            },
-            {
-              id: 104,
-              url: "/images/hero-slide-1.jpg",
-              alternativeText: "Comunidad tecnológica en acción",
-              caption: "Presentación de entregables y casos aplicados por cohorte.",
-              width: 1280,
-              height: 853,
-            },
-          ],
-        },
-      ]
-    : [
-        {
-          id: "fallback-join-us-1",
-          title: "Entrenamiento intensivo y comunidad Camper en Guatemala",
-          slug: "comunidad-camper-codeup",
-          description:
-            "Así se vive el día a día de formación intensiva en desarrollo de software, trabajo en equipo y preparación para la industria.",
-          targetSection: "join-us",
-          featured: true,
-          publishDate: "2026-10-15",
-          publishedDate: "2026-10-15T12:00:00Z",
-          modifiedDate: "2026-10-15T12:00:00Z",
-          tags: ["Sé un Camper", "CodeUp", "Comunidad"],
-          category: {
-            id: "cat-camper",
-            name: "Comunidad Camper",
-            slug: "comunidad-camper",
-            description: "",
-            color: "#2CAAFF",
-            order: 1,
-            visualStyle: "community",
-          },
-          seo: null,
-          images: [
-            {
-              id: 201,
-              url: "/images/hero-slide-1.jpg",
-              alternativeText: "Campers entrenando desarrollo de software en equipo",
-              caption: "Aprendizaje práctico basado en retos reales y pair programming diario.",
-              width: 1280,
-              height: 853,
-            },
-            {
-              id: 202,
-              url: "/images/campus-zonatec.webp",
-              alternativeText: "Instalaciones de Campuslands en Zona 4",
-              caption: "Espacios diseñados para concentrarse, colaborar y crecer profesionalmente.",
-              width: 1280,
-              height: 853,
-            },
-            {
-              id: 203,
-              url: "/images/hero-slide-2.jpg",
-              alternativeText: "Sesiones de mentoría técnica y revisión de código",
-              caption: "Acompañamiento constante de mentores técnicos, inglés y habilidades socioemocionales.",
-              width: 1280,
-              height: 853,
-            },
-            {
-              id: 204,
-              url: "/images/hero-slide-3.jpg",
-              alternativeText: "Presentación de proyectos de grado Camper",
-              caption: "Demostración de proyectos integradores frente a aliados de la industria.",
-              width: 1280,
-              height: 853,
-            },
-          ],
-        },
-      ];
-
-const activeGalleries = galleries.length ? galleries : fallbackGalleries;
-const isCmsBacked = galleries.length > 0;
+const activeGalleries = galleries.filter(
+  (gallery) => gallery.images?.length > 0 && gallery.targetSection === variant,
+);
+const isCmsBacked = activeGalleries.length > 0;
 const viewerId = `egv-${variant}`;
 ---
 
@@ -192,7 +73,7 @@ const viewerId = `egv-${variant}`;
       </div>
     </header>
 
-    {activeGalleries.map((gallery, gIndex) => (
+    {activeGalleries.length > 0 ? activeGalleries.map((gallery, gIndex) => (
       <div
         class:list={["egv-collection", { "is-active": gIndex === 0 }]}
         data-egv-panel={gIndex}
@@ -273,7 +154,21 @@ const viewerId = `egv-${variant}`;
           })}
         </div>
       </div>
-    ))}
+    )) : (
+      <div class="egv-empty">
+        <span class="egv-empty__code">{"{ 00 }"}</span>
+        <h3>
+          {variant === "ai-academy"
+            ? "Próximamente nuevas galerías de AI Academy"
+            : "Próximamente nuevas galerías de CodeUp · Sé un Camper"}
+        </h3>
+        <p>
+          {variant === "ai-academy"
+            ? "Aquí aparecerán únicamente las colecciones fotográficas de talleres y laboratorios de AI Academy publicadas desde el administrador."
+            : "Aquí aparecerán únicamente las colecciones fotográficas de CodeUp y Sé un Camper publicadas desde el administrador."}
+        </p>
+      </div>
+    )}
   </div>
 
   <!-- Lightbox Modal -->
@@ -952,6 +847,45 @@ const viewerId = `egv-${variant}`;
     object-fit: cover;
     border-radius: 0.35rem;
     display: block;
+  }
+
+  .egv-empty {
+    margin-top: 1.5rem;
+    padding: 3.5rem 1.5rem;
+    border: 1px dashed rgba(87, 187, 255, 0.24);
+    border-radius: 1.5rem;
+    background: rgba(5, 12, 36, 0.45);
+    text-align: center;
+  }
+
+  .egv-section--ai-academy .egv-empty {
+    border-color: rgba(185, 151, 255, 0.28);
+    background: rgba(14, 8, 38, 0.55);
+  }
+
+  .egv-empty__code {
+    display: inline-block;
+    color: #57bbff;
+    font: 700 1.35rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .egv-section--ai-academy .egv-empty__code {
+    color: #b997ff;
+  }
+
+  .egv-empty h3 {
+    margin: 0.9rem 0 0.45rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .egv-empty p {
+    max-width: 36rem;
+    margin: 0 auto;
+    color: rgba(223, 245, 255, 0.66);
+    font-size: 0.9rem;
+    line-height: 1.6;
   }
 
   @media (max-width: 960px) {
