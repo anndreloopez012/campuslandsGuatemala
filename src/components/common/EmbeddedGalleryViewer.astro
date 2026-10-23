@@ -185,8 +185,8 @@ const viewerId = `egv-${variant}`;
             ))}
           </div>
         )}
-        <a class="egv-all-link" href="/galeria/">
-          <span>Explorar archivo visual</span>
+        <a class="egv-all-link" href={`/galeria/?seccion=${variant}`}>
+          <span>{variant === "ai-academy" ? "Ver galería de AI Academy" : "Ver galería de Sé un Camper"}</span>
           <span aria-hidden="true">↗</span>
         </a>
       </div>
@@ -214,7 +214,7 @@ const viewerId = `egv-${variant}`;
               <span aria-hidden="true">⤢</span>
             </button>
             {isCmsBacked && (
-              <a class="egv-btn-album" href={`/galeria/${gallery.slug}/`}>
+              <a class="egv-btn-album" href={`/galeria/${gallery.slug}/?seccion=${variant}`}>
                 <span>Álbum completo</span>
                 <span aria-hidden="true">→</span>
               </a>

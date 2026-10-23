@@ -1,6 +1,6 @@
 ---
 import LayoutNavbar from "~/layouts/LayoutNavbar.astro";
-import { blogMediaSrcset, blogSeoDescription, blogSeoTitle, colorRgb, formatBlogDate, getBlogData, safeCategoryColor } from "~/lib/blog";
+import { blogMediaSrcset, blogSeoDescription, blogSeoTitle, colorRgb, filterGalleriesBySection, formatBlogDate, getBlogData, safeCategoryColor } from "~/lib/blog";
 import { SITE, SITE_URL } from "~/config/seo.mjs";
 import "~/styles/index.css";
 import "~/styles/galeria.css";
@@ -9,9 +9,13 @@ import "~/styles/galeria.css";
 export const prerender = false;
 Astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
 
+const rawSection = Astro.url.searchParams.get("seccion");
+const activeSection: "join-us" | "ai-academy" | null =
+  rawSection === "join-us" || rawSection === "ai-academy" ? rawSection : null;
+
 const { galleries, settings } = await getBlogData();
 const gallery = galleries.find((candidate) => candidate.slug === Astro.params.slug);
-if (!gallery) return Astro.redirect("/galeria/", 302);
+if (!gallery) return Astro.redirect(activeSection ? `/galeria/?seccion=${activeSection}` : "/galeria/", 302);
 const category = safeCategoryColor(gallery.category.color);
 const rgb = colorRgb(category);
 const pageUrl = `${SITE_URL}/galeria/${gallery.slug}/`;
@@ -20,7 +24,17 @@ const seoTitle = blogSeoTitle(gallery.seo?.metaTitle, `${gallery.title} | Galer�
 const seoDescription = blogSeoDescription(gallery.seo?.metaDescription, gallery.description);
 const dataFooter = settings ? { title: settings.articleFooterTitle, content: settings.articleFooterDescription, buttonType: "contacto" } : undefined;
 const index = galleries.findIndex((candidate) => candidate.slug === gallery.slug);
-const others = [...galleries.slice(index + 1), ...galleries.slice(0, index)].filter((candidate) => candidate.images.length).slice(0, 3);
+const rotated = [...galleries.slice(index + 1), ...galleries.slice(0, index)].filter((candidate) => candidate.images.length);
+const scopedRotated = activeSection ? filterGalleriesBySection(rotated, activeSection) : rotated;
+const others = (scopedRotated.length ? scopedRotated : rotated).slice(0, 3);
+const backHref = activeSection ? `/galeria/?seccion=${activeSection}` : "/galeria/";
+const backLabel =
+  activeSection === "ai-academy"
+    ? "Galería de AI Academy"
+    : activeSection === "join-us"
+      ? "Galería de Sé un Camper"
+      : "Todas las galerías";
+const albumHref = (slug: string) => (activeSection ? `/galeria/${slug}/?seccion=${activeSection}` : `/galeria/${slug}/`);
 const pad = (value: number) => String(value).padStart(2, "0");
 const structuredData = [{
   "@type": "ImageGallery",
@@ -58,7 +72,7 @@ const icons = {
       {cover && <img class="gal-cover__img" src={cover.formats?.large?.url || cover.url} srcset={blogMediaSrcset(cover)} sizes="100vw" alt="" aria-hidden="true" fetchpriority="high" decoding="async" />}
       <div class="gal-cover__shade" aria-hidden="true"></div>
       <div class="gal-cover__body sections">
-        <a class="gal-back" href="/galeria/"><span aria-hidden="true">←</span> Todas las galerías</a>
+        <a class="gal-back" href={backHref}><span aria-hidden="true">←</span> {backLabel}</a>
         <p class="gal-eyebrow"><i></i>{gallery.category.name}</p>
         <h1>{gallery.title}</h1>
         <p class="gal-cover__text">{gallery.description}</p>
@@ -100,11 +114,11 @@ const icons = {
 
     {others.length > 0 && (
       <section class="gal-more sections" aria-labelledby="gal-more">
-        <div class="gal-more__head"><h2 id="gal-more">Más galerías</h2><a href="/galeria/">Ver todas →</a></div>
+        <div class="gal-more__head"><h2 id="gal-more">Más galerías</h2><a href={backHref}>Ver todas →</a></div>
         <div class="gal-grid" style="margin-top:0">
           {others.map((other) => (
             <article class="gal-card" style={`--cat:${safeCategoryColor(other.category.color)};--cat-rgb:${colorRgb(safeCategoryColor(other.category.color))}`} data-reveal>
-              <a href={`/galeria/${other.slug}/`}>
+              <a href={albumHref(other.slug)}>
                 <div class:list={["gal-card__mosaic", `gal-card__mosaic--${Math.min(other.images.length, 3)}`]}>
                   {other.images.slice(0, 3).map((image, imageIndex) => <img src={image.formats?.medium?.url || image.url} alt={imageIndex === 0 ? image.alternativeText || other.title : ""} width={image.width} height={image.height} loading="lazy" decoding="async" />)}
                   <b>{pad(other.images.length)} fotos</b>
