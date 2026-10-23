@@ -16,6 +16,32 @@
   color: #fff;
 }
 
+.gal--ai-academy {
+  --gal-aqua: #b997ff;
+  --gal-sky: #7a3cff;
+  --gal-ink: #070520;
+  --gal-line: rgb(185 151 255 / 22%);
+  --cat: #b997ff;
+  --cat-rgb: 185 151 255;
+  background:
+    radial-gradient(circle at 80% 6%, rgb(122 60 255 / 20%), transparent 32rem),
+    radial-gradient(circle at 12% 28%, rgb(44 103 186 / 16%), transparent 30rem),
+    linear-gradient(165deg, #070426 0%, #050507 100%);
+}
+
+.gal--join-us {
+  --gal-aqua: #00d9a4;
+  --gal-sky: #2caaff;
+  --gal-ink: #02091e;
+  --gal-line: rgb(44 170 255 / 22%);
+  --cat: #00d9a4;
+  --cat-rgb: 0 217 164;
+  background:
+    radial-gradient(circle at 78% 8%, rgb(44 170 255 / 18%), transparent 32rem),
+    radial-gradient(circle at 15% 32%, rgb(0 170 128 / 14%), transparent 30rem),
+    linear-gradient(165deg, #000051 0%, #02091e 55%, #030b1c 100%);
+}
+
 .gal .sections { max-width: var(--gal-max); margin-inline: auto; }
 .gal [hidden], .gal-box[hidden] { display: none !important; }
 .gal button, .gal-box button { height: auto; }

@@ -40,7 +40,7 @@ const errorMessage = ref("");
 const search = ref("");
 const statusFilter = ref("all");
 const categoryFilter = ref("all");
-const sectionFilter = ref<"all" | "join-us" | "ai-academy" | "ambas">("all");
+const sectionFilter = ref<"all" | "join-us" | "ai-academy">("all");
 const images = ref<GalleryImageDraft[]>([]);
 const draggedIndex = ref<number | null>(null);
 const previewOpen = ref(false);
@@ -56,19 +56,29 @@ function key() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function normalizeTargetSection(value?: string | null): GalleryTargetSection {
-  if (value === "join-us" || value === "ai-academy" || value === "ambas") return value;
-  return "ambas";
+function normalizeTargetSection(
+  value?: string | null,
+  gallery?: Partial<EditorGallery> | null,
+): GalleryTargetSection {
+  if (value === "join-us" || value === "ai-academy") return value;
+  const catSlug = String(gallery?.category?.slug || "");
+  const text = `${gallery?.title || ""} ${gallery?.slug || ""} ${catSlug}`;
+  if (
+    catSlug === "inteligencia-artificial" ||
+    /\b(ia|ai|academy|taller|marketing|finanzas|automatizacion|datos)\b/i.test(text)
+  ) {
+    return "ai-academy";
+  }
+  return "join-us";
 }
 
-function targetSectionLabel(value?: string | null) {
-  const normalized = normalizeTargetSection(value);
-  if (normalized === "join-us") return "Sé un Camper (/joinUs)";
-  if (normalized === "ai-academy") return "AI Academy (/ai-academy)";
-  return "Ambas páginas (Camper + IA)";
+function targetSectionLabel(value?: string | null, gallery?: Partial<EditorGallery> | null) {
+  const normalized = normalizeTargetSection(value, gallery);
+  if (normalized === "join-us") return "CodeUp · Sé un Camper (/joinUs)";
+  return "AI Academy (/ai-academy)";
 }
 
-function emptyForm(defaultSection: GalleryTargetSection = "ambas") {
+function emptyForm(defaultSection: GalleryTargetSection = "ai-academy") {
   return {
     documentId: "",
     title: "",
@@ -85,16 +95,13 @@ function emptyForm(defaultSection: GalleryTargetSection = "ambas") {
 
 const form = reactive(emptyForm());
 const sectionCounts = computed(() => {
-  const joinUs = props.galleries.filter((g) => {
-    const t = normalizeTargetSection(g.targetSection);
-    return t === "join-us" || t === "ambas";
-  }).length;
-  const aiAcademy = props.galleries.filter((g) => {
-    const t = normalizeTargetSection(g.targetSection);
-    return t === "ai-academy" || t === "ambas";
-  }).length;
-  const ambas = props.galleries.filter((g) => normalizeTargetSection(g.targetSection) === "ambas").length;
-  return { all: props.galleries.length, joinUs, aiAcademy, ambas };
+  const joinUs = props.galleries.filter(
+    (g) => normalizeTargetSection(g.targetSection, g) === "join-us",
+  ).length;
+  const aiAcademy = props.galleries.filter(
+    (g) => normalizeTargetSection(g.targetSection, g) === "ai-academy",
+  ).length;
+  return { all: props.galleries.length, joinUs, aiAcademy };
 });
 const filteredGalleries = computed(() => {
   const term = search.value.trim().toLowerCase();
@@ -103,13 +110,9 @@ const filteredGalleries = computed(() => {
       .some((value) => String(value || "").toLowerCase().includes(term));
     const matchesStatus = statusFilter.value === "all" || gallery.publicationState === statusFilter.value;
     const matchesCategory = categoryFilter.value === "all" || gallery.category?.documentId === categoryFilter.value;
-    const target = normalizeTargetSection(gallery.targetSection);
+    const target = normalizeTargetSection(gallery.targetSection, gallery);
     const matchesSection =
-      sectionFilter.value === "all"
-        ? true
-        : sectionFilter.value === "ambas"
-          ? target === "ambas"
-          : target === sectionFilter.value || target === "ambas";
+      sectionFilter.value === "all" ? true : target === sectionFilter.value;
     return matchesSearch && matchesStatus && matchesCategory && matchesSection;
   });
 });
@@ -148,7 +151,7 @@ function resetForm() {
 
 function newGallery() {
   resetForm();
-  if (sectionFilter.value === "join-us" || sectionFilter.value === "ai-academy" || sectionFilter.value === "ambas") {
+  if (sectionFilter.value === "join-us" || sectionFilter.value === "ai-academy") {
     form.targetSection = sectionFilter.value;
   }
   editorOpen.value = true;
@@ -180,7 +183,7 @@ function applyDetail(detail: EditorGallery, asCopy = false) {
     categoryDocumentId: detail.category?.documentId || "",
     tagsText: Array.isArray(detail.tags) ? detail.tags.join(", ") : "",
     featured: asCopy ? false : Boolean(detail.featured),
-    targetSection: normalizeTargetSection(detail.targetSection),
+    targetSection: normalizeTargetSection(detail.targetSection, detail),
     publishDate: asCopy ? today() : detail.publishDate || today(),
     seo: {
       metaTitle: asCopy ? `Copia de ${detail.seo?.metaTitle || detail.title}`.slice(0, 60) : detail.seo?.metaTitle || "",
@@ -412,11 +415,10 @@ onBeforeUnmount(() => {
           <section class="panel inspector">
             <h3>PUBLICACIÓN</h3>
             <label>
-              <span>Página de destino</span>
+              <span>Programa / Página de destino</span>
               <select v-model="form.targetSection">
-                <option value="ambas">Ambas páginas (Sé un Camper + AI Academy)</option>
-                <option value="join-us">Solo Sé un Camper (/joinUs)</option>
-                <option value="ai-academy">Solo AI Academy (/ai-academy)</option>
+                <option value="ai-academy">AI Academy (/ai-academy)</option>
+                <option value="join-us">CodeUp · Sé un Camper (/joinUs)</option>
               </select>
             </label>
             <label><span>Categoría</span><select v-model="form.categoryDocumentId"><option value="" disabled>Seleccionar</option><option v-for="category in categories" :key="category.documentId" :value="category.documentId">{{ category.name }}</option></select></label>
@@ -431,20 +433,17 @@ onBeforeUnmount(() => {
     </template>
 
     <template v-else>
-      <header class="gallery-heading"><div><p>PULSO / GALERÍAS</p><h1>Archivo visual</h1><span>Administra colecciones para Sé un Camper (/joinUs), AI Academy (/ai-academy) y Pulso en un mismo punto.</span></div><button type="button" class="primary" @click="newGallery">Nueva galería ＋</button></header>
-      <div class="gallery-stats"><article><span>TOTAL</span><strong>{{ galleries.length.toString().padStart(2, "0") }}</strong></article><article><span>SÉ UN CAMPER</span><strong>{{ sectionCounts.joinUs.toString().padStart(2, "0") }}</strong></article><article><span>AI ACADEMY</span><strong>{{ sectionCounts.aiAcademy.toString().padStart(2, "0") }}</strong></article><article><span>IMÁGENES</span><strong>{{ galleries.reduce((total, item) => total + (item.images?.length || 0), 0).toString().padStart(2, "0") }}</strong></article></div>
-      <div class="gallery-partitions" role="tablist" aria-label="Partición de galerías por página">
+      <header class="gallery-heading"><div><p>PULSO / GALERÍAS</p><h1>Archivo visual</h1><span>Galerías independientes para CodeUp · Sé un Camper (/joinUs) y AI Academy (/ai-academy).</span></div><button type="button" class="primary" @click="newGallery">Nueva galería ＋</button></header>
+      <div class="gallery-stats"><article><span>TOTAL</span><strong>{{ galleries.length.toString().padStart(2, "0") }}</strong></article><article><span>CODEUP · SÉ UN CAMPER</span><strong>{{ sectionCounts.joinUs.toString().padStart(2, "0") }}</strong></article><article><span>AI ACADEMY</span><strong>{{ sectionCounts.aiAcademy.toString().padStart(2, "0") }}</strong></article><article><span>IMÁGENES</span><strong>{{ galleries.reduce((total, item) => total + (item.images?.length || 0), 0).toString().padStart(2, "0") }}</strong></article></div>
+      <div class="gallery-partitions" role="tablist" aria-label="Partición de galerías por programa">
         <button type="button" role="tab" :class="{ active: sectionFilter === 'all' }" @click="sectionFilter = 'all'">
           <span>Todas las galerías</span><b>{{ sectionCounts.all }}</b>
-        </button>
-        <button type="button" role="tab" :class="{ active: sectionFilter === 'join-us' }" @click="sectionFilter = 'join-us'">
-          <span>Sé un Camper (/joinUs)</span><b>{{ sectionCounts.joinUs }}</b>
         </button>
         <button type="button" role="tab" :class="{ active: sectionFilter === 'ai-academy' }" @click="sectionFilter = 'ai-academy'">
           <span>AI Academy (/ai-academy)</span><b>{{ sectionCounts.aiAcademy }}</b>
         </button>
-        <button type="button" role="tab" :class="{ active: sectionFilter === 'ambas' }" @click="sectionFilter = 'ambas'">
-          <span>Compartidas en ambas</span><b>{{ sectionCounts.ambas }}</b>
+        <button type="button" role="tab" :class="{ active: sectionFilter === 'join-us' }" @click="sectionFilter = 'join-us'">
+          <span>CodeUp · Sé un Camper (/joinUs)</span><b>{{ sectionCounts.joinUs }}</b>
         </button>
       </div>
       <section class="gallery-console">
@@ -452,8 +451,8 @@ onBeforeUnmount(() => {
         <div v-if="filteredGalleries.length" class="gallery-list">
           <article v-for="gallery in filteredGalleries" :key="gallery.documentId" :style="`--category:${gallery.category?.color || '#2CAAFF'}`">
             <button type="button" class="gallery-cover" @click="openGallery(gallery)"><img v-if="gallery.images?.[0]" :src="mediaUrl(cmsUrl, gallery.images[0])" :alt="gallery.title" /><span v-else>{ 00 }</span><b>{{ gallery.images?.length || 0 }} imágenes</b></button>
-            <div><div class="gallery-meta-row"><p><i></i>{{ gallery.category?.name }}</p><em class="gallery-section-badge" :class="`is-${normalizeTargetSection(gallery.targetSection)}`">{{ targetSectionLabel(gallery.targetSection) }}</em></div><h2>{{ gallery.title }}</h2><span>{{ gallery.description }}</span><small>{{ statusLabel(gallery.publicationState) }} · {{ gallery.publishDate }}</small></div>
-            <footer><button @click="openGallery(gallery)">Editar</button><button @click="openGallery(gallery, true)">Usar como base</button><a v-if="gallery.publicationState !== 'draft'" :href="`/galeria/${gallery.slug}/`" target="_blank" rel="noopener">Ver ↗</a><button v-if="gallery.publicationState !== 'published'" @click="quickPublish(gallery)">Publicar</button><button v-if="gallery.publicationState !== 'draft'" @click="quickUnpublish(gallery)">Retirar</button><button class="danger" @click="removeGallery(gallery)">Eliminar</button></footer>
+            <div><div class="gallery-meta-row"><p><i></i>{{ gallery.category?.name }}</p><em class="gallery-section-badge" :class="`is-${normalizeTargetSection(gallery.targetSection, gallery)}`">{{ targetSectionLabel(gallery.targetSection, gallery) }}</em></div><h2>{{ gallery.title }}</h2><span>{{ gallery.description }}</span><small>{{ statusLabel(gallery.publicationState) }} · {{ gallery.publishDate }}</small></div>
+            <footer><button @click="openGallery(gallery)">Editar</button><button @click="openGallery(gallery, true)">Usar como base</button><a v-if="gallery.publicationState !== 'draft'" :href="`/galeria/${gallery.slug}/?seccion=${normalizeTargetSection(gallery.targetSection, gallery)}`" target="_blank" rel="noopener">Ver ↗</a><button v-if="gallery.publicationState !== 'published'" @click="quickPublish(gallery)">Publicar</button><button v-if="gallery.publicationState !== 'draft'" @click="quickUnpublish(gallery)">Retirar</button><button class="danger" @click="removeGallery(gallery)">Eliminar</button></footer>
           </article>
         </div>
         <div v-else class="image-empty"><b>{ 00 }</b><h2>No encontramos galerías en esta partición.</h2><p>Cambia los filtros o crea una nueva colección visual para esta sección.</p></div>
@@ -471,7 +470,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 *{box-sizing:border-box}.gallery-admin{--line:rgba(87,187,255,.16);--muted:rgba(247,249,255,.52);--green:#00d9a4;color:#f7f9ff}.gallery-admin button{height:auto;border-radius:10px}.gallery-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}.gallery-heading>div:first-child{display:grid;gap:8px}.gallery-heading p,.panel>header>span,.panel h3{margin:0;color:#57bbff;font:700 10px/1 ui-monospace,monospace;letter-spacing:.15em}.gallery-heading h1{margin:0;font-size:clamp(34px,4.8vw,64px);line-height:1;letter-spacing:-.055em}.gallery-heading>div>span{color:var(--muted);font-size:12px}.gallery-heading>div>button{width:max-content;padding:0;border:0;color:#79d5ff;background:none;cursor:pointer}.gallery-heading>div:last-child{display:flex;gap:9px}.primary,.secondary,.mobile-save{min-height:44px;padding:0 16px;border-radius:11px;cursor:pointer;font-weight:750}.primary,.mobile-save{border:0;color:#021a21;background:linear-gradient(90deg,#50c8ff,var(--green))}.secondary{border:1px solid rgba(87,187,255,.22);color:#fff;background:rgba(87,187,255,.07)}button:disabled{opacity:.45;cursor:default}.gallery-error{padding:12px 14px;border:1px solid rgba(255,90,110,.25);border-radius:10px;color:#ff9aa7;background:rgba(255,70,90,.07)}.gallery-loading{display:grid;min-height:400px;place-content:center;color:var(--muted)}.gallery-editor{display:grid;margin-top:32px;grid-template-columns:minmax(0,1fr)320px;align-items:start;gap:20px}.gallery-canvas{display:grid;gap:17px}.panel{padding:clamp(18px,2.5vw,28px);border:1px solid var(--line);border-radius:22px;background:rgba(6,16,49,.67)}.panel--lead{background:linear-gradient(145deg,rgba(11,28,73,.82),rgba(5,15,47,.7))}.panel>header{display:flex;margin-bottom:22px;align-items:flex-start;gap:13px}.panel>header>span{display:grid;width:30px;height:30px;place-content:center;border:1px solid rgba(0,217,164,.22);border-radius:50%;color:var(--green)}.panel>header h2{margin:0;font-size:17px}.panel>header p{margin:4px 0 0;color:var(--muted);font-size:10px}.panel>label,.image-grid label,.inspector label{display:grid;position:relative;margin-top:14px;gap:7px;color:rgba(255,255,255,.58);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.panel input,.panel textarea,.panel select,.gallery-filters input,.gallery-filters select{width:100%;min-height:45px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:11px;outline:0;color:#fff;background:rgba(2,9,34,.7);font:inherit}.panel textarea{resize:vertical;font-size:14px;line-height:1.55;text-transform:none}.panel label>small{position:absolute;right:7px;bottom:5px;color:rgba(255,255,255,.25);font-size:8px}.panel--lead>label:first-of-type textarea{font-size:27px;font-weight:700;line-height:1.15}.slug{display:flex;min-height:45px;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(2,9,34,.7);overflow:hidden}.slug b,.slug i{padding:0 10px;color:rgba(255,255,255,.34);font:600 9px/1 ui-monospace,monospace;font-style:normal}.slug input{min-height:43px;padding-inline:0;border:0;background:transparent}.image-drop{display:grid!important;min-height:90px!important;place-content:center;border:1px dashed rgba(0,217,164,.33)!important;border-radius:13px!important;color:#7debd0!important;background:rgba(0,217,164,.04)!important;cursor:pointer}.image-drop input{display:none}.image-grid{display:grid;margin-top:14px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.image-grid>article{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(0,0,20,.18)}.image-preview{display:block;position:relative;width:100%;height:240px;padding:0;border:0;border-radius:10px;background:radial-gradient(circle at 50% 35%,rgba(44,170,255,.16),#02091e 80%);overflow:hidden;cursor:zoom-in}.image-preview img{display:block;width:100%;height:100%;object-fit:contain}.image-preview span{position:absolute;top:8px;left:8px;padding:5px 7px;border-radius:99px;color:#001a21;background:var(--green);font:800 8px/1 ui-monospace,monospace}.image-grid label{margin-top:9px}.image-grid label span{font-size:8px}.image-grid input{min-height:38px;padding:8px 9px;font-size:10px;text-transform:none}.image-grid footer{display:flex;margin-top:8px;align-items:center;gap:5px}.image-grid footer button{width:27px;height:27px;padding:0;border:1px solid rgba(255,255,255,.09);border-radius:7px;color:#fff;background:rgba(255,255,255,.04)}.image-grid footer i{flex:1;color:rgba(255,255,255,.24);font:600 7px/1 ui-monospace,monospace;font-style:normal;text-align:center}.image-grid footer .remove{color:#ff8393}.image-empty{display:grid;min-height:180px;margin-top:14px;place-content:center;justify-items:center;color:var(--muted);text-align:center}.image-empty b{color:#57bbff;font:700 22px/1 ui-monospace,monospace}.image-empty h2{margin:15px 0 0}.image-empty p{font-size:10px}.gallery-editor>aside{display:grid;position:sticky;top:22px;gap:14px}.inspector h3{margin-bottom:18px}.switch{display:flex!important;align-items:center;grid-template-columns:auto auto 1fr}.switch input{position:absolute;opacity:0}.switch i{width:34px;height:19px;border-radius:99px;background:rgba(255,255,255,.12)}.switch i:after{display:block;width:13px;height:13px;margin:3px;border-radius:50%;background:#aaa;content:"";transition:transform .2s}.switch input:checked+i{background:rgba(0,217,164,.32)}.switch input:checked+i:after{transform:translateX(15px);background:var(--green)}.score header{display:flex;margin:0 0 13px;justify-content:space-between}.score header strong{color:var(--green)}.score>div{height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}.score>div i{display:block;height:100%;background:linear-gradient(90deg,#57bbff,var(--green))}.score p{margin:10px 0 0;color:var(--muted);font-size:8px}.mobile-save{display:none}.gallery-stats{display:grid;margin-top:30px;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:18px;background:rgba(6,16,49,.58);overflow:hidden}
-.gallery-partitions{display:grid;margin-top:14px;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.gallery-partitions{display:grid;margin-top:14px;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .gallery-partitions button{display:flex;min-height:44px;padding:0 14px;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;color:rgba(247,249,255,.72);background:rgba(6,16,49,.48);font:650 11px/1.2 inherit;cursor:pointer;transition:all .18s}
 .gallery-partitions button b{padding:3px 7px;border-radius:99px;color:#57bbff;background:rgba(87,187,255,.12);font:700 10px/1 ui-monospace,monospace}
 .gallery-partitions button.active{border-color:rgba(0,217,164,.45);color:#fff;background:linear-gradient(135deg,rgba(15,44,104,.85),rgba(0,217,164,.14))}
