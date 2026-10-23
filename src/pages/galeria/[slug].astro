@@ -9,13 +9,15 @@ import "~/styles/galeria.css";
 export const prerender = false;
 Astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
 
-const rawSection = Astro.url.searchParams.get("seccion");
-const activeSection: "join-us" | "ai-academy" | null =
-  rawSection === "join-us" || rawSection === "ai-academy" ? rawSection : null;
+const rawSection = (Astro.url.searchParams.get("seccion") || "").toLowerCase();
 
 const { galleries, settings } = await getBlogData();
 const gallery = galleries.find((candidate) => candidate.slug === Astro.params.slug);
-if (!gallery) return Astro.redirect(activeSection ? `/galeria/?seccion=${activeSection}` : "/galeria/", 302);
+if (!gallery) {
+  const fallbackSec = rawSection === "join-us" || rawSection === "ai-academy" ? rawSection : "ai-academy";
+  return Astro.redirect(`/galeria/?seccion=${fallbackSec}`, 302);
+}
+const activeSection: "join-us" | "ai-academy" = gallery.targetSection;
 const category = safeCategoryColor(gallery.category.color);
 const rgb = colorRgb(category);
 const pageUrl = `${SITE_URL}/galeria/${gallery.slug}/`;
@@ -25,16 +27,13 @@ const seoDescription = blogSeoDescription(gallery.seo?.metaDescription, gallery.
 const dataFooter = settings ? { title: settings.articleFooterTitle, content: settings.articleFooterDescription, buttonType: "contacto" } : undefined;
 const index = galleries.findIndex((candidate) => candidate.slug === gallery.slug);
 const rotated = [...galleries.slice(index + 1), ...galleries.slice(0, index)].filter((candidate) => candidate.images.length);
-const scopedRotated = activeSection ? filterGalleriesBySection(rotated, activeSection) : rotated;
-const others = (scopedRotated.length ? scopedRotated : rotated).slice(0, 3);
-const backHref = activeSection ? `/galeria/?seccion=${activeSection}` : "/galeria/";
+const others = filterGalleriesBySection(rotated, activeSection).slice(0, 3);
+const backHref = `/galeria/?seccion=${activeSection}`;
 const backLabel =
   activeSection === "ai-academy"
     ? "Galería de AI Academy"
-    : activeSection === "join-us"
-      ? "Galería de Sé un Camper"
-      : "Todas las galerías";
-const albumHref = (slug: string) => (activeSection ? `/galeria/${slug}/?seccion=${activeSection}` : `/galeria/${slug}/`);
+    : "Galería de CodeUp · Sé un Camper";
+const albumHref = (slug: string) => `/galeria/${slug}/?seccion=${activeSection}`;
 const pad = (value: number) => String(value).padStart(2, "0");
 const structuredData = [{
   "@type": "ImageGallery",
@@ -67,7 +66,7 @@ const icons = {
 ---
 
 <LayoutNavbar dataFooter={dataFooter} title={seoTitle} description={seoDescription} image={cover?.url} pageType="Article" publishedTime={gallery.publishedDate || gallery.publishDate} modifiedTime={gallery.modifiedDate || gallery.publishDate} structuredData={structuredData}>
-  <div class="gal gal--detail" style={`--cat:${category};--cat-rgb:${rgb}`} data-gal data-title={gallery.title} data-url={pageUrl}>
+  <div class:list={["gal", "gal--detail", `gal--${activeSection}`]} style={`--cat:${category};--cat-rgb:${rgb}`} data-gal data-title={gallery.title} data-url={pageUrl}>
     <header class="gal-cover">
       {cover && <img class="gal-cover__img" src={cover.formats?.large?.url || cover.url} srcset={blogMediaSrcset(cover)} sizes="100vw" alt="" aria-hidden="true" fetchpriority="high" decoding="async" />}
       <div class="gal-cover__shade" aria-hidden="true"></div>

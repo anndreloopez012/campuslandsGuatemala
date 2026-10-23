@@ -54,7 +54,7 @@ export type EditorArticleLink = {
   active: boolean;
 };
 
-export type GalleryTargetSection = "ambas" | "join-us" | "ai-academy";
+export type GalleryTargetSection = "join-us" | "ai-academy";
 
 export type EditorGallery = {
   id?: number;

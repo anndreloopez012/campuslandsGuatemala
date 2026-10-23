@@ -5,76 +5,80 @@ import { PAGE_SEO, SITE, SITE_URL } from "~/config/seo.mjs";
 import "~/styles/index.css";
 import "~/styles/galeria.css";
 
-// Galería pública: las colecciones que se crean en el administrador (Galerías).
-// Soporta pre-filtrado por pantalla mediante ?seccion=join-us o ?seccion=ai-academy.
+// Galería pública separada por programa:
+// - ?seccion=ai-academy -> Galería exclusiva de AI Academy
+// - ?seccion=join-us (o ?seccion=codeup) -> Galería exclusiva de CodeUp · Sé un Camper
 export const prerender = false;
 Astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
 
-const rawSection = Astro.url.searchParams.get("seccion");
-const initialSection: "todas" | "join-us" | "ai-academy" =
-  rawSection === "join-us" || rawSection === "ai-academy" ? rawSection : "todas";
-
+const rawSection = (Astro.url.searchParams.get("seccion") || "").toLowerCase();
 const { settings, galleries, categories } = await getBlogData();
 const joinUsGalleries = filterGalleriesBySection(galleries, "join-us");
 const aiAcademyGalleries = filterGalleriesBySection(galleries, "ai-academy");
-const scopedGalleries =
-  initialSection === "join-us"
-    ? joinUsGalleries
-    : initialSection === "ai-academy"
-      ? aiAcademyGalleries
-      : galleries;
+
+const activeSection: "join-us" | "ai-academy" =
+  rawSection === "join-us" || rawSection === "codeup"
+    ? "join-us"
+    : rawSection === "ai-academy"
+      ? "ai-academy"
+      : aiAcademyGalleries.length > 0
+        ? "ai-academy"
+        : "join-us";
+
+const isAiAcademy = activeSection === "ai-academy";
+const scopedGalleries = isAiAcademy ? aiAcademyGalleries : joinUsGalleries;
 
 const totalPhotos = scopedGalleries.reduce((sum, gallery) => sum + gallery.images.length, 0);
-const latestUpdate = galleries.map((gallery) => gallery.modifiedDate).filter(Boolean).sort().at(-1);
-const latestDate = scopedGalleries.map((gallery) => gallery.publishDate).filter(Boolean).sort().at(-1)
-  ?? galleries.map((gallery) => gallery.publishDate).filter(Boolean).sort().at(-1);
+const latestUpdate = scopedGalleries.map((gallery) => gallery.modifiedDate).filter(Boolean).sort().at(-1);
+const latestDate = scopedGalleries.map((gallery) => gallery.publishDate).filter(Boolean).sort().at(-1);
 const featured =
   scopedGalleries.find((gallery) => gallery.featured && gallery.images.length) ??
   scopedGalleries.find((gallery) => gallery.images.length) ??
-  galleries.find((gallery) => gallery.featured && gallery.images.length) ??
-  galleries.find((gallery) => gallery.images.length) ??
   null;
-const usedCategories = categories.filter((category) => galleries.some((gallery) => gallery.category.slug === category.slug));
-// Cinta de fondo: una foto de cada galería, mezcladas, hasta 14.
-const stripSource = scopedGalleries.length > 0 ? scopedGalleries : galleries;
-const strip = stripSource.flatMap((gallery) => gallery.images.slice(0, 5).map((image, index) => ({ image, gallery, index })))
+const usedCategories = categories.filter((category) =>
+  scopedGalleries.some((gallery) => gallery.category.slug === category.slug),
+);
+// Cinta de fondo exclusiva de la sección activa (nunca mezcla fotos del otro programa).
+const strip = scopedGalleries
+  .flatMap((gallery) => gallery.images.slice(0, 5).map((image, index) => ({ image, gallery, index })))
   .sort((a, b) => a.index - b.index || a.gallery.publishDate.localeCompare(b.gallery.publishDate))
   .slice(0, 14);
+
 const seo = PAGE_SEO["/galeria/"];
-const sectionLabelMap = {
-  todas: "Galería · Campuslands Guatemala",
-  "join-us": "Galería · Sé un Camper · Campuslands Guatemala",
-  "ai-academy": "Galería · AI Academy · Campuslands Guatemala",
-} as const;
-const title = blogSeoTitle(settings ? `${settings.galleriesTitle} | Campuslands Guatemala` : undefined, seo.title);
-const description = blogSeoDescription(settings?.galleriesDescription, seo.description);
+const sectionTitleText = isAiAcademy
+  ? "Galería AI Academy | Campuslands Guatemala"
+  : "Galería CodeUp · Sé un Camper | Campuslands Guatemala";
+const sectionDescriptionText = isAiAcademy
+  ? "Archivo fotográfico oficial de los talleres prácticos, laboratorios de IA y cohortes de AI Academy en Campuslands Guatemala."
+  : "Archivo fotográfico oficial de entrenamientos de desarrollo de software, comunidad Camper y programa CodeUp en Campuslands Guatemala.";
+const title = blogSeoTitle(sectionTitleText, seo.title);
+const description = blogSeoDescription(sectionDescriptionText, seo.description);
 const dataFooter = settings ? { title: settings.footerTitle, content: settings.footerDescription, buttonType: "contacto" } : undefined;
 const structuredData = [{
   "@type": "CollectionPage",
-  "@id": `${SITE_URL}/galeria/#collection`,
-  name: settings?.galleriesTitle ?? seo.title,
+  "@id": `${SITE_URL}/galeria/?seccion=${activeSection}#collection`,
+  name: sectionTitleText,
   description,
   dateModified: latestUpdate,
   inLanguage: SITE.language,
   mainEntity: {
     "@type": "ItemList",
-    numberOfItems: galleries.length,
-    itemListElement: galleries.map((gallery, index) => ({ "@type": "ListItem", position: index + 1, name: gallery.title, url: `${SITE_URL}/galeria/${gallery.slug}/` })),
+    numberOfItems: scopedGalleries.length,
+    itemListElement: scopedGalleries.map((gallery, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: gallery.title,
+      url: `${SITE_URL}/galeria/${gallery.slug}/?seccion=${activeSection}`,
+    })),
   },
 }];
 const pad = (value: number) => String(value).padStart(2, "0");
 const catStyle = (color?: string) => `--cat:${safeCategoryColor(color)};--cat-rgb:${colorRgb(safeCategoryColor(color))}`;
-const matchesInitialSection = (targetSection?: string) => {
-  if (initialSection === "todas") return true;
-  const normalized = targetSection || "ambas";
-  return normalized === "ambas" || normalized === initialSection;
-};
-const galleryHref = (slug: string) =>
-  initialSection === "todas" ? `/galeria/${slug}/` : `/galeria/${slug}/?seccion=${initialSection}`;
+const galleryHref = (slug: string) => `/galeria/${slug}/?seccion=${activeSection}`;
 ---
 
 <LayoutNavbar dataFooter={dataFooter} title={title} description={description} image={featured?.images[0]?.url} pageType="CollectionPage" modifiedTime={latestUpdate} structuredData={structuredData}>
-  <div class="gal" data-gal data-initial-section={initialSection}>
+  <div class:list={["gal", `gal--${activeSection}`]} data-gal>
     <header class="gal-hero">
       {strip.length > 0 && (
         <div class="gal-strip" aria-hidden="true">
@@ -85,32 +89,45 @@ const galleryHref = (slug: string) =>
       )}
       <div class="gal-hero__body sections">
         <div class="gal-hero__top-row">
-          <p class="gal-eyebrow"><i aria-hidden="true"></i><span data-gal-eyebrow>{sectionLabelMap[initialSection]}</span></p>
+          <p class="gal-eyebrow">
+            <i aria-hidden="true"></i>
+            <span>
+              {isAiAcademy
+                ? "AI.GAL · Galería Oficial · AI Academy"
+                : "CODEUP · Galería Oficial · Sé un Camper"}
+            </span>
+          </p>
           <a
             class="gal-origin-back"
-            data-origin-back
-            href={initialSection === "ai-academy" ? "/ai-academy/" : "/joinUs/"}
-            hidden={initialSection === "todas"}
+            href={isAiAcademy ? "/ai-academy/" : "/joinUs/"}
           >
             <span aria-hidden="true">←</span>
-            <span data-origin-back-text>
-              {initialSection === "ai-academy" ? "Volver a AI Academy" : "Volver a Sé un Camper"}
-            </span>
+            <span>{isAiAcademy ? "Volver a AI Academy" : "Volver a Sé un Camper"}</span>
           </a>
         </div>
-        <h1>{settings?.galleriesTitle ? settings.galleriesTitle : <>Los momentos que <em>nos hacen Campuslands</em></>}</h1>
-        <p class="gal-hero__text">{settings?.galleriesDescription || "Graduaciones, demo days, primeros días y todo lo que pasa en Campus Tec. Cada ciclo que termina deja aquí su huella."}</p>
+        <h1>
+          {isAiAcademy ? (
+            <>Así vivimos los talleres de <em>AI Academy</em></>
+          ) : (
+            <>La experiencia de nuestra <em>comunidad Camper y CodeUp</em></>
+          )}
+        </h1>
+        <p class="gal-hero__text">
+          {isAiAcademy
+            ? "Laboratorios prácticos, sesiones en vivo, construcción de agentes y momentos reales de nuestras cohortes de inteligencia artificial en Campus Tec."
+            : "Entrenamiento intensivo en desarrollo de software, retos técnicos en equipo, graduaciones y el día a día de formarse como Camper en Campuslands."}
+        </p>
         <dl class="gal-stats">
-          <div><dt>Galerías</dt><dd data-stat-galleries>{pad(scopedGalleries.length)}</dd></div>
-          <div><dt>Fotografías</dt><dd data-stat-photos>{pad(totalPhotos)}</dd></div>
+          <div><dt>{isAiAcademy ? "Galerías AI Academy" : "Galerías CodeUp"}</dt><dd>{pad(scopedGalleries.length)}</dd></div>
+          <div><dt>Fotografías</dt><dd>{pad(totalPhotos)}</dd></div>
           {latestDate && <div><dt>Última galería</dt><dd>{formatBlogDate(latestDate)}</dd></div>}
         </dl>
       </div>
     </header>
 
     {featured && (
-      <section class="gal-featured sections" aria-label="Galería destacada" data-reveal data-featured-section={featured.targetSection || "ambas"} hidden={!matchesInitialSection(featured.targetSection)}>
-        <a class="gal-feature" data-gal-link data-slug={featured.slug} href={galleryHref(featured.slug)} style={catStyle(featured.category.color)}>
+      <section class="gal-featured sections" aria-label="Galería destacada" data-reveal>
+        <a class="gal-feature" href={galleryHref(featured.slug)} style={catStyle(featured.category.color)}>
           <div class:list={["gal-feature__media", `gal-feature__media--${Math.min(featured.images.length, 4)}`]} aria-hidden="true">
             {featured.images.slice(0, 4).map((image, index) => <img src={image.formats?.large?.url || image.url} srcset={blogMediaSrcset(image)} sizes="(max-width: 1360px) 100vw, 1360px" alt="" loading={index === 0 ? "eager" : "lazy"} decoding="async" />)}
           </div>
@@ -124,92 +141,68 @@ const galleryHref = (slug: string) =>
       </section>
     )}
 
-    {galleries.length > 0 ? (
+    {scopedGalleries.length > 0 ? (
       <>
-        <div class="gal-filter-bars sections" data-reveal>
-          <nav class="gal-filters gal-filters--section" aria-label="Filtrar galerías por programa o pantalla">
-            <span>Pantalla</span>
-            <button
-              type="button"
-              class:list={["gal-chip", "gal-chip--section", { "is-active": initialSection === "todas" }]}
-              data-section-filter="todas"
-              aria-pressed={initialSection === "todas" ? "true" : "false"}
-            >
-              Todas las pantallas <small>{pad(galleries.length)}</small>
-            </button>
-            <button
-              type="button"
-              class:list={["gal-chip", "gal-chip--section", "gal-chip--joinus", { "is-active": initialSection === "join-us" }]}
-              data-section-filter="join-us"
-              aria-pressed={initialSection === "join-us" ? "true" : "false"}
-            >
-              Sé un Camper <small>{pad(joinUsGalleries.length)}</small>
-            </button>
-            <button
-              type="button"
-              class:list={["gal-chip", "gal-chip--section", "gal-chip--ai", { "is-active": initialSection === "ai-academy" }]}
-              data-section-filter="ai-academy"
-              aria-pressed={initialSection === "ai-academy" ? "true" : "false"}
-            >
-              AI Academy <small>{pad(aiAcademyGalleries.length)}</small>
-            </button>
-          </nav>
+        {usedCategories.length > 1 && (
+          <div class="gal-filter-bars sections" data-reveal>
+            <nav class="gal-filters" aria-label="Filtrar galerías por categoría">
+              <span>Categoría</span>
+              <button type="button" class="gal-chip is-active" data-filter="todas" aria-pressed="true">Todas <small>{pad(scopedGalleries.length)}</small></button>
+              {usedCategories.map((category) => (
+                <button type="button" class="gal-chip" data-filter={category.slug} aria-pressed="false" style={catStyle(category.color)}>{category.name} <small>{pad(scopedGalleries.filter((gallery) => gallery.category.slug === category.slug).length)}</small></button>
+              ))}
+            </nav>
+          </div>
+        )}
 
-          <nav class="gal-filters" aria-label="Filtrar galerías por categoría">
-            <span>Categoría</span>
-            <button type="button" class="gal-chip is-active" data-filter="todas" aria-pressed="true">Todas <small>{pad(galleries.length)}</small></button>
-            {usedCategories.map((category) => (
-              <button type="button" class="gal-chip" data-filter={category.slug} aria-pressed="false" style={catStyle(category.color)}>{category.name} <small>{pad(galleries.filter((gallery) => gallery.category.slug === category.slug).length)}</small></button>
-            ))}
-          </nav>
-        </div>
-
-        <section class="gal-grid sections" aria-label="Todas las galerías" data-grid>
-          {galleries.map((gallery, index) => {
-            const visibleByDefault = matchesInitialSection(gallery.targetSection);
-            const targetBadge =
-              gallery.targetSection === "ai-academy"
-                ? "AI Academy"
-                : gallery.targetSection === "join-us"
-                  ? "Sé un Camper"
-                  : null;
-            return (
-              <article
-                class:list={["gal-card", { "is-hidden": !visibleByDefault }]}
-                data-cat={gallery.category.slug}
-                data-section={gallery.targetSection || "ambas"}
-                data-photos={gallery.images.length}
-                style={`${catStyle(gallery.category.color)};--delay:${(index % 3) * 0.08}s`}
-                data-reveal
-              >
-                <a data-gal-link data-slug={gallery.slug} href={galleryHref(gallery.slug)}>
-                  <div class:list={["gal-card__mosaic", `gal-card__mosaic--${Math.min(gallery.images.length, 3)}`]}>
-                    {gallery.images.slice(0, 3).map((image, imageIndex) => <img src={image.formats?.medium?.url || image.url} alt={imageIndex === 0 ? image.alternativeText || gallery.title : ""} width={image.width} height={image.height} loading={index < 3 ? "eager" : "lazy"} decoding="async" />)}
-                    {!gallery.images.length && <span>{"{ 00 }"}</span>}
-                    <b>{pad(gallery.images.length)} fotos</b>
+        <section class="gal-grid sections" aria-label={isAiAcademy ? "Galerías de AI Academy" : "Galerías de CodeUp y Sé un Camper"} data-grid>
+          {scopedGalleries.map((gallery, index) => (
+            <article
+              class="gal-card"
+              data-cat={gallery.category.slug}
+              style={`${catStyle(gallery.category.color)};--delay:${(index % 3) * 0.08}s`}
+              data-reveal
+            >
+              <a href={galleryHref(gallery.slug)}>
+                <div class:list={["gal-card__mosaic", `gal-card__mosaic--${Math.min(gallery.images.length, 3)}`]}>
+                  {gallery.images.slice(0, 3).map((image, imageIndex) => <img src={image.formats?.medium?.url || image.url} alt={imageIndex === 0 ? image.alternativeText || gallery.title : ""} width={image.width} height={image.height} loading={index < 3 ? "eager" : "lazy"} decoding="async" />)}
+                  {!gallery.images.length && <span>{"{ 00 }"}</span>}
+                  <b>{pad(gallery.images.length)} fotos</b>
+                </div>
+                <div class="gal-card__body">
+                  <div class="gal-card__eyebrow-row">
+                    <p class="gal-eyebrow"><i></i>{gallery.category.name}</p>
+                    <span class:list={["gal-card__section-pill", `gal-card__section-pill--${activeSection}`]}>
+                      {isAiAcademy ? "AI Academy" : "CodeUp · Camper"}
+                    </span>
                   </div>
-                  <div class="gal-card__body">
-                    <div class="gal-card__eyebrow-row">
-                      <p class="gal-eyebrow"><i></i>{gallery.category.name}</p>
-                      {targetBadge && <span class:list={["gal-card__section-pill", `gal-card__section-pill--${gallery.targetSection}`]}>{targetBadge}</span>}
-                    </div>
-                    <h2>{gallery.title}</h2>
-                    <p>{gallery.description}</p>
-                    <footer><span>{formatBlogDate(gallery.publishDate)}</span><b>Abrir galería</b></footer>
-                  </div>
-                </a>
-              </article>
-            );
-          })}
+                  <h2>{gallery.title}</h2>
+                  <p>{gallery.description}</p>
+                  <footer><span>{formatBlogDate(gallery.publishDate)}</span><b>Abrir galería</b></footer>
+                </div>
+              </a>
+            </article>
+          ))}
         </section>
-        <div class="gal-empty sections" data-no-results hidden={scopedGalleries.length > 0}>
+        <div class="gal-empty sections" data-no-results hidden>
           <span>{"{ 00 }"}</span>
-          <h2>No hay galerías para este filtro</h2>
-          <p>Prueba seleccionando otra categoría o cambia a «Todas las pantallas».</p>
+          <h2>No hay galerías en esta categoría</h2>
         </div>
       </>
     ) : (
-      <section class="gal-empty sections"><span>{"{ 00 }"}</span><h2>Todavía no hay galerías publicadas</h2><p>Las primeras fotos de nuestros campers aparecerán aquí muy pronto.</p></section>
+      <section class="gal-empty sections">
+        <span>{"{ 00 }"}</span>
+        <h2>
+          {isAiAcademy
+            ? "Todavía no hay galerías publicadas en AI Academy"
+            : "Todavía no hay galerías publicadas en CodeUp · Sé un Camper"}
+        </h2>
+        <p>
+          {isAiAcademy
+            ? "Las próximas fotografías de nuestros talleres y laboratorios de inteligencia artificial aparecerán aquí muy pronto."
+            : "Las próximas fotografías de nuestros entrenamientos de desarrollo de software y comunidad Camper aparecerán aquí muy pronto."}
+        </p>
+      </section>
     )}
     <div class="gal-end"></div>
   </div>
@@ -227,126 +220,30 @@ const galleryHref = (slug: string) =>
     }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
     root.querySelectorAll("[data-reveal]").forEach((node) => observer.observe(node));
 
-    const sectionChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-section-filter]"));
     const catChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-filter]"));
     const cards = Array.from(root.querySelectorAll<HTMLElement>(".gal-card"));
-    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>("[data-gal-link]"));
     const empty = root.querySelector<HTMLElement>("[data-no-results]");
-    const featuredSection = root.querySelector<HTMLElement>("[data-featured-section]");
-    const eyebrowNode = root.querySelector<HTMLElement>("[data-gal-eyebrow]");
-    const originBack = root.querySelector<HTMLAnchorElement>("[data-origin-back]");
-    const originBackText = root.querySelector<HTMLElement>("[data-origin-back-text]");
-    const statGalleries = root.querySelector<HTMLElement>("[data-stat-galleries]");
-    const statPhotos = root.querySelector<HTMLElement>("[data-stat-photos]");
-
-    const params = new URLSearchParams(window.location.search);
-    const urlSection = params.get("seccion");
-    let activeSection =
-      urlSection === "join-us" || urlSection === "ai-academy"
-        ? urlSection
-        : (root.dataset.initialSection as "todas" | "join-us" | "ai-academy") || "todas";
-    let activeCat = "todas";
-
-    const pad = (value: number) => String(value).padStart(2, "0");
-    const eyebrowMap: Record<string, string> = {
-      todas: "Galería · Campuslands Guatemala",
-      "join-us": "Galería · Sé un Camper · Campuslands Guatemala",
-      "ai-academy": "Galería · AI Academy · Campuslands Guatemala",
-    };
-
-    const matchesSection = (cardSection: string, filterSection: string) => {
-      if (filterSection === "todas") return true;
-      return cardSection === "ambas" || cardSection === filterSection;
-    };
-
-    const applyFilters = (syncUrl = false) => {
-      sectionChips.forEach((item) => {
-        const active = item.dataset.sectionFilter === activeSection;
-        item.classList.toggle("is-active", active);
-        item.setAttribute("aria-pressed", String(active));
-      });
-      catChips.forEach((item) => {
-        const active = item.dataset.filter === activeCat;
-        item.classList.toggle("is-active", active);
-        item.setAttribute("aria-pressed", String(active));
-      });
-
-      let visible = 0;
-      let sectionGalleriesCount = 0;
-      let sectionPhotosCount = 0;
-
-      cards.forEach((card) => {
-        const cardSection = card.dataset.section || "ambas";
-        const cardCat = card.dataset.cat || "";
-        const inSection = matchesSection(cardSection, activeSection);
-        if (inSection) {
-          sectionGalleriesCount += 1;
-          sectionPhotosCount += Number(card.dataset.photos || 0);
-        }
-        const show = inSection && (activeCat === "todas" || cardCat === activeCat);
-        card.classList.toggle("is-hidden", !show);
-        if (show) {
-          visible += 1;
-          card.classList.add("is-in");
-        }
-      });
-
-      if (empty) empty.hidden = visible > 0;
-      if (featuredSection) {
-        const featSec = featuredSection.dataset.featuredSection || "ambas";
-        featuredSection.hidden = !matchesSection(featSec, activeSection);
-      }
-      if (eyebrowNode) {
-        eyebrowNode.textContent = eyebrowMap[activeSection] || eyebrowMap.todas;
-      }
-      if (originBack && originBackText) {
-        if (activeSection === "ai-academy") {
-          originBack.hidden = false;
-          originBack.href = "/ai-academy/";
-          originBackText.textContent = "Volver a AI Academy";
-        } else if (activeSection === "join-us") {
-          originBack.hidden = false;
-          originBack.href = "/joinUs/";
-          originBackText.textContent = "Volver a Sé un Camper";
-        } else {
-          originBack.hidden = true;
-        }
-      }
-      if (statGalleries) statGalleries.textContent = pad(sectionGalleriesCount);
-      if (statPhotos) statPhotos.textContent = pad(sectionPhotosCount);
-
-      links.forEach((link) => {
-        const slug = link.dataset.slug;
-        if (!slug) return;
-        link.href = activeSection === "todas" ? `/galeria/${slug}/` : `/galeria/${slug}/?seccion=${activeSection}`;
-      });
-
-      if (syncUrl) {
-        const nextUrl = new URL(window.location.href);
-        if (activeSection === "todas") {
-          nextUrl.searchParams.delete("seccion");
-        } else {
-          nextUrl.searchParams.set("seccion", activeSection);
-        }
-        window.history.replaceState(null, "", nextUrl.pathname + nextUrl.search);
-      }
-    };
-
-    sectionChips.forEach((chip) =>
-      chip.addEventListener("click", () => {
-        activeSection = (chip.dataset.sectionFilter as "todas" | "join-us" | "ai-academy") || "todas";
-        applyFilters(true);
-      }),
-    );
 
     catChips.forEach((chip) =>
       chip.addEventListener("click", () => {
-        activeCat = chip.dataset.filter || "todas";
-        applyFilters(false);
+        const filter = chip.dataset.filter || "todas";
+        catChips.forEach((item) => {
+          const active = item === chip;
+          item.classList.toggle("is-active", active);
+          item.setAttribute("aria-pressed", String(active));
+        });
+        let visible = 0;
+        cards.forEach((card) => {
+          const show = filter === "todas" || card.dataset.cat === filter;
+          card.classList.toggle("is-hidden", !show);
+          if (show) {
+            visible += 1;
+            card.classList.add("is-in");
+          }
+        });
+        if (empty) empty.hidden = visible > 0;
       }),
     );
-
-    applyFilters(false);
   }
   document.addEventListener("astro:page-load", initGallery);
   initGallery();
